@@ -1,0 +1,39 @@
+# Local credentials and machine-specific settings
+.env
+.env.*
+!.env.example
+!.env.nebius.example
+.DS_Store
+
+# Python and Node dependencies
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+node_modules/
+
+# Reproducible upstream snapshots and generated runtime artifacts
+vendor/
+.cache/
+.runtime/
+runs/
+dist/
+build/
+
+# Historical material is retained locally, outside the ForgeFlow source tree
+历史资料归档_2026-10-20/
+
+# Organizer-provided requirements; belongs to the competition, not to this source tree
+提交要求.pdf
+
+approvals/
+
+补充材料/
+
+deploy/.env
+
+web/node_modules/
+web/dist/
+src/forgeflow/api/static/app/

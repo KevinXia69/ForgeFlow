@@ -1,0 +1,41 @@
+{
+  "anchor_date": "2026-10-22",
+  "budgets": {
+    "1": 3735.0,
+    "2": 4231.0,
+    "3": 4643.0,
+    "4": 6417.0,
+    "5": 6828.0
+  },
+  "contract_id": "ff-2280-policy-v1",
+  "disruption": {
+    "kind": "supplier_cancellation",
+    "vendor_name": "Stonewall Components",
+    "vendor_ref": "r27637E67E7_q02"
+  },
+  "expires_at_utc": null,
+  "forbidden_operation_kinds": [],
+  "forbidden_workcenters": [],
+  "kind": "forgeflow.task_contract",
+  "margin": 0.275,
+  "margin_basis": "portfolio_new_spend_margin_at_list_price",
+  "original_commitment_policy": "keep_unaffected_work_cancel_only_affected_commitment",
+  "product_code": "P27637E67E7-LED-CRS-009",
+  "sales_order_ids": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "schema_version": 1,
+  "sources": {
+    "budgets": "instruction.md lines 3-7",
+    "disruption": "live res.partner ref r27637E67E7_q02 (Stonewall Components)",
+    "instruction": "vendor/erp-bench/tasks/2280_medium_repair_plan_medium/instruction.md",
+    "margin": "instruction.md margin paragraph"
+  },
+  "task_id": "2280_medium_repair_plan_medium",
+  "task_type": "supplier_cancellation",
+  "time_granularity": "day"
+}

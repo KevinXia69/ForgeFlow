@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ForgeFlow · 实验运行台</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">F</span><span>ForgeFlow<span class="brand-divider">/</span><small>实验运行台</small></span></div>
+    <span class="local-badge"><span class="dot"></span> 本地 · 只读</span>
+  </header>
+  <main>
+    <section class="intro">
+      <div><p class="eyebrow">MANUFACTURING RECOVERY AGENT</p><h1>每次修复，都有据可查。</h1><p class="subtitle">查看供应商断供与产线停机场景的真实运行、原始验收及失败记录。</p></div>
+      <div class="refresh-control"><button id="refresh" type="button">刷新记录 <span aria-hidden="true">↻</span></button><span id="updated">正在读取本地结果…</span></div>
+    </section>
+    <div class="notice"><span class="notice-tag">实验边界</span><span>环境对照、Agent 评测和模型接入检查分别展示。此页面只读取证据，不执行 ERP 操作或改变原始验收。</span></div>
+    <p class="muted small">新运行的默认输出上限由模型服务端决定；历史记录保留各次实际使用的配置。</p>
+    <section class="metrics" aria-label="实验概览">
+      <article><span class="metric-label">ERP 运行记录</span><strong id="run-count">—</strong><span class="metric-note">包含进行中和失败记录</span></article>
+      <article><span class="metric-label">有效 Agent 试次</span><strong id="agent-count">未测量</strong><span class="metric-note">成功计数按下方实验配置分别展示</span></article>
+      <article><span class="metric-label">环境对照符合预期</span><strong id="control-count">未测量</strong><span class="metric-note">官方参考执行 / 空操作</span></article>
+      <article><span class="metric-label">模型接口检查</span><strong id="probe-status">未运行</strong><span class="metric-note">不计入业务任务成功率</span></article>
+    </section>
+    <section class="group-panel" aria-label="按配置分组的 Agent 结果">
+      <div class="panel-heading"><div><p class="eyebrow">EXPERIMENT GROUPS</p><h2>Agent 结果 · 按配置分组</h2></div><span class="badge neutral">严格通过 / 有效试次</span></div>
+      <p class="muted group-note">原始任务与规划参数可见性变体分别统计，同时区分任务、执行提示、求解工具、模型、已记录预算及输出策略版本。工具配置与输出策略同时变化时，不属于单因素对照。各组计数不代表因果改善；缺失的历史参数显示为未记录。</p>
+      <div class="table-scroll"><table><thead><tr><th>任务 / 模型</th><th>数据类型</th><th>执行提示 / 求解工具</th><th>输出 / 运行预算</th><th class="numeric">严格通过 / 有效</th></tr></thead><tbody id="agent-group-rows"></tbody></table></div>
+      <p id="empty-groups" class="empty-group muted">暂无可分组的有效 Agent 评测。</p>
+    </section>
+    <section class="workspace">
+      <div class="runs-panel">
+        <div class="panel-heading"><div><p class="eyebrow">RUN HISTORY</p><h2>任务运行</h2></div><span id="visible-count" class="muted">0 条记录</span></div>
+        <div class="filters" aria-label="运行类型">
+          <button class="filter active" data-filter="all" type="button">全部记录</button>
+          <button class="filter" data-filter="agent_evaluation" type="button">Agent 评测</button>
+          <button class="filter" data-filter="environment_control" type="button">环境对照</button>
+          <div class="data-filter"><label for="data-profile-filter">数据类型</label><select id="data-profile-filter"><option value="all">全部类型</option><option value="original">原始任务</option><option value="planning-metadata-v1">规划参数可见性变体</option><option value="unknown">未识别</option></select></div>
+        </div>
+        <div class="table-scroll"><table><thead><tr><th>任务 / 运行</th><th>类型</th><th>状态</th><th class="numeric">原始分数</th></tr></thead><tbody id="run-rows"></tbody></table></div>
+        <div id="empty-runs" class="empty"><span class="empty-icon">↗</span><h3 id="empty-title">尚无 ERP 任务记录</h3><p id="empty-description">完成一次官方参考执行、空操作或 Pi 评测后，记录会自动显示在这里。</p></div>
+      </div>
+      <aside class="detail-panel" aria-live="polite">
+        <div class="panel-heading"><div><p class="eyebrow">EVIDENCE</p><h2>运行详情</h2></div><span id="detail-badge" class="badge neutral">未选择</span></div>
+        <div id="detail-empty" class="empty compact"><p>选择左侧一条记录，查看验收结论、约束明细与证据位置。</p></div>
+        <div id="detail" hidden>
+          <h3 id="detail-task"></h3><p id="detail-id" class="mono muted"></p>
+          <p id="detail-experiment-note" class="experiment-note small"></p>
+          <dl id="detail-facts"></dl>
+          <div id="trace-section" class="detail-section" hidden><h3>最终响应状态</h3><p id="response-status" class="small"></p><p id="response-usage" class="muted small"></p><p class="muted small">仅记录最后一次模型响应，不代替业务验收。</p><h3>Agent 工具轨迹 <span id="trace-count" class="muted"></span></h3><p id="trace-note" class="muted small"></p><ol id="trace-steps" class="trace-steps"></ol></div>
+          <div class="detail-section"><h3>原始规则明细 <span id="rule-count" class="muted"></span></h3><div id="rules"></div></div>
+          <div class="detail-section"><h3>证据位置</h3><p class="muted small">相对于当前工作目录；原始文件保留在本地。</p><ul id="evidence" class="evidence-list"></ul></div>
+        </div>
+      </aside>
+    </section>
+    <section class="probe-panel">
+      <div class="panel-heading"><div><p class="eyebrow">CONNECTION CHECKS</p><h2>模型工具回路</h2></div><span class="badge neutral">独立接入检查</span></div>
+      <p class="muted">模型列表、无副作用工具调用及结果续接。通过此检查不代表 Pi 已完成 ERP 任务。</p>
+      <div id="probe-rows"></div>
+    </section>
+    <p id="error" class="error" role="alert" hidden></p>
+    <footer><span>ForgeFlow · 复用实现 → 真实任务 → 失败分析 → 同条件验证</span><span>时间：America/Los_Angeles</span></footer>
+  </main>
+</body>
+</html>

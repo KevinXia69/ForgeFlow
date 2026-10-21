@@ -1,0 +1,117 @@
+{
+    "id": "2b2ccd5d-e080-4e17-b624-958f08295aab",
+    "task_name": "agentic-labs/2299_hard_repair_plan_hard",
+    "trial_name": "2299_hard_repair_plan_hard__G8WvjsJ",
+    "trial_uri": "file:///Users/xiayihan/Documents/ChatGPT/Nebius%20%C3%97%20NVIDIA%20Global%20AI%20Hackathon/runs/p5-B-nop-meta-r1/harbor/job/2299_hard_repair_plan_hard__G8WvjsJ",
+    "task_id": {
+        "path": "/Users/xiayihan/Documents/ChatGPT/Nebius × NVIDIA Global AI Hackathon/runs/p5-B-nop-meta-r1/task/2299_hard_repair_plan_hard"
+    },
+    "source": null,
+    "task_checksum": "c5c259edb89db21a08bd4eaf69cfae156cb644ecf84e8f10035887e65c565efe",
+    "config": {
+        "task": {
+            "path": "/Users/xiayihan/Documents/ChatGPT/Nebius × NVIDIA Global AI Hackathon/runs/p5-B-nop-meta-r1/task/2299_hard_repair_plan_hard",
+            "git_url": null,
+            "git_commit_id": null,
+            "name": null,
+            "ref": null,
+            "overwrite": false,
+            "download_dir": null,
+            "source": null
+        },
+        "trial_name": "2299_hard_repair_plan_hard__G8WvjsJ",
+        "trials_dir": "/Users/xiayihan/Documents/ChatGPT/Nebius × NVIDIA Global AI Hackathon/runs/p5-B-nop-meta-r1/harbor/job",
+        "install_only": false,
+        "timeout_multiplier": 1.0,
+        "agent_timeout_multiplier": 1.0,
+        "verifier_timeout_multiplier": null,
+        "agent_setup_timeout_multiplier": null,
+        "environment_build_timeout_multiplier": null,
+        "agent": {
+            "name": "nop",
+            "import_path": null,
+            "model_name": null,
+            "n_concurrent": null,
+            "concurrency_group": null,
+            "skills": [],
+            "override_timeout_sec": null,
+            "override_setup_timeout_sec": null,
+            "max_timeout_sec": null,
+            "resume_trajectory": false,
+            "load_trajectory": null,
+            "extra_allowed_hosts": [],
+            "kwargs": {},
+            "mcp_servers": []
+        },
+        "user_agent": null,
+        "environment": {
+            "type": "docker",
+            "import_path": null,
+            "force_build": false,
+            "delete": true,
+            "stream": false,
+            "cpu_enforcement_policy": "auto",
+            "memory_enforcement_policy": "auto",
+            "override_cpus": null,
+            "override_memory_mb": null,
+            "override_storage_mb": null,
+            "override_gpus": null,
+            "override_tpu": null,
+            "mounts": null,
+            "extra_docker_compose": [],
+            "kwargs": {},
+            "extra_allowed_hosts": []
+        },
+        "verifier": {
+            "override_timeout_sec": null,
+            "max_timeout_sec": null,
+            "import_path": "forgeflow.verifier:ERPBenchVerifier",
+            "disable": false
+        },
+        "artifacts": [],
+        "extra_instruction_paths": [],
+        "extra_instructions": [],
+        "job_id": "e14031d9-d332-46fe-8157-6762efde8ce6",
+        "source_trial": null
+    },
+    "agent_info": {
+        "name": "nop",
+        "version": "1.0.0",
+        "model_info": null
+    },
+    "agent_result": {
+        "n_input_tokens": null,
+        "n_cache_tokens": null,
+        "n_output_tokens": null,
+        "cost_usd": null,
+        "model_usage": null,
+        "rollout_details": null,
+        "metadata": null
+    },
+    "verifier_result": {
+        "rewards": {
+            "reward": 0.0
+        }
+    },
+    "verifier_environment_mode": "shared",
+    "exception_info": null,
+    "started_at": "2026-10-21T13:36:10.502340Z",
+    "finished_at": "2026-10-21T13:39:18.952834Z",
+    "environment_setup": {
+        "started_at": "2026-10-21T13:36:10.633253Z",
+        "finished_at": "2026-10-21T13:36:12.347747Z"
+    },
+    "agent_setup": {
+        "started_at": "2026-10-21T13:36:12.347860Z",
+        "finished_at": "2026-10-21T13:36:12.348024Z"
+    },
+    "agent_execution": {
+        "started_at": "2026-10-21T13:36:12.348220Z",
+        "finished_at": "2026-10-21T13:36:12.349925Z"
+    },
+    "verifier": {
+        "started_at": "2026-10-21T13:36:12.580522Z",
+        "finished_at": "2026-10-21T13:39:17.754598Z"
+    },
+    "step_results": null
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "erp-bench": {
+      "repository": "https://github.com/agentic-labs/erp-bench",
+      "commit": "ceba3880af555129b5278e056a0c20f2fb5a0ba9",
+      "source_url": "https://codeload.github.com/agentic-labs/erp-bench/tar.gz/ceba3880af555129b5278e056a0c20f2fb5a0ba9",
+      "archive_sha256": "dff7d2c1b6fde0c4cc690110f0edee395cfd434d9d762375b7a609b4d922563d",
+      "tree_sha256": "ca6d9a7e48988ff3f7137c8f169abef2f3ad1f5821e0e235b36fdcd89b867d45"
+    },
+    "pi-mono": {
+      "repository": "https://github.com/agentic-labs/pi-mono",
+      "commit": "08dc60bc52d89d6823a9738cc90b1916e5e446e5",
+      "source_url": "https://codeload.github.com/agentic-labs/pi-mono/tar.gz/08dc60bc52d89d6823a9738cc90b1916e5e446e5",
+      "archive_sha256": "071dc206a34e6b3da9b3e44302e66d0af67a62d5cef3ad2a9256059047efa109",
+      "tree_sha256": "b98ce79bd87553dd5ccc338da52f55f791c3e5e43636228080cd85ad11055237"
+    }
+  }
+}

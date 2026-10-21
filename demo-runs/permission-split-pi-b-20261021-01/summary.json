@@ -1,0 +1,40 @@
+{
+  "agent": "pi",
+  "all_applicable_rules_pass": true,
+  "attestation": {
+    "artifact_count": 7,
+    "key_id": "sha256:654392238ce125cf60fa1f855c0bbfe09f5a1cf716c9f7ccb8cb0a174b8de654",
+    "status": "verified"
+  },
+  "data_profile": "planning-metadata-v1",
+  "environment_chain_ok": true,
+  "evaluation_valid": true,
+  "expected_control_outcome": null,
+  "failed_rule_count": 0,
+  "harbor_returncode": 0,
+  "issues": [],
+  "metrics": {
+    "cost_usd": null,
+    "n_cache_tokens": 746368,
+    "n_input_tokens": 1037785,
+    "n_output_tokens": 70612
+  },
+  "mode": "benchmark_visibility_experiment",
+  "original_passed": true,
+  "planner_profile": "cp-sat-recovery-v1",
+  "raw_result_path": "harbor/job/2299_hard_repair_plan_hard__NJ94Hg7/result.json",
+  "raw_reward_path": "harbor/job/2299_hard_repair_plan_hard__NJ94Hg7/verifier/reward.json",
+  "raw_task_strict_success": true,
+  "run_id": "permission-split-pi-b-20261021-01",
+  "runner_error": null,
+  "schema_version": 1,
+  "score": 100.0,
+  "score_scale": [
+    0,
+    100
+  ],
+  "state": "completed",
+  "strict_success": true,
+  "task": "2299_hard_repair_plan_hard",
+  "trial_exception": null
+}

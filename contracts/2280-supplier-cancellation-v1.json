@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "kind": "forgeflow.task_contract",
+  "contract_id": "2280-supplier-cancellation-v1",
+  "task_id": "2280_medium_repair_plan_medium",
+  "task_type": "supplier_cancellation",
+  "product_code": "P27637E67E7-LED-CRS-009",
+  "anchor_date": "2026-10-21",
+  "margin": 0.275,
+  "margin_basis": "portfolio_new_spend_margin_at_selling_price",
+  "time_granularity": "day",
+  "budgets": {"1": 3735.0, "2": 4231.0, "3": 4643.0, "4": 6417.0, "5": 6828.0},
+  "sales_order_ids": [1, 2, 3, 4, 5],
+  "disruption": {
+    "kind": "supplier_cancellation",
+    "vendor_ref": "r27637E67E7_q02",
+    "vendor_name": "Stonewall Components"
+  },
+  "forbidden_workcenters": [],
+  "forbidden_operation_kinds": [],
+  "original_commitment_policy": "keep_commitments_that_still_work_and_minimize_change",
+  "sources": {
+    "budgets": "instruction.md:3-7 lists $3,735/$4,231/$4,643/$6,417/$6,828 (units 7/8/9/13/13, due 8/8/9/10/10); scenario_data.json customer budget_dollars rounded to whole dollars agrees",
+    "margin": "instruction.md:11 'at or above 27.5% at selling price'; scenario_data.json erp_bench.min_margin_percent=27.5",
+    "product_code": "instruction.md:1 'Clean Room Sealed Fixture'; recorded snapshot product.product id=2 default_code",
+    "sales_order_ids": "recorded request sales_order_ids; snapshot sale.order id 1-5",
+    "anchor_date": "recorded request anchor_date=2026-10-21; snapshot collected_at_utc=2026-10-21T04:52:34Z",
+    "budget_to_order_join": "sale.order.partner_id name equals the instruction customer names; client_order_ref o01-o05 maps to customer_ref c01-c05 in scenario_data.json",
+    "disruption": "instruction.md:21 'Stonewall Components'; snapshot res.partner id=7 ref=r27637E67E7_q02",
+    "forbidden_operation_kinds": "both planning document kinds are allowed by this task; physical actions are impossible by executor construction (recovery/journal.py KINDS)",
+    "original_commitment_policy": "instruction.md:15,20",
+    "expires_at_utc": "the instruction states no expiry and the recorded request carries none"
+  },
+  "expires_at_utc": null
+}

@@ -1,0 +1,11 @@
+/* Ported from DSH packages/client/ui-chat/src/client/chat/ChatView.module.css
+   (frame/root/scroll/column contract). ForgeFlow supplies the node content. */
+.frame { position: relative; display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; container-type: inline-size; }
+.root { position: relative; display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; overflow-x: visible; overflow-y: clip; }
+.root[data-chat-following-tail] .scroll { overflow-anchor: none; }
+.scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 16px calc(var(--dsh-composer-side-clearance) + 16px); container-type: inline-size; scrollbar-width: none; -ms-overflow-style: none; }
+.scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
+.column { max-width: var(--dsh-chat-content-width); width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.toBottomSlot { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); }
+.toBottom { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid #e4e7ec; border-radius: 999px; background: #fff; color: #667085; box-shadow: 0 4px 14px rgba(16,24,40,.08); }
+.toBottom:hover { color: #101828; border-color: #cfd8e6; }

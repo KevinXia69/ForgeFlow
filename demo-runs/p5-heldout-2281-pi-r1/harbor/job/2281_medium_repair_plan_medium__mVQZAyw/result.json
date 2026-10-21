@@ -1,0 +1,124 @@
+{
+    "id": "323b4326-5707-4792-91ba-b2f694be4905",
+    "task_name": "agentic-labs/2281_medium_repair_plan_medium",
+    "trial_name": "2281_medium_repair_plan_medium__mVQZAyw",
+    "trial_uri": "file:///Users/xiayihan/Documents/ChatGPT/Nebius%20%C3%97%20NVIDIA%20Global%20AI%20Hackathon/runs/p5-heldout-2281-pi-r1/harbor/job/2281_medium_repair_plan_medium__mVQZAyw",
+    "task_id": {
+        "path": "/Users/xiayihan/Documents/ChatGPT/Nebius × NVIDIA Global AI Hackathon/runs/p5-heldout-2281-pi-r1/task/2281_medium_repair_plan_medium"
+    },
+    "source": null,
+    "task_checksum": "2b0ca5518c6adeebf74207f319d19a35b9a880640f851a7d171d4e3082b4ee0b",
+    "config": {
+        "task": {
+            "path": "/Users/xiayihan/Documents/ChatGPT/Nebius × NVIDIA Global AI Hackathon/runs/p5-heldout-2281-pi-r1/task/2281_medium_repair_plan_medium",
+            "git_url": null,
+            "git_commit_id": null,
+            "name": null,
+            "ref": null,
+            "overwrite": false,
+            "download_dir": null,
+            "source": null
+        },
+        "trial_name": "2281_medium_repair_plan_medium__mVQZAyw",
+        "trials_dir": "/Users/xiayihan/Documents/ChatGPT/Nebius × NVIDIA Global AI Hackathon/runs/p5-heldout-2281-pi-r1/harbor/job",
+        "install_only": false,
+        "timeout_multiplier": 1.0,
+        "agent_timeout_multiplier": 0.16666666666666666,
+        "verifier_timeout_multiplier": null,
+        "agent_setup_timeout_multiplier": null,
+        "environment_build_timeout_multiplier": null,
+        "agent": {
+            "name": "forgeflow.agents.pi_nebius:PiNebius",
+            "import_path": null,
+            "model_name": "nebius/nvidia/Nemotron-3.5-Super-VL",
+            "n_concurrent": null,
+            "concurrency_group": null,
+            "skills": [],
+            "override_timeout_sec": null,
+            "override_setup_timeout_sec": null,
+            "max_timeout_sec": null,
+            "resume_trajectory": false,
+            "load_trajectory": null,
+            "extra_allowed_hosts": [],
+            "kwargs": {
+                "workspace_root": "/Users/xiayihan/Documents/ChatGPT/Nebius × NVIDIA Global AI Hackathon",
+                "planner_profile": "cp-sat-recovery-v1",
+                "security_profile": "permission-split-v1"
+            },
+            "mcp_servers": []
+        },
+        "user_agent": null,
+        "environment": {
+            "type": "docker",
+            "import_path": null,
+            "force_build": false,
+            "delete": true,
+            "stream": false,
+            "cpu_enforcement_policy": "auto",
+            "memory_enforcement_policy": "auto",
+            "override_cpus": null,
+            "override_memory_mb": null,
+            "override_storage_mb": null,
+            "override_gpus": null,
+            "override_tpu": null,
+            "mounts": null,
+            "extra_docker_compose": [],
+            "kwargs": {},
+            "extra_allowed_hosts": []
+        },
+        "verifier": {
+            "override_timeout_sec": null,
+            "max_timeout_sec": null,
+            "import_path": "forgeflow.verifier:ERPBenchVerifier",
+            "disable": false
+        },
+        "artifacts": [],
+        "extra_instruction_paths": [],
+        "extra_instructions": [],
+        "job_id": "39dffa93-7297-432e-839b-4c97cfed5241",
+        "source_trial": null
+    },
+    "agent_info": {
+        "name": "forgeflow-pi-nebius",
+        "version": "0.85.1",
+        "model_info": {
+            "name": "nvidia/Nemotron-3.5-Super-VL",
+            "provider": "nebius"
+        }
+    },
+    "agent_result": {
+        "n_input_tokens": 2997938,
+        "n_cache_tokens": 2532864,
+        "n_output_tokens": 112392,
+        "cost_usd": null,
+        "model_usage": null,
+        "rollout_details": null,
+        "metadata": null
+    },
+    "verifier_result": {
+        "rewards": {
+            "reward": 0.0
+        }
+    },
+    "verifier_environment_mode": "shared",
+    "exception_info": null,
+    "started_at": "2026-10-21T14:30:30.123403Z",
+    "finished_at": "2026-10-21T14:41:12.417556Z",
+    "environment_setup": {
+        "started_at": "2026-10-21T14:30:30.250480Z",
+        "finished_at": "2026-10-21T14:30:33.477589Z"
+    },
+    "agent_setup": {
+        "started_at": "2026-10-21T14:30:33.477680Z",
+        "finished_at": "2026-10-21T14:32:50.784949Z"
+    },
+    "agent_execution": {
+        "started_at": "2026-10-21T14:32:50.785289Z",
+        "finished_at": "2026-10-21T14:40:09.331453Z"
+    },
+    "verifier": {
+        "started_at": "2026-10-21T14:40:09.734143Z",
+        "finished_at": "2026-10-21T14:41:01.468758Z"
+    },
+    "step_results": null
+}

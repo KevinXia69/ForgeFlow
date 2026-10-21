@@ -1,0 +1,34 @@
+.chain { min-width: 0; }
+.chain p { line-height: 1.6; overflow-wrap: anywhere; }
+.select { display: grid; gap: 6px; max-width: 26rem; margin: 14px 0; font-weight: 600; }
+.select select { width: 100%; min-height: 42px; padding: 8px; border: 1px solid var(--line, #ddd); border-radius: 6px; background: var(--surface, #fff); color: inherit; font: inherit; }
+.phase { margin: 20px 0; }
+.tableWrap { max-width: 100%; margin: 12px 0; }
+.tableWrap table { width: 100%; min-width: 640px; }
+.tableWrap td { min-width: 120px; vertical-align: top; }
+.tableWrap td:nth-child(3) { min-width: 200px; }
+.node { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; min-height: 44px; max-width: 100%; white-space: normal; text-align: start; overflow-wrap: anywhere; }
+.node small { font-weight: 400; color: var(--muted); line-height: 1.4; }
+.nodes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.nodes > span { max-width: 100%; }
+.sources { margin-top: 10px; }
+.sources > div { padding: 8px 0; border-bottom: 1px solid var(--line, #ddd); }
+.chain summary { cursor: pointer; line-height: 1.5; padding: 6px 0; }
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.facts dt { font-size: 14px; color: var(--muted); }
+.facts dd { margin: 3px 0 0; overflow-wrap: anywhere; }
+.panel { padding: 16px; border: 1px solid var(--line, #ddd); border-radius: 8px; margin-top: 18px; }
+.panel h3:focus { outline: 2px solid currentColor; outline-offset: 4px; }
+.other, .missing { margin: 16px 0; }
+@media (max-width: 600px) {
+  .facts { grid-template-columns: 1fr; }
+  .panel { padding: 12px; }
+  .select { max-width: none; }
+}
+
+.summary { margin: 16px 0; padding: 18px 20px; border: 1px solid var(--line, #ddd); border-radius: 12px; background: #fff; }
+.summary h3 { margin: 0 0 8px; font-family: var(--font-serif); font-size: 21px; font-weight: 500; }
+.summary p { margin: 0; font-size: 16px; line-height: 1.65; }
+.summary .summaryHelp { margin-top: 8px; color: var(--muted); font-size: 14px; }
+.details { margin: 14px 0; }
+.details > summary { cursor: pointer; padding: 10px 0; font-size: 14px; font-weight: 600; }

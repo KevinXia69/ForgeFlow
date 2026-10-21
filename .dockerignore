@@ -1,0 +1,13 @@
+.git
+.runtime
+runs
+vendor
+补充材料
+web/node_modules
+src/forgeflow/api/static/app
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.venv
+deploy/.env

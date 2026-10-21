@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "kind": "forgeflow.task_contract",
+  "contract_id": "2299-workcenter-outage-v1",
+  "task_id": "2299_hard_repair_plan_hard",
+  "task_type": "workcenter_outage",
+  "product_code": "P1223565D60-SOL-CSC-007",
+  "anchor_date": "2026-10-21",
+  "margin": 0.26,
+  "margin_basis": "portfolio_new_spend_margin_at_selling_price",
+  "time_granularity": "day",
+  "budgets": {
+    "1": 76068.0, "2": 61473.0, "3": 77258.0, "4": 95060.0,
+    "5": 63579.0, "6": 63986.0, "7": 92957.0, "8": 65686.0,
+    "9": 111508.0, "10": 72147.0, "11": 72994.0, "12": 90586.0
+  },
+  "sales_order_ids": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  "disruption": {
+    "kind": "workcenter_outage",
+    "workcenter_code": "P1223565D60-WC01",
+    "workcenter_name": "Assembly Line 1"
+  },
+  "forbidden_workcenters": ["P1223565D60-WC01"],
+  "forbidden_operation_kinds": [],
+  "original_commitment_policy": "cancel_affected_manufacturing_and_repair_the_plan",
+  "sources": {
+    "budgets": "instruction.md:3-14 lists $76,068/$61,473/$77,258/$95,060/$63,579/$63,986/$92,957/$65,686/$111,508/$72,147/$72,994/$90,586 (units 18/15/19/24/15/15/22/16/27/17/18/22, due 8/8/9/9/9/10/10/11/11/11/12/12); scenario_data.json customer budget_dollars rounded to whole dollars agrees",
+    "margin": "instruction.md:18 'at or above 26% at selling price'; scenario_data.json erp_bench.min_margin_percent=26",
+    "product_code": "instruction.md:1 'Carport Solar Canopy Module'; recorded snapshot product.product id=2 default_code",
+    "sales_order_ids": "recorded request sales_order_ids; snapshot sale.order id 1-12",
+    "anchor_date": "recorded request anchor_date=2026-10-21; snapshot collected_at_utc=2026-10-21T04:47Z",
+    "budget_to_order_join": "sale.order.partner_id name equals the instruction customer names; client_order_ref o01-o12 maps to customer_ref c01-c12 in scenario_data.json",
+    "disruption": "instruction.md:1,28 'Assembly Line 1'; scenario_data.json workcenter code/name; snapshot mrp.workcenter id=1",
+    "forbidden_workcenters": "instruction.md:29,46 'must not be used'; scenario_data.json workcenter note marks it down for the task-critical path",
+    "forbidden_operation_kinds": "both planning document kinds are allowed by this task; physical actions are impossible by executor construction (recovery/journal.py KINDS)",
+    "original_commitment_policy": "instruction.md:22,27,29",
+    "expires_at_utc": "the instruction states no expiry and the recorded request carries none"
+  },
+  "expires_at_utc": null
+}

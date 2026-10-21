@@ -1,0 +1,722 @@
+{
+  "overall_score": 0.0,
+  "passed": false,
+  "constraint": {
+    "earned": 32,
+    "total": 40
+  },
+  "hygiene": {
+    "earned": 13,
+    "total": 13
+  },
+  "optimality": {
+    "score": 93.48,
+    "total": 100.0
+  },
+  "rules": {
+    "total": 53,
+    "applicable": 53,
+    "passed": 50,
+    "failed": 3,
+    "not_applicable": 0,
+    "by_dimension": {
+      "constraint": [
+        {
+          "dimension": "constraint",
+          "rule": "demand_coverage",
+          "args": [
+            "r0F92F22386_c01",
+            "P0F92F22386-LED-BPL-010",
+            "11",
+            "gte"
+          ],
+          "expr": "demand_coverage r0F92F22386_c01 P0F92F22386-LED-BPL-010 11 gte",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "demand_coverage",
+          "args": [
+            "r0F92F22386_c02",
+            "P0F92F22386-LED-BPL-010",
+            "5",
+            "gte"
+          ],
+          "expr": "demand_coverage r0F92F22386_c02 P0F92F22386-LED-BPL-010 5 gte",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "demand_coverage",
+          "args": [
+            "r0F92F22386_c03",
+            "P0F92F22386-LED-BPL-010",
+            "13",
+            "gte"
+          ],
+          "expr": "demand_coverage r0F92F22386_c03 P0F92F22386-LED-BPL-010 13 gte",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "demand_coverage",
+          "args": [
+            "r0F92F22386_c04",
+            "P0F92F22386-LED-BPL-010",
+            "13",
+            "gte"
+          ],
+          "expr": "demand_coverage r0F92F22386_c04 P0F92F22386-LED-BPL-010 13 gte",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "demand_coverage",
+          "args": [
+            "r0F92F22386_c05",
+            "P0F92F22386-LED-BPL-010",
+            "13",
+            "gte"
+          ],
+          "expr": "demand_coverage r0F92F22386_c05 P0F92F22386-LED-BPL-010 13 gte",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "deadline_fulfillment",
+          "args": [
+            "r0F92F22386_c01",
+            "P0F92F22386-LED-BPL-010",
+            "8"
+          ],
+          "expr": "deadline_fulfillment r0F92F22386_c01 P0F92F22386-LED-BPL-010 8",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "deadline_fulfillment",
+          "args": [
+            "r0F92F22386_c02",
+            "P0F92F22386-LED-BPL-010",
+            "8"
+          ],
+          "expr": "deadline_fulfillment r0F92F22386_c02 P0F92F22386-LED-BPL-010 8",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "deadline_fulfillment",
+          "args": [
+            "r0F92F22386_c03",
+            "P0F92F22386-LED-BPL-010",
+            "8"
+          ],
+          "expr": "deadline_fulfillment r0F92F22386_c03 P0F92F22386-LED-BPL-010 8",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "deadline_fulfillment",
+          "args": [
+            "r0F92F22386_c04",
+            "P0F92F22386-LED-BPL-010",
+            "9"
+          ],
+          "expr": "deadline_fulfillment r0F92F22386_c04 P0F92F22386-LED-BPL-010 9",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "deadline_fulfillment",
+          "args": [
+            "r0F92F22386_c05",
+            "P0F92F22386-LED-BPL-010",
+            "9"
+          ],
+          "expr": "deadline_fulfillment r0F92F22386_c05 P0F92F22386-LED-BPL-010 9",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "list_price",
+          "args": [
+            "r0F92F22386_c01",
+            "P0F92F22386-LED-BPL-010",
+            "320.22"
+          ],
+          "expr": "list_price r0F92F22386_c01 P0F92F22386-LED-BPL-010 320.22",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "list_price",
+          "args": [
+            "r0F92F22386_c02",
+            "P0F92F22386-LED-BPL-010",
+            "320.22"
+          ],
+          "expr": "list_price r0F92F22386_c02 P0F92F22386-LED-BPL-010 320.22",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "list_price",
+          "args": [
+            "r0F92F22386_c03",
+            "P0F92F22386-LED-BPL-010",
+            "320.22"
+          ],
+          "expr": "list_price r0F92F22386_c03 P0F92F22386-LED-BPL-010 320.22",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "list_price",
+          "args": [
+            "r0F92F22386_c04",
+            "P0F92F22386-LED-BPL-010",
+            "320.22"
+          ],
+          "expr": "list_price r0F92F22386_c04 P0F92F22386-LED-BPL-010 320.22",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "list_price",
+          "args": [
+            "r0F92F22386_c05",
+            "P0F92F22386-LED-BPL-010",
+            "320.22"
+          ],
+          "expr": "list_price r0F92F22386_c05 P0F92F22386-LED-BPL-010 320.22",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "sale_revenue",
+          "args": [
+            "r0F92F22386_c01",
+            "P0F92F22386-LED-BPL-010",
+            "3522.42"
+          ],
+          "expr": "sale_revenue r0F92F22386_c01 P0F92F22386-LED-BPL-010 3522.42",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "sale_revenue",
+          "args": [
+            "r0F92F22386_c02",
+            "P0F92F22386-LED-BPL-010",
+            "1601.1"
+          ],
+          "expr": "sale_revenue r0F92F22386_c02 P0F92F22386-LED-BPL-010 1601.1",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "sale_revenue",
+          "args": [
+            "r0F92F22386_c03",
+            "P0F92F22386-LED-BPL-010",
+            "4162.86"
+          ],
+          "expr": "sale_revenue r0F92F22386_c03 P0F92F22386-LED-BPL-010 4162.86",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "sale_revenue",
+          "args": [
+            "r0F92F22386_c04",
+            "P0F92F22386-LED-BPL-010",
+            "4162.86"
+          ],
+          "expr": "sale_revenue r0F92F22386_c04 P0F92F22386-LED-BPL-010 4162.86",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "sale_revenue",
+          "args": [
+            "r0F92F22386_c05",
+            "P0F92F22386-LED-BPL-010",
+            "4162.86"
+          ],
+          "expr": "sale_revenue r0F92F22386_c05 P0F92F22386-LED-BPL-010 4162.86",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "budget_compliance",
+          "args": [
+            "r0F92F22386_c01",
+            "P0F92F22386-LED-BPL-010",
+            "3789.39"
+          ],
+          "expr": "budget_compliance r0F92F22386_c01 P0F92F22386-LED-BPL-010 3789.39",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "budget_compliance",
+          "args": [
+            "r0F92F22386_c02",
+            "P0F92F22386-LED-BPL-010",
+            "1670.75"
+          ],
+          "expr": "budget_compliance r0F92F22386_c02 P0F92F22386-LED-BPL-010 1670.75",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "budget_compliance",
+          "args": [
+            "r0F92F22386_c03",
+            "P0F92F22386-LED-BPL-010",
+            "4646.95"
+          ],
+          "expr": "budget_compliance r0F92F22386_c03 P0F92F22386-LED-BPL-010 4646.95",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "budget_compliance",
+          "args": [
+            "r0F92F22386_c04",
+            "P0F92F22386-LED-BPL-010",
+            "4630.64"
+          ],
+          "expr": "budget_compliance r0F92F22386_c04 P0F92F22386-LED-BPL-010 4630.64",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "budget_compliance",
+          "args": [
+            "r0F92F22386_c05",
+            "P0F92F22386-LED-BPL-010",
+            "4263.4"
+          ],
+          "expr": "budget_compliance r0F92F22386_c05 P0F92F22386-LED-BPL-010 4263.4",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "new_spend_margin_policy",
+          "args": [
+            "0.253"
+          ],
+          "expr": "new_spend_margin_policy 0.253",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "supply_timing_feasible",
+          "args": [],
+          "expr": "supply_timing_feasible",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "po_delivery_schedule_compliance",
+          "args": [],
+          "expr": "po_delivery_schedule_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "po_consolidation_compliance",
+          "args": [],
+          "expr": "po_consolidation_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "po_min_qty_compliance",
+          "args": [],
+          "expr": "po_min_qty_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "po_price_tier_compliance",
+          "args": [],
+          "expr": "po_price_tier_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "mo_schedule_compliance",
+          "args": [
+            "P0F92F22386-LED-BPL-010"
+          ],
+          "expr": "mo_schedule_compliance P0F92F22386-LED-BPL-010",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "finished_stock_capacity_compliance",
+          "args": [],
+          "expr": "finished_stock_capacity_compliance",
+          "status": "FAIL",
+          "passed": false,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "assembly_capacity_compliance",
+          "args": [],
+          "expr": "assembly_capacity_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "finished_vendor_max_qty_compliance",
+          "args": [],
+          "expr": "finished_vendor_max_qty_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "component_vendor_max_qty_compliance",
+          "args": [],
+          "expr": "component_vendor_max_qty_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "component_stock_capacity_compliance",
+          "args": [],
+          "expr": "component_stock_capacity_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "mo_component_feasibility",
+          "args": [
+            "P0F92F22386-LED-BPL-010"
+          ],
+          "expr": "mo_component_feasibility P0F92F22386-LED-BPL-010",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "supply_coverage",
+          "args": [
+            "P0F92F22386-LED-BPL-010",
+            "55",
+            "8.0"
+          ],
+          "expr": "supply_coverage P0F92F22386-LED-BPL-010 55 8.0",
+          "status": "FAIL",
+          "passed": false,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "repair_state_compliance",
+          "args": [],
+          "expr": "repair_state_compliance",
+          "status": "FAIL",
+          "passed": false,
+          "applicable": true
+        }
+      ],
+      "hygiene": [
+        {
+          "dimension": "hygiene",
+          "rule": "seeded_order_confirmed",
+          "args": [
+            "r0F92F22386_o01",
+            "r0F92F22386_c01",
+            "P0F92F22386-LED-BPL-010",
+            "11"
+          ],
+          "expr": "seeded_order_confirmed r0F92F22386_o01 r0F92F22386_c01 P0F92F22386-LED-BPL-010 11",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "seeded_order_confirmed",
+          "args": [
+            "r0F92F22386_o02",
+            "r0F92F22386_c02",
+            "P0F92F22386-LED-BPL-010",
+            "5"
+          ],
+          "expr": "seeded_order_confirmed r0F92F22386_o02 r0F92F22386_c02 P0F92F22386-LED-BPL-010 5",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "seeded_order_confirmed",
+          "args": [
+            "r0F92F22386_o03",
+            "r0F92F22386_c03",
+            "P0F92F22386-LED-BPL-010",
+            "13"
+          ],
+          "expr": "seeded_order_confirmed r0F92F22386_o03 r0F92F22386_c03 P0F92F22386-LED-BPL-010 13",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "seeded_order_confirmed",
+          "args": [
+            "r0F92F22386_o04",
+            "r0F92F22386_c04",
+            "P0F92F22386-LED-BPL-010",
+            "13"
+          ],
+          "expr": "seeded_order_confirmed r0F92F22386_o04 r0F92F22386_c04 P0F92F22386-LED-BPL-010 13",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "seeded_order_confirmed",
+          "args": [
+            "r0F92F22386_o05",
+            "r0F92F22386_c05",
+            "P0F92F22386-LED-BPL-010",
+            "13"
+          ],
+          "expr": "seeded_order_confirmed r0F92F22386_o05 r0F92F22386_c05 P0F92F22386-LED-BPL-010 13",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "po_origin_traceability",
+          "args": [
+            "P0F92F22386-LED-BPL-010",
+            "finished"
+          ],
+          "expr": "po_origin_traceability P0F92F22386-LED-BPL-010 finished",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "po_origin_traceability",
+          "args": [
+            "P0F92F22386-LED-MAB-101",
+            "component"
+          ],
+          "expr": "po_origin_traceability P0F92F22386-LED-MAB-101 component",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "po_origin_traceability",
+          "args": [
+            "P0F92F22386-LED-EBB-112",
+            "component"
+          ],
+          "expr": "po_origin_traceability P0F92F22386-LED-EBB-112 component",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "po_origin_traceability",
+          "args": [
+            "P0F92F22386-LED-TPC-113",
+            "component"
+          ],
+          "expr": "po_origin_traceability P0F92F22386-LED-TPC-113 component",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "po_origin_traceability",
+          "args": [
+            "P0F92F22386-LED-PDS-116",
+            "component"
+          ],
+          "expr": "po_origin_traceability P0F92F22386-LED-PDS-116 component",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "po_origin_traceability",
+          "args": [
+            "P0F92F22386-LED-SPC-122",
+            "component"
+          ],
+          "expr": "po_origin_traceability P0F92F22386-LED-SPC-122 component",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "mrp_origin_traceability",
+          "args": [
+            "P0F92F22386-LED-BPL-010"
+          ],
+          "expr": "mrp_origin_traceability P0F92F22386-LED-BPL-010",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "adjacent_data_untouched",
+          "args": [],
+          "expr": "adjacent_data_untouched",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        }
+      ]
+    },
+    "failed_rules": [
+      {
+        "dimension": "constraint",
+        "rule": "finished_stock_capacity_compliance",
+        "args": [],
+        "expr": "finished_stock_capacity_compliance",
+        "status": "FAIL",
+        "passed": false,
+        "applicable": true
+      },
+      {
+        "dimension": "constraint",
+        "rule": "supply_coverage",
+        "args": [
+          "P0F92F22386-LED-BPL-010",
+          "55",
+          "8.0"
+        ],
+        "expr": "supply_coverage P0F92F22386-LED-BPL-010 55 8.0",
+        "status": "FAIL",
+        "passed": false,
+        "applicable": true
+      },
+      {
+        "dimension": "constraint",
+        "rule": "repair_state_compliance",
+        "args": [],
+        "expr": "repair_state_compliance",
+        "status": "FAIL",
+        "passed": false,
+        "applicable": true
+      }
+    ]
+  },
+  "spend": {
+    "assembly_spend": 1284.0,
+    "component_spend": 4924.34,
+    "expected_spend": 7871.46,
+    "finished_goods_spend": 0.0,
+    "optimality_score": null,
+    "other_spend": 0.0,
+    "spend_delta": -1663.12,
+    "spend_delta_abs": 1663.12,
+    "spend_score": 34.77,
+    "total_new_spend": 6208.34,
+    "verified_spend_complete": true
+  },
+  "optimality_detail": {
+    "objective_kind": "repair_plan",
+    "optimality_score": 93.48,
+    "primary_actual": 0.0,
+    "primary_expected": 16.0,
+    "primary_score": 100.0,
+    "secondary_actual_spend": 6208.34,
+    "secondary_expected_spend": 7871.46,
+    "secondary_score": 34.77
+  }
+}

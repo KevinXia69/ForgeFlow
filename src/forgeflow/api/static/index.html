@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>ForgeFlow · 生产异常处置工作台</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="工作台导航">
+      <a class="brand" href="/" aria-label="ForgeFlow 首页">
+        <span class="brand-mark" aria-hidden="true">F</span>
+        <span class="brand-name">ForgeFlow</span>
+      </a>
+
+      <button id="new-chat" class="new-chat" type="button">
+        <span aria-hidden="true">＋</span> 新的问答
+      </button>
+
+      <nav class="nav">
+        <button class="nav-item is-active" type="button" data-view="assistant">
+          <span class="nav-icon" aria-hidden="true">◌</span> 助手
+        </button>
+        <button class="nav-item" type="button" data-view="runs">
+          <span class="nav-icon" aria-hidden="true">▤</span> 运行与计划
+        </button>
+      </nav>
+
+      <div class="side-section">
+        <h2 class="side-title">最近的运行</h2>
+        <div id="recent-runs" class="recent-list"></div>
+      </div>
+
+      <div class="side-section">
+        <h2 class="side-title">保留证据</h2>
+        <p class="side-note">A 3/3 · B 2/3<br>保留任务 2281 0/1</p>
+      </div>
+
+      <footer class="side-footer">
+        <span class="avatar" aria-hidden="true">F</span>
+        <span class="side-who"><strong>本地工作区</strong><small>数据留在此机</small></span>
+      </footer>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <span class="topbar-title">ForgeFlow 助手 <span class="chev" aria-hidden="true">⌄</span></span>
+        <span class="status-pill"><span class="dot" aria-hidden="true"></span>本地工作区</span>
+      </header>
+
+      <div id="review-banner" class="review-banner" hidden>
+        评审只读实例 · 运行记录为历史录制，不含执行与审批写入
+      </div>
+
+      <section id="login-card" class="login-wrap" aria-labelledby="login-title">
+        <div class="login-card">
+          <h1 id="login-title">回到你的处置工作台</h1>
+          <p class="muted">输入邀请码，查看运行记录、恢复计划与审批；所有写入只经 root 执行器。</p>
+          <form id="login-form" novalidate>
+            <label for="invite-code">邀请码</label>
+            <input id="invite-code" name="invite_code" type="password"
+                   autocomplete="current-password" required>
+            <button id="login-button" type="submit" class="primary">进入工作台</button>
+            <p id="login-error" class="error" role="alert" hidden></p>
+          </form>
+        </div>
+      </section>
+
+      <section id="app-panel" class="app-panel" hidden>
+        <div id="view-assistant" class="view">
+          <div class="hero">
+            <span class="hero-mark" aria-hidden="true">✦</span>
+            <h1>今天想处理哪条生产异常？</h1>
+            <p>先看证据，再批准计划。Agent 只读，写入只经 root 执行器。</p>
+          </div>
+
+          <div class="status-card">
+            <div class="status-line">
+              <span class="dot" aria-hidden="true"></span>
+              <strong>本地工作区可用</strong>
+              <span class="muted">运行记录只读 · 审批写入独立审计</span>
+            </div>
+            <p class="muted small">
+              支持场景：供应商断供 A · 产线停机 B。回答只引用项目文档原文，不生成结论。
+            </p>
+          </div>
+
+          <div id="kb-results" class="thread" aria-live="polite"></div>
+
+          <form id="kb-form" class="composer" novalidate>
+            <label class="sr-only" for="kb-question">问题</label>
+            <textarea id="kb-question" name="question" rows="3" maxlength="500"
+                      placeholder="就项目、权限或某次运行提问…"></textarea>
+            <div class="composer-bar">
+              <span class="composer-hint">只返回文档原文与行号引用</span>
+              <button id="kb-button" class="send" type="submit" aria-label="发送问题">↑</button>
+            </div>
+          </form>
+          <p id="kb-status" class="composer-note" role="status"></p>
+          <p class="composer-note">问答不会触发任务或 ERP 写入；需要执行时请到「运行与计划」。</p>
+
+          <div class="quick-grid">
+            <button class="quick" type="button" data-quick="runs">
+              <span class="quick-icon" aria-hidden="true">▤</span>
+              <span><strong>运行与计划</strong><small>查看分数、计划与审批</small></span>
+              <span class="quick-arrow" aria-hidden="true">↗</span>
+            </button>
+            <button class="quick" type="button" data-quick="A">
+              <span class="quick-icon" aria-hidden="true">◇</span>
+              <span><strong>供应商断供 A</strong><small>2280 · 51 条验收规则</small></span>
+              <span class="quick-arrow" aria-hidden="true">↗</span>
+            </button>
+            <button class="quick" type="button" data-quick="B">
+              <span class="quick-icon" aria-hidden="true">▣</span>
+              <span><strong>产线停机 B</strong><small>2299 · 95 条验收规则</small></span>
+              <span class="quick-arrow" aria-hidden="true">↗</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="view-runs" class="view" hidden>
+          <div class="view-head">
+            <h1>运行与计划</h1>
+            <p class="muted">历史运行、恢复计划与一次性审批；刷新只重新读取。</p>
+          </div>
+
+          <div class="runs-grid">
+            <section class="panel" aria-labelledby="runs-title">
+              <div class="panel-head">
+                <h2 id="runs-title">运行记录</h2>
+                <div class="actions">
+                  <select id="scenario-select" aria-label="选择场景">
+                    <option value="A">A · 供应商断供</option>
+                    <option value="B">B · 产线停机</option>
+                  </select>
+                  <button id="create-run" type="button" class="primary">新建运行</button>
+                  <button id="runs-refresh" type="button" class="secondary">刷新</button>
+                </div>
+              </div>
+              <p id="create-status" class="status" role="status"></p>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>运行 ID</th><th>任务</th><th>评分</th>
+                      <th>严格成功</th><th>评估有效</th><th>安全配置</th>
+                    </tr>
+                  </thead>
+                  <tbody id="runs-body"></tbody>
+                </table>
+              </div>
+              <p id="runs-status" class="status" role="status"></p>
+            </section>
+
+            <section class="panel" aria-labelledby="detail-title">
+              <h2 id="detail-title">运行详情</h2>
+              <dl class="facts">
+                <dt>评分</dt><dd id="run-score">—</dd>
+                <dt>评估有效</dt><dd id="run-valid">—</dd>
+                <dt>证明状态</dt><dd id="run-attestation">—</dd>
+                <dt>模型</dt><dd id="run-model">—</dd>
+                <dt>开始时间</dt><dd id="run-started">—</dd>
+              </dl>
+
+              <h3>计划</h3>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>计划 ID</th><th>状态</th><th>步骤数</th>
+                      <th>预期支出</th><th>操作计数</th>
+                    </tr>
+                  </thead>
+                  <tbody id="plans-body"></tbody>
+                </table>
+              </div>
+              <p id="plan-status" class="status" role="status"></p>
+              <div id="plan-detail" class="plan-detail" hidden></div>
+
+              <div id="approval-panel" hidden>
+                <div class="panel-head">
+                  <h3>审批</h3>
+                  <button id="approve-button" type="button" class="primary">批准该计划</button>
+                </div>
+                <p id="approval-status" class="status" role="status"></p>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr><th>Nonce</th><th>状态</th><th>到期时间</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="approvals-body"></tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

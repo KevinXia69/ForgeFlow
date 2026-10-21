@@ -1,0 +1,1 @@
+{"anchor_date": "2026-10-21", "disruption": {"kind": "supplier_cancellation", "vendor_ref": "r27637E67E7_q02"}, "margin": 0.275, "sales_order_budget_caps": {"1": 3357.27, "2": 3836.88, "3": 4316.49, "4": 6234.93, "5": 6234.93}, "sales_order_ids": [1, 2, 3, 4, 5], "target_product_code": "P27637E67E7-LED-CRS-009"}

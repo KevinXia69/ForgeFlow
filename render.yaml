@@ -1,0 +1,37 @@
+# ForgeFlow read-only review instance.
+#
+# This repository is private: Render builds it through Render's GitHub App, so
+# the app must be granted access to KevinXia69/ForgeFlow before this Blueprint
+# is created. This file declares one new web service; it does not manage or
+# reuse any existing service.
+#
+# dockerContext is the repository root because deploy/Dockerfile.api needs both
+# web/ (the React workbench build) and demo-runs/ (the curated read-only data).
+services:
+  - type: web
+    name: forgeflow
+    runtime: docker
+    branch: main
+    dockerfilePath: ./deploy/Dockerfile.api
+    dockerContext: .
+    healthCheckPath: /api/health
+    plan: starter
+    region: singapore
+    autoDeployTrigger: 'off'
+    envVars:
+      - key: FORGEFLOW_DEPLOYMENT
+        value: review
+      - key: FORGEFLOW_DATA_ROOT
+        value: /app/demo-runs
+      - key: FORGEFLOW_APPROVALS_ROOT
+        value: /tmp/approvals
+      - key: FORGEFLOW_KNOWLEDGE_ROOT
+        value: /app
+      - key: FORGEFLOW_SECURE_COOKIE
+        value: 'true'
+      - key: FORGEFLOW_RUNNER_ENABLED
+        value: 'false'
+      - key: FORGEFLOW_SESSION_SECRET
+        generateValue: true
+      - key: FORGEFLOW_INVITE_CODES
+        sync: false

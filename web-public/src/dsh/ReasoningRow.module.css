@@ -1,0 +1,13 @@
+.root { display: flex; flex-direction: column; }
+.root:not([data-expanded]) { contain: size layout; height: calc(24px + var(--dsh-content-font-delta, 0px)); }
+.row { overflow: hidden; }
+.root[data-expanded] [data-open] [data-disclosure-header] { position: sticky; top: 0; z-index: 1; background: #fff; }
+.leading { flex-shrink: 0; }
+.title { font-weight: 400; }
+.separator { flex: none; width: 2px; height: 2px; margin: 0 8px; border-radius: 1px; background: #c4c9d2; }
+.summary { min-width: 0; overflow: hidden; flex: 1 1 auto; font-size: 14px; line-height: 20px; white-space: nowrap; }
+.summaryText { display: block; overflow: hidden; text-overflow: ellipsis; }
+.summary[data-streaming] { mask-image: linear-gradient(to right, black calc(100% - 48px), transparent); }
+.summary[data-streaming] .summaryText { overflow: visible; text-overflow: clip; }
+.root:not([data-preview]) .separator, .root:not([data-preview]) .summary { display: none; }
+.thinkBody { padding: 4px 0 4px calc(22px + var(--dsh-content-font-delta, 0px)); min-width: 0; }

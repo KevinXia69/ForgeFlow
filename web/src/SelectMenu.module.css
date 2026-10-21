@@ -1,0 +1,151 @@
+/* Component-scoped styles for SelectMenu. The shared .select-* rules in
+   styles.css are intentionally not referenced here; this component owns its
+   full visual contract so it can adopt the DSH surface without shared edits. */
+
+.root {
+  position: relative;
+  min-width: 0;
+}
+
+.trigger {
+  display: flex;
+  width: 100%;
+  min-height: 38px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trigger:hover:not(:disabled) {
+  border-color: #c9d2e0;
+}
+
+.trigger:focus-visible {
+  border-color: #9aa8bd;
+  outline: 2px solid #dbeafe;
+  outline-offset: 0;
+}
+
+.trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.triggerLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #98a2b3;
+  transition: transform 0.15s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+/* Anchored fixed layer: it stays inside the consumer's DOM subtree (so dialog
+   scoped queries keep working) but escapes ancestor overflow clipping.
+   `useAnchoredPosition` supplies left/top and the measured width is inline. */
+.surface {
+  /* The shared --dsw-* token shim (WS3 DSH-30) lives in styles.css and belongs
+     to another owner. Only the three MenuSurface tokens used here are bridged
+     locally so the menu material renders correctly before that shim lands. */
+  --dsw-radius-lg: 10px;
+  --dsw-menu-surface-fill: #fff;
+  --dsw-menu-backdrop-filter: none;
+
+  position: fixed;
+  z-index: 1100;
+  box-sizing: border-box;
+  min-width: min(180px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  padding: 4px;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  box-shadow: 0 14px 34px rgba(16, 24, 40, 0.14);
+  font-size: 14px;
+}
+
+.viewport {
+  display: flex;
+  flex-direction: column;
+  max-height: min(280px, calc(100vh - 32px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #344054;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option:hover:not(:disabled),
+.optionSelected {
+  background: #f5f7fa;
+}
+
+/* Roving focus moves real focus onto the row; keep the fill and add the same
+   focus ring the trigger uses so keyboard location is visible. */
+.option:focus-visible {
+  background: #f5f7fa;
+  outline: 2px solid #dbeafe;
+  outline-offset: -2px;
+}
+
+.option:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.optionCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.optionDescription {
+  color: #98a2b3;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.check {
+  flex: 0 0 auto;
+  color: #2563eb;
+  font-size: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}

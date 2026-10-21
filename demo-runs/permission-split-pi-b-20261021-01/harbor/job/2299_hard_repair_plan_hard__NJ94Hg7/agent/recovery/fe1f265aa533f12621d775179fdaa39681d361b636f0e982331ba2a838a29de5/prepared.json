@@ -1,0 +1,1 @@
+{"expected_new_spend": 133394.07, "odoo_writes": false, "ok": true, "operation_counts": {"cancel": 3, "create": 3, "keep": 6, "update": 17}, "plan_id": "fe1f265aa533f12621d775179fdaa39681d361b636f0e982331ba2a838a29de5", "step_count": 34}

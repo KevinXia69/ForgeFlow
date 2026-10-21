@@ -1,0 +1,38 @@
+# ForgeFlow read-only product API.
+# Copy .env.example to .env in this directory, then run:
+#   docker compose up --build
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    image: forgeflow-api:local
+    restart: unless-stopped
+    read_only: true
+    user: "10001:10001"
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ../runs:/data/runs:ro
+      - forgeflow-approvals:/data/approvals
+    tmpfs: /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  forgeflow-approvals:
+    name: forgeflow-approvals

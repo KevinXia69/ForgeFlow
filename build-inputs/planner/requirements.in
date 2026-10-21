@@ -1,0 +1,4 @@
+ortools==9.15.6755
+pydantic==2.14.1
+rich==15.0.0
+odoo-client-lib==2.0.0

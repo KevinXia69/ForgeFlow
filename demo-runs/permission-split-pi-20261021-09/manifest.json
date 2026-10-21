@@ -1,0 +1,404 @@
+{
+  "agent": "pi",
+  "budget": {
+    "agent_setup_timeout_sec": 1800.0,
+    "agent_setup_timeout_source": "forgeflow.agents.pi_nebius:PiNebius.DEFAULT_SETUP_TIMEOUT_SEC",
+    "agent_timeout_sec": 240,
+    "attempts": 1,
+    "concurrency": 1,
+    "context_window_tokens": 131072,
+    "max_output_tokens": null,
+    "max_output_tokens_source": "provider_default",
+    "max_retries": 0,
+    "output_budget_scope": "Per model response, shared by reasoning and answer tokens.",
+    "output_limit_request_fields": "omitted",
+    "output_policy_version": "all-requests-v2",
+    "sampling_params": {
+      "temperature": 1.0,
+      "top_p": 0.95
+    }
+  },
+  "command": [
+    "/Users/xiayihan/Documents/ChatGPT/Nebius × NVIDIA Global AI Hackathon/.venv/bin/harbor",
+    "run",
+    "-p",
+    "/Users/xiayihan/Documents/ChatGPT/Nebius × NVIDIA Global AI Hackathon/runs/permission-split-pi-20261021-09/task/2280_medium_repair_plan_medium",
+    "-a",
+    "forgeflow.agents.pi_nebius:PiNebius",
+    "--env",
+    "docker",
+    "--jobs-dir",
+    "/Users/xiayihan/Documents/ChatGPT/Nebius × NVIDIA Global AI Hackathon/runs/permission-split-pi-20261021-09/harbor",
+    "--job-name",
+    "job",
+    "-n",
+    "1",
+    "-k",
+    "1",
+    "--max-retries",
+    "0",
+    "--timeout-multiplier",
+    "1",
+    "--agent-timeout-multiplier",
+    "0.06666666666666667",
+    "--verifier",
+    "forgeflow.verifier:ERPBenchVerifier",
+    "--delete",
+    "--quiet",
+    "-m",
+    "nebius/nvidia/Nemotron-3.5-Super-VL",
+    "--ak",
+    "workspace_root=/Users/xiayihan/Documents/ChatGPT/Nebius × NVIDIA Global AI Hackathon",
+    "--ak",
+    "planner_profile=cp-sat-recovery-v1",
+    "--ak",
+    "security_profile=permission-split-v1"
+  ],
+  "data_profile": {
+    "changed_fields": [
+      "/workcenters/0/note",
+      "/workcenters/1/note"
+    ],
+    "diff_path": "task-derivation/planning-metadata-v1.diff",
+    "diff_sha256": "1c77d907ffc740ffd6f5f673d54ffca2d528e5df0d59214ec6adc7833047b093",
+    "execution_sha256": "d2bdacf44cd6667689a173c32fddb84f280e31125d8bf3471e168e3029692f5e",
+    "field_sources": [
+      {
+        "rows": [
+          {
+            "field_pointers": {
+              "code": "/workcenters/0/code",
+              "lead_days": "/workcenters/0/lead_days",
+              "product_code": "/workcenters/0/product_code",
+              "time_per_unit_minutes": "/workcenters/0/time_per_unit_minutes",
+              "unit_cost": "/workcenters/0/unit_cost"
+            },
+            "row_pointer": "/workcenters/0",
+            "values": {
+              "lead_days": 5.0,
+              "product_code": "P27637E67E7-LED-CRS-009",
+              "time_per_unit_minutes": 117.55,
+              "unit_cost": 31.0
+            }
+          }
+        ],
+        "workcenter_code": "P27637E67E7-WC01"
+      },
+      {
+        "rows": [
+          {
+            "field_pointers": {
+              "code": "/workcenters/1/code",
+              "lead_days": "/workcenters/1/lead_days",
+              "product_code": "/workcenters/1/product_code",
+              "time_per_unit_minutes": "/workcenters/1/time_per_unit_minutes",
+              "unit_cost": "/workcenters/1/unit_cost"
+            },
+            "row_pointer": "/workcenters/1",
+            "values": {
+              "lead_days": 5.0,
+              "product_code": "P27637E67E7-LED-CRS-009",
+              "time_per_unit_minutes": 127.55,
+              "unit_cost": 36.0
+            }
+          }
+        ],
+        "workcenter_code": "P27637E67E7-WC02"
+      }
+    ],
+    "is_original_benchmark_data": false,
+    "name": "planning-metadata-v1",
+    "planning_basis": "benchmark horizon standard minutes/cost/lead time; not calendar workcenter_load",
+    "preserved_non_note_fields_verified": true,
+    "source_file": "environment/scenario_data.json",
+    "source_sha256": "bb16fa07cd5e541df46df03c4fa11015d6e536faff3577e031dc59edd21f0572",
+    "visibility_only": true
+  },
+  "execution_config_overrides": {
+    "agent.allowed_hosts": [
+      "api.tokenfactory.nebius.com"
+    ],
+    "agent.network_mode": "allowlist"
+  },
+  "execution_guidance": {
+    "application": "none",
+    "instruction_modified": false,
+    "profile": "none",
+    "sha256": null,
+    "text": "",
+    "version": null
+  },
+  "finished_at_utc": "2026-10-21T12:54:56.193360+00:00",
+  "harbor_returncode": 0,
+  "harbor_version": "0.24.0",
+  "implementation_snapshot": {
+    "archive_sha256": "a9b4e9f146ea6c93c2d2f8136d373f04fb8538853fc32cfe2694b2244c6757aa",
+    "captured_at_utc": "2026-10-21T12:48:21.491468+00:00",
+    "execution_uses_snapshot": false,
+    "file_count": 102,
+    "index_path": "implementation/index.json",
+    "index_sha256": "6eb14e74814771dd92b9bbfe0a9d66c049b1c8f5574864f917e1b827f108d9bd",
+    "path": "implementation/source.tar.gz",
+    "workspace_after": {
+      "changed": false,
+      "changed_files": [],
+      "checked_at_utc": "2026-10-21T12:54:56.214234+00:00",
+      "other_changed_files": [],
+      "snapshot_archive_unchanged": true,
+      "snapshot_index_unchanged": true,
+      "ui_changed_files": [],
+      "used_to_override_business_result": false
+    },
+    "workspace_matches_at_capture": true
+  },
+  "mode": "benchmark_visibility_experiment",
+  "model": {
+    "base_url": "https://api.tokenfactory.nebius.com/v1",
+    "key_present": true,
+    "missing_for_model_run": [],
+    "model": "nvidia/Nemotron-3.5-Super-VL",
+    "provider": "nebius"
+  },
+  "planner": {
+    "enabled": true,
+    "execution": "planned_documents_with_journal_and_readback",
+    "experimental_factor": "validated_change_set_execution",
+    "interface": "pi_native_tool",
+    "profile": "cp-sat-recovery-v1",
+    "read_only": false
+  },
+  "redacted_artifacts": [],
+  "run_id": "permission-split-pi-20261021-09",
+  "runtime": {
+    "host_architecture": "arm64",
+    "host_system": "Darwin",
+    "python_implementation": "CPython",
+    "python_version": "3.13.15"
+  },
+  "schema_version": 1,
+  "security_profile": {
+    "name": "permission-split-v1",
+    "verifier_env_added": {
+      "BASH_ENV": "/dev/null",
+      "PYTHONPATH": "",
+      "PYTHONSAFEPATH": "1",
+      "UV_NO_CONFIG": "1"
+    }
+  },
+  "source_integrity_after": true,
+  "source_integrity_before": true,
+  "started_at_utc": "2026-10-21T12:48:20.554982+00:00",
+  "state": "completed",
+  "task": "2280_medium_repair_plan_medium",
+  "task_derivation": {
+    "data_profile": {
+      "changed_fields": [
+        "/workcenters/0/note",
+        "/workcenters/1/note"
+      ],
+      "diff_path": "task-derivation/planning-metadata-v1.diff",
+      "diff_sha256": "1c77d907ffc740ffd6f5f673d54ffca2d528e5df0d59214ec6adc7833047b093",
+      "execution_sha256": "d2bdacf44cd6667689a173c32fddb84f280e31125d8bf3471e168e3029692f5e",
+      "field_sources": [
+        {
+          "rows": [
+            {
+              "field_pointers": {
+                "code": "/workcenters/0/code",
+                "lead_days": "/workcenters/0/lead_days",
+                "product_code": "/workcenters/0/product_code",
+                "time_per_unit_minutes": "/workcenters/0/time_per_unit_minutes",
+                "unit_cost": "/workcenters/0/unit_cost"
+              },
+              "row_pointer": "/workcenters/0",
+              "values": {
+                "lead_days": 5.0,
+                "product_code": "P27637E67E7-LED-CRS-009",
+                "time_per_unit_minutes": 117.55,
+                "unit_cost": 31.0
+              }
+            }
+          ],
+          "workcenter_code": "P27637E67E7-WC01"
+        },
+        {
+          "rows": [
+            {
+              "field_pointers": {
+                "code": "/workcenters/1/code",
+                "lead_days": "/workcenters/1/lead_days",
+                "product_code": "/workcenters/1/product_code",
+                "time_per_unit_minutes": "/workcenters/1/time_per_unit_minutes",
+                "unit_cost": "/workcenters/1/unit_cost"
+              },
+              "row_pointer": "/workcenters/1",
+              "values": {
+                "lead_days": 5.0,
+                "product_code": "P27637E67E7-LED-CRS-009",
+                "time_per_unit_minutes": 127.55,
+                "unit_cost": 36.0
+              }
+            }
+          ],
+          "workcenter_code": "P27637E67E7-WC02"
+        }
+      ],
+      "is_original_benchmark_data": false,
+      "name": "planning-metadata-v1",
+      "planning_basis": "benchmark horizon standard minutes/cost/lead time; not calendar workcenter_load",
+      "preserved_non_note_fields_verified": true,
+      "source_file": "environment/scenario_data.json",
+      "source_sha256": "bb16fa07cd5e541df46df03c4fa11015d6e536faff3577e031dc59edd21f0572",
+      "visibility_only": true
+    },
+    "derived_config_modified": true,
+    "derived_task_integrity_after": true,
+    "execution_config_overrides": {
+      "agent.allowed_hosts": [
+        "api.tokenfactory.nebius.com"
+      ],
+      "agent.network_mode": "allowlist"
+    },
+    "execution_file_sha256": {
+      "environment/Dockerfile": "facf8b565b3fe519e83087153622d6fc485643e1eb2c4f7f987f5b2113968160",
+      "environment/entrypoint.sh": "c8ba44f515ee5784ae25f6d4051d656181b508941c39954c359b6ebae9145dc7",
+      "environment/forgeflow_provision.py": "963f2bd02055ac0660abbb35915f077548470f10612e90b520500d4c26248a7d",
+      "environment/odoo.conf": "30a5cd6cdc5f0e10926ad5d3a9f424e0826fe6bcbbb785d4ef0aeedc7628a6c8",
+      "environment/scenario_data.json": "d2bdacf44cd6667689a173c32fddb84f280e31125d8bf3471e168e3029692f5e",
+      "environment/setup_scenario.py": "1a532a2f1c1cb68fb965e4ca5d072528b4b4a992327685de71ffa0000ac94714",
+      "instruction.md": "608aeacdd30a75acd80e3ba6c6276580811eb2e6dc2f18a0851bd72667201cbe",
+      "solution/optimal_plan.json": "c034d6cad47ae50034adca088033101a64abcf5fecbe919293642278599e4fdb",
+      "solution/solve.sh": "71313863300f9e10deb4b96289d2f9646b95387b3d47d0b282e58ec5fa5241e9",
+      "solution/solver.py": "310bbf887c6191d32a6386e27193861031cf289f4f7164afa7ba32c36437c92a",
+      "task.toml": "46a10d1cec18305082cb688c22a6293c5af7833b7d046f7f2e43f794f49fe0dd",
+      "tests/checks.py": "6c0e585184517d0611ff2ed64e0305e816ecd5d34aae9407ccc360571880e943",
+      "tests/test.sh": "506043c583adbe083b5e76b0823cdceda59e9f5d6aa17449d06ec03ec853f487"
+    },
+    "execution_patches": [
+      {
+        "after": "RUN uv pip install --system --break-system-packages --no-cache \\\n",
+        "before": "RUN uv pip install --system --no-cache \\\n",
+        "path": "environment/Dockerfile",
+        "reason": "The Odoo image marks system Python externally managed (PEP 668); uv otherwise rejects the pinned build-time dependency install."
+      },
+      {
+        "after": "[agent]\nnetwork_mode = \"allowlist\"\nallowed_hosts = [\"api.tokenfactory.nebius.com\"]",
+        "before": "[agent]",
+        "path": "task.toml",
+        "reason": "Restrict Agent-phase network access to the model endpoint to exclude public reference answers."
+      },
+      {
+        "after": [
+          "BASH_ENV = \"/dev/null\"",
+          "PYTHONPATH = \"\"",
+          "PYTHONSAFEPATH = \"1\"",
+          "UV_NO_CONFIG = \"1\""
+        ],
+        "before": [
+          "BASH_ENV absent",
+          "PYTHONPATH absent",
+          "PYTHONSAFEPATH absent",
+          "UV_NO_CONFIG absent"
+        ],
+        "path": "task.toml",
+        "reason": "Harden the root verifier context: keep the task working directory off sys.path and stop uv from reading a task-planted config."
+      },
+      {
+        "changed_lines": [
+          58,
+          62,
+          70
+        ],
+        "diff_sha256": "8047bf46fca60085fd6bf9253d6148773b3d1e8e8203fd7c4799aa721f4b46f7",
+        "execution_sha256": "608aeacdd30a75acd80e3ba6c6276580811eb2e6dc2f18a0851bd72667201cbe",
+        "path": "instruction.md",
+        "reason": "Permission-split-v1: cite the read-only Odoo credential at /etc/odoo/api_key.read and require writes through execute_recovery after prepare_recovery.",
+        "source_sha256": "77defcf6ef0cac63683abe3025d45f47df160926cd6602103d2c9366eeb3c1bd"
+      },
+      {
+        "path": "environment/entrypoint.sh",
+        "reason": "Permission-split-v1: after scenario setup, provision the read-only Odoo user, restart Odoo so group caches rebuild, write the read key, and make the admin key and odoo.conf root-only."
+      },
+      {
+        "path": "environment/forgeflow_provision.py",
+        "reason": "Generated read-only credential provisioning and self-check."
+      },
+      {
+        "path": "environment/Dockerfile",
+        "reason": "Copy the generated provisioning script into /setup."
+      },
+      {
+        "diff_path": "task-derivation/planning-metadata-v1.diff",
+        "diff_sha256": "1c77d907ffc740ffd6f5f673d54ffca2d528e5df0d59214ec6adc7833047b093",
+        "path": "environment/scenario_data.json",
+        "reason": "Visibility-only planning metadata profile: append existing workcenter planning fields to public notes; preserve numeric business inputs and original verifier."
+      }
+    ],
+    "expected_modified_files": [
+      "environment/Dockerfile",
+      "environment/entrypoint.sh",
+      "environment/forgeflow_provision.py",
+      "environment/scenario_data.json",
+      "instruction.md",
+      "task.toml"
+    ],
+    "original_file_sha256": {
+      "environment/Dockerfile": "5e91604e9ea71d331423817aa1a26e2df2432c0866abf4b082864efd6e332234",
+      "environment/entrypoint.sh": "17081066295528704b6c9af5c66864884ea682640bcc9a154b03e862fe8ccbc5",
+      "environment/odoo.conf": "30a5cd6cdc5f0e10926ad5d3a9f424e0826fe6bcbbb785d4ef0aeedc7628a6c8",
+      "environment/scenario_data.json": "bb16fa07cd5e541df46df03c4fa11015d6e536faff3577e031dc59edd21f0572",
+      "environment/setup_scenario.py": "1a532a2f1c1cb68fb965e4ca5d072528b4b4a992327685de71ffa0000ac94714",
+      "instruction.md": "77defcf6ef0cac63683abe3025d45f47df160926cd6602103d2c9366eeb3c1bd",
+      "solution/optimal_plan.json": "c034d6cad47ae50034adca088033101a64abcf5fecbe919293642278599e4fdb",
+      "solution/solve.sh": "71313863300f9e10deb4b96289d2f9646b95387b3d47d0b282e58ec5fa5241e9",
+      "solution/solver.py": "310bbf887c6191d32a6386e27193861031cf289f4f7164afa7ba32c36437c92a",
+      "task.toml": "2e899e44778839febbc69395378ed5b8ca342bf52d08056eafd27248698e97ca",
+      "tests/checks.py": "6c0e585184517d0611ff2ed64e0305e816ecd5d34aae9407ccc360571880e943",
+      "tests/test.sh": "506043c583adbe083b5e76b0823cdceda59e9f5d6aa17449d06ec03ec853f487"
+    },
+    "original_files_modified": false,
+    "original_task_path": "vendor/erp-bench/tasks/2280_medium_repair_plan_medium",
+    "path": "task/2280_medium_repair_plan_medium",
+    "permission_profile": {
+      "already_projected": false,
+      "changed_lines": [
+        58,
+        62,
+        70
+      ],
+      "diff_sha256": "8047bf46fca60085fd6bf9253d6148773b3d1e8e8203fd7c4799aa721f4b46f7",
+      "execution_sha256": "608aeacdd30a75acd80e3ba6c6276580811eb2e6dc2f18a0851bd72667201cbe",
+      "profile": "permission-split-v1",
+      "source_sha256": "77defcf6ef0cac63683abe3025d45f47df160926cd6602103d2c9366eeb3c1bd"
+    },
+    "security_profile": {
+      "name": "permission-split-v1",
+      "verifier_env_added": {
+        "BASH_ENV": "/dev/null",
+        "PYTHONPATH": "",
+        "PYTHONSAFEPATH": "1",
+        "UV_NO_CONFIG": "1"
+      }
+    },
+    "unchanged_artifacts_verified": true
+  },
+  "task_input_policy": "Original vendor task preserved; execution copy applies only declared Docker build compatibility and Pi Agent network policy patches; no host task directory is mounted into the Agent; planning-metadata-v1 also appends existing workcenter fields to public notes as a separate visibility experiment, not the original benchmark condition",
+  "thinking_mode": "provider-default",
+  "upstream": {
+    "erp-bench": {
+      "archive_sha256": "dff7d2c1b6fde0c4cc690110f0edee395cfd434d9d762375b7a609b4d922563d",
+      "commit": "ceba3880af555129b5278e056a0c20f2fb5a0ba9",
+      "repository": "https://github.com/agentic-labs/erp-bench",
+      "source_url": "https://codeload.github.com/agentic-labs/erp-bench/tar.gz/ceba3880af555129b5278e056a0c20f2fb5a0ba9",
+      "tree_sha256": "ca6d9a7e48988ff3f7137c8f169abef2f3ad1f5821e0e235b36fdcd89b867d45"
+    },
+    "pi-mono": {
+      "archive_sha256": "071dc206a34e6b3da9b3e44302e66d0af67a62d5cef3ad2a9256059047efa109",
+      "commit": "08dc60bc52d89d6823a9738cc90b1916e5e446e5",
+      "repository": "https://github.com/agentic-labs/pi-mono",
+      "source_url": "https://codeload.github.com/agentic-labs/pi-mono/tar.gz/08dc60bc52d89d6823a9738cc90b1916e5e446e5",
+      "tree_sha256": "b98ce79bd87553dd5ccc338da52f55f791c3e5e43636228080cd85ad11055237"
+    }
+  },
+  "verifier_adapter": "forgeflow.verifier:ERPBenchVerifier"
+}

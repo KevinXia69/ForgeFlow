@@ -1,0 +1,124 @@
+ForgeFlow
+Copyright 2026 the ForgeFlow authors
+
+ForgeFlow is licensed under the Apache License, Version 2.0. The full license
+text is in LICENSE.
+
+This product includes and builds on the following third-party material. The
+notices below do not change the license of ForgeFlow's original code, and they
+do not imply that any upstream project endorses ForgeFlow.
+
+================================================================================
+ERP-Bench
+================================================================================
+
+Upstream: https://github.com/agentic-labs/erp-bench
+Pinned commit: ceba3880af555129b5278e056a0c20f2fb5a0ba9
+License: CC0 1.0 Universal (CC0-1.0)
+
+ForgeFlow reuses ERP-Bench's procurement and manufacturing tasks, synthetic
+scenarios, Odoo initialization material, and original end-state verification
+logic. It also adapts the upstream Pi agent entry point. Task fixtures,
+reference solutions, private initialization data, and the original verifier are
+not redistributed in this public snapshot.
+
+CC0 1.0 Universal is available at:
+https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+================================================================================
+Pi Agent Harness
+================================================================================
+
+Upstream: https://github.com/agentic-labs/pi-mono
+Pinned commit: 08dc60bc52d89d6823a9738cc90b1916e5e446e5
+Package version: 0.85.1
+License: MIT
+
+ForgeFlow uses Pi's single-agent loop, tool calling, model connectivity, and
+session handling. Pi source and build products are not vendored in this public
+snapshot. The upstream MIT notice follows.
+
+MIT License
+
+Copyright (c) 2025 Mario Zechner
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+Harbor
+================================================================================
+
+Upstream: https://github.com/harbor-framework/harbor
+Dependency version: 0.24.0
+License: Apache License 2.0
+
+ForgeFlow uses Harbor's environment lifecycle, installed-agent interface, and
+run/verification organization. Harbor is a Python dependency and is not
+vendored in this public snapshot.
+
+================================================================================
+WayRaft and DeepTutor
+================================================================================
+
+WayRaft: https://github.com/KevinXia69/WayRaft (Apache License 2.0)
+DeepTutor: https://github.com/KevinXia69/DeepTutor (Apache License 2.0)
+
+ForgeFlow's workbench layout and interaction language were inspired by WayRaft,
+including the left navigation rail, restrained neutral palette, centered input
+area, and time-of-day greeting pattern. The settings-panel organization was
+inspired by DeepTutor. These projects are attribution references only: no
+WayRaft or DeepTutor source code, components, backends, private records, or
+brand assets are copied into this public snapshot. The Apache License 2.0 terms
+of those projects continue to apply to those projects.
+
+================================================================================
+assistant-ui
+================================================================================
+
+Package: @assistant-ui/react 0.15.30
+Upstream: https://github.com/assistant-ui/assistant-ui
+License: MIT
+
+assistant-ui provides the chat runtime used by the ForgeFlow web client. Its
+package metadata and license are resolved through the dependency lock.
+
+================================================================================
+Nebius Token Factory and NVIDIA Nemotron
+================================================================================
+
+ForgeFlow calls models served by Nebius Token Factory, including
+nvidia/Nemotron-3.5-Super-VL. The model service, model weights, and associated
+names and trademarks belong to their respective owners. No model weights,
+provider credentials, or service endpoints requiring a secret are distributed
+in this public snapshot. Mentioning a model or provider does not imply an
+endorsement or a grant of rights beyond the applicable service terms.
+
+================================================================================
+Odoo and Google OR-Tools
+================================================================================
+
+Odoo is used as an external container image for the task environment and is not
+redistributed here. Google OR-Tools is an optional dependency used by the
+planning tools and is resolved through the dependency lock. Their upstream
+licenses and notices continue to apply to those projects.
+
+================================================================================
+
+For the complete dependency graph, see pyproject.toml and uv.lock. Third-party
+packages remain subject to their own licenses.
