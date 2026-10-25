@@ -96,6 +96,7 @@ class SdkDshHarness:
         model: str = "nvidia/Nemotron-3.5-Super-VL",
         timeout: float = 180.0,
         sessions_file: Path | None = None,
+        queue_timeout: float = 60.0,
     ) -> None:
         self.cli = Path(cli)
         self.patch = Path(patch)
@@ -104,6 +105,7 @@ class SdkDshHarness:
         self.node = node
         self.model = model
         self.timeout = timeout
+        self.queue_timeout = queue_timeout
         self.sessions_file = sessions_file or (workspace.parent / "dsh-sdk-sessions.json")
         self._configured: dict[str, str] = self._load()
         self._sessions: dict[str, Any] = {}
@@ -234,9 +236,14 @@ class SdkDshHarness:
         # send. Output cancellation does not claim provider billing stopped.
         with self._lock:
             turn_lock = self._turn_locks.setdefault(key, threading.Lock())
+        deadline = time.monotonic() + self.queue_timeout
         while not turn_lock.acquire(timeout=0.1):
             if cancel_event is not None and cancel_event.is_set():
                 raise DshUnavailable("turn_cancelled")
+            # A queued turn must not wait forever: if the turn ahead of it never
+            # finishes, give up before any model call is made.
+            if time.monotonic() >= deadline:
+                raise DshUnavailable("turn_queue_timeout")
         try:
             if cancel_event is not None and cancel_event.is_set():
                 raise DshUnavailable("turn_cancelled")

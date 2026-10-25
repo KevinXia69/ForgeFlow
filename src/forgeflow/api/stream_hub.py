@@ -145,6 +145,9 @@ class StreamJob:
         finally:
             with self._lock:
                 self._subscribers.discard(sink)
+                orphaned = not self._subscribers and not self._done and not self._cancelled
+            if orphaned:
+                self._arm_orphan_timer()
 
     @staticmethod
     def _frame(seq: int, event: dict[str, Any]) -> str:
@@ -175,6 +178,30 @@ class StreamJob:
     def cancelled(self) -> bool:
         with self._lock:
             return self._cancelled
+
+    ORPHAN_GRACE = 15.0
+
+    def _arm_orphan_timer(self) -> None:
+        """Nobody is listening any more: stop the turn after a short grace.
+
+        A browser may drop the stream (navigation, network, client timeout) and
+        come back with the same turn id; the grace period keeps that resume
+        working while making sure an abandoned turn does not keep calling the
+        model.
+        """
+        timer = getattr(self, "_orphan_timer", None)
+        if timer is not None:
+            timer.cancel()
+        timer = threading.Timer(self.ORPHAN_GRACE, self._cancel_if_still_orphaned)
+        timer.daemon = True
+        self._orphan_timer = timer
+        timer.start()
+
+    def _cancel_if_still_orphaned(self) -> None:
+        with self._lock:
+            if self._subscribers or self._done or self._cancelled:
+                return
+        self.cancel()
 
     def cancel(self) -> None:
         """Revoke cached and future output when an authorization scope changes."""

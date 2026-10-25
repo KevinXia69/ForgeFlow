@@ -272,11 +272,17 @@ def create_app(
 
     def _scoped_stream(uid: str, harness, question: str, key: str, cancel_event=None):
         options = {"cancel_event": cancel_event} if getattr(harness, "supports_turn_cancellation", False) else {}
-        for event in harness.stream(question, key, **options):
-            if not _scope_is_current(uid, harness):
-                _harness_for(uid)
-                return
-            yield event
+        try:
+            for event in harness.stream(question, key, **options):
+                if not _scope_is_current(uid, harness):
+                    _harness_for(uid)
+                    return
+                yield event
+        except DshUnavailable as error:
+            # Keep the harness reason (queue timeout, cancellation) instead of
+            # flattening every failure into stream_failed.
+            yield {"type": "error", "code": error.code}
+            return
 
     def _job_key(base: str, turn_id: str) -> str:
         return f"{base}:turn:{hashlib.sha256(turn_id.encode()).hexdigest()}"

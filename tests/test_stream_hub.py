@@ -139,3 +139,65 @@ def test_turn_journal_does_not_resume_an_inflight_turn(tmp_path) -> None:
     assert restarted.get("owner:case:inflight") is None
     gate.set()
     job.cancel()
+
+
+def test_abandoned_turn_is_cancelled_after_the_grace(monkeypatch) -> None:
+    """Nobody listening any more must not mean the turn keeps running."""
+    import threading
+    import time
+
+    from forgeflow.api.stream_hub import AssistantStreamHub, StreamJob
+
+    monkeypatch.setattr(StreamJob, "ORPHAN_GRACE", 0.2)
+    stopped, release = threading.Event(), threading.Event()
+
+    def producer():
+        yield {"type": "trace", "activity": []}
+        while not release.wait(0.01):
+            if stopped.is_set():
+                return
+        yield {"type": "final", "answer": "late"}
+
+    hub = AssistantStreamHub()
+    job = hub.start("owner:case:orphan", producer, on_cancel=stopped.set)
+    stream = job.subscribe(None)
+    next(stream)
+    stream.close()
+    deadline = time.monotonic() + 2
+    while not stopped.is_set() and time.monotonic() < deadline:
+        time.sleep(0.02)
+    release.set()
+    assert stopped.is_set() and job.cancelled
+
+
+def test_reconnecting_inside_the_grace_keeps_the_turn(monkeypatch) -> None:
+    """A refresh reconnects within the grace; the turn must survive that."""
+    import threading
+    import time
+
+    from forgeflow.api.stream_hub import AssistantStreamHub, StreamJob
+
+    monkeypatch.setattr(StreamJob, "ORPHAN_GRACE", 0.4)
+    stopped, release = threading.Event(), threading.Event()
+
+    def producer():
+        yield {"type": "trace", "activity": []}
+        while not release.wait(0.01):
+            if stopped.is_set():
+                return
+        yield {"type": "final", "answer": "kept"}
+
+    hub = AssistantStreamHub()
+    job = hub.start("owner:case:resume", producer, on_cancel=stopped.set)
+    first = job.subscribe(None)
+    next(first)
+    first.close()
+    time.sleep(0.05)
+    again = job.subscribe(None)
+    next(again)
+    time.sleep(0.6)
+    try:
+        assert not stopped.is_set() and not job.cancelled
+    finally:
+        again.close()
+        release.set()

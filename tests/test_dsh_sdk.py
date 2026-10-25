@@ -116,3 +116,33 @@ def test_scoped_sdk_carries_cost_semantics_once_without_extra_model_turn(tmp_pat
     assert len(sent) == 2
     assert all(prompt.count(PLANNED_COST_CONTEXT) == 1 for prompt in sent)
     assert sent[0].endswith("Question: What does the current case cost?")
+
+
+def test_queued_turn_gives_up_before_any_model_call(tmp_path, monkeypatch):
+    """A turn stuck behind a busy session must not wait forever and then send.
+
+    The queue used to be unbounded: if the turn ahead never finished, the queued
+    turn waited silently and, the moment the lock was released, called the model
+    even though the caller had long gone.
+    """
+    import threading
+    from types import SimpleNamespace
+
+    calls = []
+    harness = dsh_sdk.SdkDshHarness(cli=tmp_path, patch=tmp_path, home=tmp_path,
+                                     workspace=tmp_path, queue_timeout=0.3)
+
+    class Session:
+        def run(self, question, **_kwargs):
+            calls.append(question)
+            return SimpleNamespace(events=[], final_response=question, session_id="synthetic")
+
+    monkeypatch.setattr(harness, "_session", lambda _key: Session())
+    lock = harness._turn_locks.setdefault("busy-chat", threading.Lock())
+    lock.acquire()
+    try:
+        with pytest.raises(DshUnavailable, match="turn_queue_timeout"):
+            harness._reply("queued", "busy-chat", cancel_event=threading.Event())
+    finally:
+        lock.release()
+    assert calls == []
