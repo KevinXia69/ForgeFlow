@@ -2,15 +2,15 @@
     "id": "8f76446d-fcc6-44f4-919f-681a170815bc",
     "task_name": "agentic-labs/2280_medium_repair_plan_medium",
     "trial_name": "2280_medium_repair_plan_medium__jKUypTr",
-    "trial_uri": "file:///Users/xiayihan/Documents/ChatGPT/Nebius%20%C3%97%20NVIDIA%20Global%20AI%20Hackathon/runs/permission-split-pi-20261021-09/harbor/job/2280_medium_repair_plan_medium__jKUypTr",
+    "trial_uri": "file://<repo>/runs/permission-split-pi-20261021-09/harbor/job/2280_medium_repair_plan_medium__jKUypTr",
     "task_id": {
-        "path": "/Users/xiayihan/Documents/ChatGPT/Nebius × NVIDIA Global AI Hackathon/runs/permission-split-pi-20261021-09/task/2280_medium_repair_plan_medium"
+        "path": "<repo>/runs/permission-split-pi-20261021-09/task/2280_medium_repair_plan_medium"
     },
     "source": null,
     "task_checksum": "0462a0a46b333c11b7bd018f34347389603c18ad480aedc26b9b8c2048e035ca",
     "config": {
         "task": {
-            "path": "/Users/xiayihan/Documents/ChatGPT/Nebius × NVIDIA Global AI Hackathon/runs/permission-split-pi-20261021-09/task/2280_medium_repair_plan_medium",
+            "path": "<repo>/runs/permission-split-pi-20261021-09/task/2280_medium_repair_plan_medium",
             "git_url": null,
             "git_commit_id": null,
             "name": null,
@@ -20,7 +20,7 @@
             "source": null
         },
         "trial_name": "2280_medium_repair_plan_medium__jKUypTr",
-        "trials_dir": "/Users/xiayihan/Documents/ChatGPT/Nebius × NVIDIA Global AI Hackathon/runs/permission-split-pi-20261021-09/harbor/job",
+        "trials_dir": "<repo>/runs/permission-split-pi-20261021-09/harbor/job",
         "install_only": false,
         "timeout_multiplier": 1.0,
         "agent_timeout_multiplier": 0.06666666666666667,
@@ -41,7 +41,7 @@
             "load_trajectory": null,
             "extra_allowed_hosts": [],
             "kwargs": {
-                "workspace_root": "/Users/xiayihan/Documents/ChatGPT/Nebius × NVIDIA Global AI Hackathon",
+                "workspace_root": "<repo>",
                 "planner_profile": "cp-sat-recovery-v1",
                 "security_profile": "permission-split-v1"
             },
