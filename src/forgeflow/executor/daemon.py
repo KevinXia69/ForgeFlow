@@ -47,9 +47,13 @@ class ExecutorServer:
     def __init__(self, socket_path: Path, handlers: Handlers, *, agent_uid: int,
                  ready_path: Path | None = None, lock_path: Path | None = None,
                  max_connections: int = 32,
-                 peer_check: Callable[[socket.socket, int], None] | None = None) -> None:
+                 peer_check: Callable[[socket.socket, int], None] | None = None,
+                 strict_ownership: bool | None = None) -> None:
         self.socket_path, self.handlers, self.agent_uid = Path(socket_path), handlers, agent_uid
         self.peer_check = peer_check
+        self.strict_ownership = (os.environ.get("FORGEFLOW_STRICT_EXECUTOR", "").lower()
+                                 in {"1", "true", "yes"}
+                                 if strict_ownership is None else strict_ownership)
         self.ready_path = Path(ready_path) if ready_path is not None else None
         self.lock_path = Path(lock_path or self.socket_path.with_name("executor.lock"))
         self.max_connections, self.chown_skipped = max_connections, False
@@ -60,6 +64,11 @@ class ExecutorServer:
     def bind(self) -> None:
         if self._listener is not None:
             raise RuntimeError("executor_already_running")
+        if self.strict_ownership and (os.geteuid() != 0 or self.agent_uid <= 0
+                                      or self.peer_check is not None):
+            raise RuntimeError("executor_requires_root_peer_gate")
+        if self.strict_ownership and not hasattr(socket, "SO_PEERCRED"):
+            raise RuntimeError("peer_credentials_unsupported")
         self._closed, self.chown_skipped = False, False
         parent = self.socket_path.parent
         if not parent.exists():
@@ -107,7 +116,14 @@ class ExecutorServer:
                 try:
                     os.chown(temp, 0, agent_gid)
                 except PermissionError:
+                    if self.strict_ownership:
+                        raise RuntimeError("socket_ownership_required") from None
                     self.chown_skipped = True
+                if self.strict_ownership:
+                    info = os.lstat(temp)
+                    if (info.st_uid != 0 or info.st_gid != agent_gid
+                            or stat.S_IMODE(info.st_mode) != 0o660):
+                        raise RuntimeError("socket_ownership_required")
                 listener.listen(8)
                 os.replace(temp, self.socket_path)
                 self._temp = None

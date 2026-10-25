@@ -348,9 +348,11 @@ class DshHarness:
         )
 
     def with_evidence(self, evidence: Path):
+        from .dsh_environment import share_scoped_patch
         from .dsh_permissions import scoped_patch
         try:
             patch = scoped_patch(self.patch, evidence)
+            share_scoped_patch(patch)
         except (OSError, ValueError):
             raise DshUnavailable("dsh_permissions_unavailable") from None
         scoped = type(self)(
@@ -383,17 +385,14 @@ class DshHarness:
             base += ["--session-id", session_id]
         if hasattr(self, "evidence_path") and PLANNED_COST_CONTEXT not in question:
             question = f"ForgeFlow evidence field meaning: {PLANNED_COST_CONTEXT}\n\nQuestion: {question}"
-        base.append(question)
+        base.extend(["--", question])
         return base
 
     def _env(self) -> dict[str, str]:
-        env = dict(os.environ)
-        env["DSH_HOME"] = str(self.home)
-        env["DSH_PERMISSION_MODE"] = "read-only"
-        env.pop("FORGEFLOW_ASSISTANT_CASES", None)
-        env.pop("FORGEFLOW_ASSISTANT_RUNS", None)
-        env["FORGEFLOW_ASSISTANT_EVIDENCE"] = str(getattr(self, "evidence_path", ""))
-        return env
+        from .dsh_environment import assistant_environment
+
+        return assistant_environment(os.environ, home=self.home,
+                                     evidence=getattr(self, "evidence_path", ""))
 
     def _parse(self, stdout: str) -> DshReply:
         final = ""

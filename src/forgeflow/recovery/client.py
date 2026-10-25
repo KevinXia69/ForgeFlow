@@ -213,7 +213,7 @@ def prepare(
 def product(socket_path: str, run_id: str, action: str, payload: dict, *, timeout: float = 300) -> dict:
     """Product-only root decisions; autonomous executors reject this operation."""
     _check_run_id(run_id)
-    if (not isinstance(action, str) or action not in {"prepare", "decide", "authorize", "status", "cancel_unstarted"}
+    if (not isinstance(action, str) or action not in {"prepare", "decide", "authorize", "status", "cancel_unstarted", "artifact"}
             or not isinstance(payload, dict)):
         raise ExecutorError("invalid_field", reason="invalid product request")
     return request(socket_path, _envelope("product", run_id=run_id, action=action,

@@ -132,6 +132,28 @@ def test_failure(serve):
     )
 
 
+def test_product_artifact_action_reaches_the_executor_socket(serve):
+    from forgeflow.executor.protocol import validate_envelope
+
+    payload = {"owner_sha256": "b" * 64, "plan_id": PLAN,
+               "name": "snapshot.json", "offset": 0}
+    artifact = {"name": "snapshot.json", "offset": 0, "total_bytes": 2,
+                "sha256": "c" * 64, "data_base64": "e30=", "eof": True}
+
+    def handler(conn, server):
+        raw = read_line(conn)
+        server.received.append(raw)
+        op, fields = validate_envelope(json.loads(raw))
+        assert op == "product" and fields["action"] == "artifact"
+        assert fields["payload"] == payload
+        reply(conn, {"schema_version": 1, "ok": True, "op": op, "artifact": artifact})
+
+    server = serve(handler)
+    response = client.product(server.address, RUN, "artifact", payload, timeout=2)
+    assert response["artifact"] == artifact
+    assert server.accepted == 1
+
+
 def test_refused(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     with pytest.raises(ExecutorError) as raised:

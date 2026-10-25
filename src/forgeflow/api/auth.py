@@ -119,6 +119,13 @@ def verify_cookie(
         return None
     if type(expiry) is not int or expiry <= _epoch(now):
         return None
+    # Removing an invite must revoke its already-issued sessions as soon as
+    # the application reloads the configuration, not only future logins.
+    active = False
+    for invite_code in settings.invite_codes:
+        active |= hmac.compare_digest(uid, _identity(settings, invite_code))
+    if not active:
+        return None
     recorded_audience = claims.get("aud")
     if audience is not None:
         if not isinstance(recorded_audience, str) or not hmac.compare_digest(

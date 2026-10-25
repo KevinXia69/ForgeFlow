@@ -1,0 +1,4 @@
+# API versions used by the VPS acceptance environment. Project runtime and
+# planning/SDK dependencies are pinned in pyproject.toml.
+fastapi==0.152.0
+uvicorn[standard]==0.54.0

@@ -470,10 +470,10 @@ export function ChatSurface({
 
 export function useKnowledgeResponder(): ChatResponder {
   const { t, lang } = useI18n();
-  const { scope_id } = useWorkspace();
+  const { scope_id, deployment } = useWorkspace();
   return useMemo<ChatResponder>(
     () => async (question, history, onTrace, signal, conversation, turn) => {
-      const stored = loadModelConfig(scope_id);
+      const stored = loadModelConfig(scope_id, deployment);
       const model = isModelConfigComplete(stored) ? stored : undefined;
       let answer: AnswerWithMode;
       if (turn?.resume && (model || !onTrace)) throw new ApiError("turn_unavailable", 410);
@@ -543,7 +543,7 @@ export function useKnowledgeResponder(): ChatResponder {
         },
       };
     },
-    [t, lang, scope_id],
+    [t, lang, scope_id, deployment],
   );
 }
 

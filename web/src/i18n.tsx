@@ -13,6 +13,14 @@ export type Lang = "zh" | "en";
 export const LANG_STORAGE_KEY = "forgeflow.lang";
 
 const zh = {
+  "environment.busy": "当前业务环境正在由另一位评委使用。",
+  "environment.busyRecovery": "你可以查看自己的历史案例，请等待管理员开放下一轮后再新建案例。",
+  "environment.historical": "这是上一轮环境中的案例，目前仅供查看。",
+  "environment.historicalRecovery": "如需继续体验，请返回案例列表，在新一轮环境中创建新案例。",
+  "environment.reset": "当前业务环境正在等待管理员完成轮次切换。",
+  "environment.resetRecovery": "你可以查看自己的历史案例；管理员开放下一轮后，请刷新页面再新建案例。",
+  "environment.unavailable": "当前业务服务暂时不可用，无法新建或审批案例。",
+  "environment.unavailableRecovery": "请稍后刷新页面；如果仍不可用，请联系管理员。",
   "impact.nodeNoOrder": "该节点未记录通往销售订单的路径，不能将未分配供应计入订单覆盖。",
   "impact.basis": "规划起算日期：{date}；各数量分别对应标出的 SKU。",
   "impact.source.plan": "记录的恢复方案",
@@ -1350,6 +1358,14 @@ const zh = {
 export type MessageKey = keyof typeof zh;
 
 const en: Record<MessageKey, string> = {
+  "environment.busy": "Another reviewer is using the current business environment.",
+  "environment.busyRecovery": "You can view your own case history. Please wait for the administrator to open the next round before creating a case.",
+  "environment.historical": "This case belongs to a previous round and is available for viewing only.",
+  "environment.historicalRecovery": "To continue, return to the case list and create a new case in the next round.",
+  "environment.reset": "The current environment is waiting for the administrator to complete the round change.",
+  "environment.resetRecovery": "You can view your own case history. After the administrator opens the next round, refresh the page to create a case.",
+  "environment.unavailable": "The business service is temporarily unavailable. Cases cannot be created or approved.",
+  "environment.unavailableRecovery": "Refresh the page later. If it remains unavailable, contact the administrator.",
   "impact.nodeNoOrder": "This node has no recorded path to a sales order. Unallocated supply cannot count toward order coverage.",
   "impact.basis": "Planning anchor: {date}. Every quantity belongs to its shown SKU.",
   "impact.source.plan": "Recorded recovery plan",

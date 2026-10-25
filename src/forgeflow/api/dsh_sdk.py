@@ -12,6 +12,7 @@ import json
 import os
 import queue
 import shlex
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -138,9 +139,11 @@ class SdkDshHarness:
         )
 
     def with_evidence(self, evidence: Path):
+        from .dsh_environment import share_scoped_patch
         from .dsh_permissions import scoped_patch
         try:
             patch = scoped_patch(self.patch, evidence)
+            share_scoped_patch(patch)
         except (OSError, ValueError):
             raise DshUnavailable("dsh_permissions_unavailable") from None
         scoped = type(self)(
@@ -176,11 +179,17 @@ class SdkDshHarness:
     def _wrapper(self) -> Path:
         path = self.home.parent / "dsh-sdk-wrapper.sh"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            '#!/bin/sh\nexec ' + shlex.quote(self.node) + " " + shlex.quote(str(self.cli)) + ' "$@"\n',
-            encoding="utf-8",
-        )
-        path.chmod(0o700)
+        # Owner-scoped SDK runtimes share this fixed launcher. Publishing a
+        # complete inode avoids truncating a script another runtime is starting.
+        descriptor, temporary = tempfile.mkstemp(dir=path.parent, prefix=".dsh-wrapper-")
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
+                handle.write('#!/bin/sh\nexec ' + shlex.quote(self.node) + " "
+                             + shlex.quote(str(self.cli)) + ' "$@"\n')
+            os.chmod(temporary, 0o700)
+            os.replace(temporary, path)
+        finally:
+            Path(temporary).unlink(missing_ok=True)
         return path
 
     def _runtime(self):
@@ -188,12 +197,10 @@ class SdkDshHarness:
             return self._harness
         from deepseek_harness import DeepSeekHarness
 
-        env = dict(os.environ)
-        env["DSH_HOME"] = str(self.home)
-        env["DSH_PERMISSION_MODE"] = "read-only"
-        env.pop("FORGEFLOW_ASSISTANT_CASES", None)
-        env.pop("FORGEFLOW_ASSISTANT_RUNS", None)
-        env["FORGEFLOW_ASSISTANT_EVIDENCE"] = str(getattr(self, "evidence_path", ""))
+        from .dsh_environment import assistant_environment
+
+        env = assistant_environment(os.environ, home=self.home,
+                                    evidence=getattr(self, "evidence_path", ""))
         self._harness = DeepSeekHarness(
             dsh_home=str(self.home),
             cwd=str(self.workspace),

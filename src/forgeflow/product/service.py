@@ -33,6 +33,7 @@ from forgeflow.recovery.storage import StorageError
 from .candidate_store import CandidateStore
 from .candidates import normalize_comparison, project_comparison
 from .executor import ProductExecutor
+from .lease import EnvironmentLease, EnvironmentLeaseError
 from .state import (
     AWAITING_APPROVAL,
     AWAITING_SELECTION,
@@ -113,6 +114,7 @@ class ProductCaseService:
         executor: ProductExecutor | None = None,
         *,
         approvals_root: str | Path | None = None,
+        environment_generation: str | None = None,
     ) -> None:
         if root is None:
             root = approvals_root
@@ -128,6 +130,10 @@ class ProductCaseService:
         )
         self.store = self.root
         self.executor = executor
+        self.environment_lease = (
+            EnvironmentLease(self.root, environment_generation)
+            if environment_generation is not None else None
+        )
         self._lock = threading.RLock()
 
     # -- identity and paths -------------------------------------------------
@@ -258,7 +264,22 @@ class ProductCaseService:
         case = self._read(case_id)
         if case is None or case.uid != uid:
             raise ProductCaseNotFound()
+        if self.environment_lease is not None:
+            try:
+                self.environment_lease.require(uid, case_id)
+            except EnvironmentLeaseError as error:
+                raise ProductCaseError(error.code, error.status) from None
         return case
+
+    def environment_status(self, uid: str) -> dict[str, Any]:
+        """Return availability without exposing another principal's identity."""
+        if self.environment_lease is None:
+            return {"enforced": False, "generation": None, "available": True,
+                    "owned_by_me": False, "requires_admin_reset": False, "reason": None}
+        try:
+            return self.environment_lease.status(uid)
+        except EnvironmentLeaseError as error:
+            raise ProductCaseError(error.code, error.status) from None
 
     @contextmanager
     def _mutation(self):
@@ -383,6 +404,18 @@ class ProductCaseService:
             except (OSError, ValueError, KeyError, TypeError, StorageError):
                 projected["comparison"] = {"status": "unavailable", "version": raw["version"],
                                            "reason": "candidate_evidence_unavailable"}
+        if self.environment_lease is not None:
+            try:
+                self.environment_lease.require(case.uid, case.case_id)
+            except EnvironmentLeaseError as error:
+                # Historical evidence remains readable after an operator reset,
+                # but no button may dispatch that old case into the new ERP.
+                for key in decision:
+                    if key.startswith("can_"):
+                        decision[key] = False
+                decision.update(reason=error.code, environment_current=False)
+            else:
+                decision["environment_current"] = True
         return view
 
     @staticmethod
@@ -482,6 +515,11 @@ class ProductCaseService:
             for _ in range(8):
                 case = ProductCase.new(uid, scenario)
                 if not os.path.lexists(self.path_for(case.case_id)):
+                    if self.environment_lease is not None:
+                        try:
+                            self.environment_lease.claim(uid, case.case_id)
+                        except EnvironmentLeaseError as error:
+                            raise ProductCaseError(error.code, error.status) from None
                     self._write(case)
                     return self._view(case)
             raise ProductCaseError("case_id_collision", 503)

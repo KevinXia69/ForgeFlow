@@ -56,12 +56,13 @@ function platformProfileLabel(profile: string | null | undefined): string {
 
 export function SettingsDialog({ onClose }: Props) {
   const { t } = useI18n();
-  const { scope_id } = useWorkspace();
-  const [initialSaved] = useState<ModelConfig | null>(() => loadModelConfig(scope_id));
+  const { scope_id, deployment } = useWorkspace();
+  const [initialSaved] = useState<ModelConfig | null>(() => loadModelConfig(scope_id, deployment));
   const [saved, setSaved] = useState<ModelConfig | null>(initialSaved);
   const [config, setConfig] = useState<ModelConfig>(() => initialSaved ?? defaultConfig());
   const [ownKey, setOwnKey] = useState(() => isModelConfigComplete(initialSaved));
   const [platform, setPlatform] = useState<ModelSettingsInfo | null>(null);
+  const canOverride = deployment !== "hosted" && platform?.can_override !== false;
   const [platformLoading, setPlatformLoading] = useState(true);
   const [showKey, setShowKey] = useState(false);
   const [busy, setBusy] = useState<BusyState>(null);
@@ -114,6 +115,7 @@ export function SettingsDialog({ onClose }: Props) {
   }
 
   function toggleOwnKey(next: boolean) {
+    if (!canOverride) return;
     setOwnKey(next);
     setStatus(next ? null : { kind: "info", key: "settings.statusPlatform" });
     if (!next) {
@@ -127,7 +129,7 @@ export function SettingsDialog({ onClose }: Props) {
   }
 
   function save() {
-    if (!ownKey) {
+    if (!canOverride || !ownKey) {
       setStatus({ kind: "success", key: "settings.statusPlatform" });
       return;
     }
@@ -137,7 +139,7 @@ export function SettingsDialog({ onClose }: Props) {
       return;
     }
     setBusy("save");
-    const stored = saveModelConfig(candidate, scope_id);
+    const stored = saveModelConfig(candidate, scope_id, deployment);
     setBusy(null);
     if (!stored) {
       setStatus({ kind: "error", key: "settings.statusSaveFailed" });
@@ -150,7 +152,7 @@ export function SettingsDialog({ onClose }: Props) {
 
   async function test() {
     const candidate = formConfig(config);
-    if (ownKey && (!candidate.base_url || !candidate.model || !candidate.api_key)) {
+    if (canOverride && ownKey && (!candidate.base_url || !candidate.model || !candidate.api_key)) {
       setStatus({ kind: "error", key: "settings.statusRequired" });
       return;
     }
@@ -159,7 +161,7 @@ export function SettingsDialog({ onClose }: Props) {
     try {
       // Off: POST {} so the server tests its platform default with its own
       // hidden key. Never send a stale browser config in that mode.
-      const result = await testModelConnection(ownKey ? candidate : undefined);
+      const result = await testModelConnection(canOverride && ownKey ? candidate : undefined);
       if (result.ok) {
         setStatus({
           kind: "success",
@@ -246,7 +248,7 @@ export function SettingsDialog({ onClose }: Props) {
                 <div><dt>{t("settings.scopePlan")}</dt><dd>{t("settings.scopePlanBody")}</dd></div>
                 <div><dt>{t("settings.scopeResearch")}</dt><dd>{t("settings.scopeResearchBody")}</dd></div>
               </dl>
-              <p className="settings-note">{t("sidebar.dataStaysLocal")}</p>
+              {deployment !== "hosted" && <p className="settings-note">{t("sidebar.dataStaysLocal")}</p>}
               <button type="button" className="secondary" onClick={() => { void api("/api/auth/session", { method: "DELETE" }).then(() => location.reload()).catch(() => setStatus({ kind: "error", key: "login.errorFailed" })); }}>{t("v9.exit")}</button>
 
               <div className="settings-platform">
@@ -278,16 +280,16 @@ export function SettingsDialog({ onClose }: Props) {
                 )}
               </div>
 
-              <div className="settings-toggle">
+              {canOverride && <div className="settings-toggle">
                 <Switch
                   checked={ownKey}
                   onChange={toggleOwnKey}
                   label={t("settings.useOwnKey")}
                 />
                 <span aria-hidden="true">{t("settings.useOwnKey")}</span>
-              </div>
+              </div>}
 
-              {ownKey ? (
+              {canOverride && ownKey ? (
                 <>
                   <div className="settings-field">
                     <label htmlFor="settings-profile">{t("settings.profile")}</label>
@@ -387,7 +389,7 @@ export function SettingsDialog({ onClose }: Props) {
                 <Button
                   variant="primary"
                   onClick={save}
-                  disabled={busy !== null || !ownKey}
+                  disabled={busy !== null || !canOverride || !ownKey}
                 >
                   {t("settings.save")}
                 </Button>
@@ -403,7 +405,7 @@ export function SettingsDialog({ onClose }: Props) {
                 <Button
                   variant="outline"
                   onClick={clear}
-                  disabled={busy !== null || !ownKey}
+                  disabled={busy !== null || !canOverride || !ownKey}
                 >
                   {t("settings.clear")}
                 </Button>

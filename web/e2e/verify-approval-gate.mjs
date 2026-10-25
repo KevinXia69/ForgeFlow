@@ -16,7 +16,7 @@ import { chromium } from "playwright-core";
 
 const port = 4184;
 const root = fileURLToPath(new URL("../../src/forgeflow/api/static/", import.meta.url));
-const server = spawn("python3", ["-m", "http.server", String(port), "--bind", "127.0.0.1", "--directory", root], { stdio: "ignore" });
+const server = spawn(process.env.FORGEFLOW_TEST_PYTHON || "python3", ["-m", "http.server", String(port), "--bind", "127.0.0.1", "--directory", root], { stdio: "ignore" });
 await new Promise((resolve) => setTimeout(resolve, 600));
 
 const id = "a".repeat(32);
@@ -62,15 +62,16 @@ function check(ok, label, detail = "") {
 
 const browser = await chromium.launch({ channel: "chrome", headless: true });
 
-async function open({ capabilities, cases, hash }) {
+async function open({ capabilities, cases, hash, lang = "en" }) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: "en-US" });
+  await context.addInitScript(value => localStorage.setItem("forgeflow.lang", value), lang);
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.route("**/api/**", (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/auth/me") return route.fulfill({ json: { scope_id: "owner-a", display_name: "Alex Chen", deployment: "local" } });
-    if (path === "/api/config") return route.fulfill({ json: { deployment: "local", runner_enabled: false, dsh_web_url: "http://example.invalid/" } });
+    if (path === "/api/auth/me") return route.fulfill({ json: { scope_id: "owner-a", display_name: "Alex Chen", deployment: capabilities.deployment || "local" } });
+    if (path === "/api/config") return route.fulfill({ json: { deployment: capabilities.deployment || "local", runner_enabled: false, dsh_web_url: "http://example.invalid/" } });
     if (path === "/api/capabilities") return route.fulfill({ json: capabilities });
     if (path === "/api/product/cases") return route.fulfill({ json: cases });
     if (path === `/api/product/cases/${id}`) return route.fulfill({ json: cases[0] });
@@ -171,6 +172,46 @@ try {
     check(note.trim().length > 20, "T06 create: the note is still visible while disabled", note);
     check(await page.locator("[data-create-note]").getAttribute("data-create-note") === "unavailable", "T06 create: the note states the unavailable case");
     await context.close();
+  }
+  for (const lang of ["en", "zh"]) {
+    const busyCaps = { ...liveCaps(false), deployment: "hosted", reason: "environment_busy",
+      environment: { execution: "live_sandbox", ready: true, scenario: "A", lease: { reason: "environment_busy", available: false } } };
+    const busyPattern = lang === "zh" ? /另一位评委/ : /another reviewer/i;
+    const nextPattern = lang === "zh" ? /管理员.*下一轮/ : /administrator.*next round/i;
+    {
+      const { context, page, errors } = await open({ capabilities: busyCaps, cases: [], hash: "#cases", lang });
+      await page.locator('[data-cases-ready="true"]').waitFor({ timeout: 15000 });
+      const note = await page.locator("[data-create-note]").innerText();
+      check(busyPattern.test(note) && nextPattern.test(note), `${lang}: busy create explains the next reviewer round`, note);
+      check(!(await page.locator("[data-create-case]").isEnabled()), `${lang}: busy create remains disabled`);
+      check(!/executor|执行器|owner-a/i.test(note), `${lang}: busy create exposes no executor instructions or owner identity`);
+      check(errors.length === 0, `${lang}: busy create has no page errors`, errors.join("; "));
+      await context.close();
+    }
+    {
+      const { context, page } = await open({ capabilities: busyCaps, cases: [caseFile()], hash: `#case=${id}`, lang });
+      await page.locator("[data-case-detail]").waitFor({ timeout: 15000 });
+      check(busyPattern.test(await page.locator("[data-sticky-block-reason]").innerText()), `${lang}: busy approval uses capabilities reason`);
+      check(nextPattern.test(await page.locator("[data-sticky-block-recovery]").innerText()), `${lang}: busy approval names administrator recovery`);
+      check(await page.locator("[data-decision-disabled]").getAttribute("data-block-kind") === "environment", `${lang}: approval panel agrees with busy sticky bar`);
+      check(!(await page.locator("[data-case-approve-sticky]").isEnabled()), `${lang}: busy approval remains disabled`);
+      await context.close();
+    }
+    {
+      const oldCase = caseFile();
+      oldCase.decision = { ...oldCase.decision, can_approve: false, can_reject: false,
+        can_request_changes: false, reason: "environment_generation_mismatch", environment_current: false };
+      const { context, page } = await open({ capabilities: { ...liveCaps(true), deployment: "hosted" }, cases: [oldCase], hash: `#case=${id}`, lang });
+      await page.locator("[data-case-detail]").waitFor({ timeout: 15000 });
+      const reason = await page.locator("[data-sticky-block-reason]").innerText();
+      const recovery = await page.locator("[data-sticky-block-recovery]").innerText();
+      check((lang === "zh" ? /上一轮.*仅供查看/ : /previous round.*viewing only/i).test(reason), `${lang}: old case is explicitly read-only`, reason);
+      check((lang === "zh" ? /新.*案例/ : /new case/i).test(recovery), `${lang}: old case directs reviewer to create a new case`, recovery);
+      check(await page.locator('[data-environment-restriction="historical"]').count() === 1, `${lang}: historical notice remains visible above case details`);
+      check(!(await page.locator("[data-case-approve-sticky]").isEnabled()), `${lang}: old case cannot approve even when the current round is available`);
+      check(!/executor|执行器|owner-a/i.test(reason + recovery), `${lang}: old case has no local setup instructions or identity`);
+      await context.close();
+    }
   }
 } catch (error) {
   check(false, "harness completed", error instanceof Error ? error.message : String(error));

@@ -141,9 +141,13 @@ class LocalProductExecutor:
         enable_revisions: bool = False,
         enable_candidates: bool = False,
         candidate_profile: str = LEGACY_CANDIDATE_PROFILE,
+        artifact_rpc: bool = False,
     ) -> None:
         self.socket_path = str(socket_path)
         self.store = Path(store)
+        if type(artifact_rpc) is not bool:
+            raise ValueError("invalid_artifact_rpc_setting")
+        self.artifact_rpc = artifact_rpc
         self.approvals = Path(approvals)
         self.request = json.loads(Path(request).read_text(encoding="utf-8"))
         if not isinstance(self.request, dict):
@@ -202,6 +206,7 @@ class LocalProductExecutor:
             enable_revisions=revision_capability_setting() is True,
             enable_candidates=candidate_capability_setting() is True,
             candidate_profile=candidate_profile_setting() or LEGACY_CANDIDATE_PROFILE,
+            artifact_rpc=os.environ.get("FORGEFLOW_LOCAL_ARTIFACT_RPC", "").lower() in ("1", "true", "yes"),
         )
 
     def _require_case_scenario(self, case: dict[str, Any]) -> None:
@@ -779,7 +784,13 @@ class LocalProductExecutor:
         plan_id = candidate_id or (decision.get("selected_plan_id") if isinstance(decision, dict) else None)
         if not isinstance(plan_id, str) or re.fullmatch(r"[a-f0-9]{64}", plan_id) is None:
             raise ProductExecutionError("prepare_failed")
-        directory = self.store / plan_id
+        from .artifacts import prepared_directory
+
+        with prepared_directory(self, case, plan_id) as directory:
+            return self._project_prepared_plan(case, decision, constraints, plan_id,
+                                               directory, candidate_id=candidate_id)
+
+    def _project_prepared_plan(self, case, decision, constraints, plan_id, directory, *, candidate_id=None):
         prepared = self._json(directory / "prepared.json")
         manifest = self._json(directory / "manifest.json")
         changes = self._json(directory / "change-set.json")

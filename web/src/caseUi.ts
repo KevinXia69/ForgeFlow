@@ -4,9 +4,11 @@ import { recordedDueRange } from "./orderReadinessDates";
 import { originalScoreThresholdMiss } from "./verificationExplanation";
 import { ApiError } from "./api";
 import { costMoney } from "./costAmounts";
+import { environmentAccessNotice } from "./environmentAccess";
 import type { Lang, MessageKey, Translate } from "./i18n";
 import type {
   ActivityState,
+  Capabilities,
   CaseFile,
   ProductAction,
   ProductPlan,
@@ -600,7 +602,7 @@ export function missingRequiredChecks(
 
 export type ApprovalBlock = {
   /** deployment = this workspace cannot approve at all; missing = a required check was never recorded. */
-  kind: "deployment" | "scenario" | "blocked" | "missing" | "state" | "legacy" | "unknown";
+  kind: "deployment" | "environment" | "scenario" | "blocked" | "missing" | "state" | "legacy" | "unknown";
   reason: string;
   recovery: string | null;
   /** A second, independent reason that also has to be fixed. */
@@ -622,10 +624,13 @@ export function approvalGate(input: {
   awaiting: boolean;
   canDecide: boolean;
   approvalCapable: boolean;
+  capabilities?: Capabilities | null;
   busy: boolean;
   t: Translate;
 }): ApprovalGate {
   const { caseFile, checks, fixture, live, awaiting, canDecide, approvalCapable, busy, t } = input;
+  const environment = !fixture ? environmentAccessNotice(t, input.capabilities, caseFile) : null;
+  if (environment) return { canApprove: false, block: environment };
   const hasPlan = caseFile.plan !== null && caseFile.plan !== undefined;
   const reason = caseFile.decision?.reason ?? null;
   const blocked = checks.filter((check) => check.status === "block");
@@ -649,7 +654,9 @@ export function approvalGate(input: {
       : null;
     return {
       canApprove: false,
-      block: { kind: "deployment", reason: t("v13.blockDeployment"), recovery: t("v13.recoveryDeployment"), also },
+      block: { kind: "deployment",
+        reason: t(input.capabilities?.deployment === "hosted" ? "environment.unavailable" : "v13.blockDeployment"),
+        recovery: t(input.capabilities?.deployment === "hosted" ? "environment.unavailableRecovery" : "v13.recoveryDeployment"), also },
     };
   }
   if (reason === "product_scenario_unavailable") {

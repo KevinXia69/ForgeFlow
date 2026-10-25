@@ -1,0 +1,18 @@
+{
+  "repo_root": "/opt/forgeflow",
+  "python": "/opt/forgeflow/.venv/bin/python",
+  "sandbox_root": "/var/lib/forgeflow/sandbox",
+  "case_root": "/var/lib/forgeflow/api/cases",
+  "data_root": "/var/lib/forgeflow/api/runs",
+  "socket": "/run/forgeflow/executor.sock",
+  "container": "forgeflow-odoo",
+  "scenario": "A",
+  "odoo_port": 18069,
+  "api_port": 8000,
+  "odoo_image": "forgeflow-odoo:vps1",
+  "allow_initialize": false,
+  "dsh_cli": "/opt/forgeflow/dsh/node_modules/@deepseek-ai/dsh/lib/bin.js",
+  "dsh_patch": "/etc/forgeflow/dsh.patch.json",
+  "dsh_root": "/var/lib/forgeflow/assistant",
+  "dsh_node": "/usr/local/bin/node"
+}
