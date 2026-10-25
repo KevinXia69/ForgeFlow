@@ -56,7 +56,10 @@ approval flow never needs to write there.
 
 The approvals volume is the named volume `forgeflow-approvals` (created by
 Compose and independent of the container lifecycle). Approval records and the
-append-only `audit.jsonl` live there. Inspect it with:
+append-only `audit.jsonl` live there. The image initializes `/data/approvals`
+for uid/gid 10001, and a fresh named volume inherits that ownership. The API
+writes its run registry there during startup, even with the runner disabled.
+Inspect the volume with:
 
 ```bash
 docker volume inspect forgeflow-approvals
@@ -94,7 +97,7 @@ uv run forgeflow api --host 127.0.0.1 --port 8000
 ```
 
 The `api` subcommand is the same entry point the image uses. Host mode writes
-approvals to `./approvals`; the directory is created on the first approval.
+approvals to `./approvals`; the directory is created during API startup.
 
 ## Security note
 

@@ -154,8 +154,6 @@ def test_completed_turn_survives_a_restart_at_the_api_level(tmp_path, monkeypatc
     question came back 409 turn_payload_mismatch. This drives the HTTP endpoint
     across two app instances, not the hub alone.
     """
-    import json as _json
-
     calls: list[str] = []
 
     class Harness:
@@ -198,3 +196,66 @@ def test_completed_turn_survives_a_restart_at_the_api_level(tmp_path, monkeypatc
         changed = client.post('/api/assistant/stream', json={**body, 'question': 'a different question'})
         assert changed.status_code == 409
         assert changed.json()['detail'] == 'turn_payload_mismatch'
+
+
+@pytest.mark.parametrize("cancel_when", ["before_start", "running", "completed"])
+def test_cancelled_turn_stays_cancelled_after_api_restart(tmp_path, monkeypatch, cancel_when):
+    calls = []
+    entered, release, finished = threading.Event(), threading.Event(), threading.Event()
+
+    class Harness:
+        def with_evidence(self, _path):
+            class Scoped:
+                supports_turn_cancellation = True
+
+                def stream(self, question, _key, *, cancel_event=None):
+                    calls.append(question)
+                    entered.set()
+                    try:
+                        while not release.wait(.01):
+                            if cancel_event.is_set():
+                                return
+                        yield {"type": "final", "answer": "cancelled answer"}
+                    finally:
+                        finished.set()
+            return Scoped()
+
+    monkeypatch.setattr("forgeflow.api.app.DshHarness.from_env", lambda: Harness())
+    settings = create_settings({
+        "FORGEFLOW_DATA_ROOT": str(tmp_path / "runs"),
+        "FORGEFLOW_APPROVALS_ROOT": str(tmp_path / "state"),
+        "FORGEFLOW_SESSION_SECRET": "synthetic-turn-secret-01234567890123456789",
+        "FORGEFLOW_INVITE_CODES": "synthetic-turn-owner-a",
+        "FORGEFLOW_SECURE_COOKIE": "false",
+    })
+    body = {"question": "cancel this turn", "conversation_id": "chat", "turn_id": "stopped"}
+    cancel_body = {"conversation_id": "chat", "turn_id": "stopped"}
+
+    def login(client):
+        assert client.post("/api/auth/session", json={
+            "invite_code": "synthetic-turn-owner-a",
+        }).status_code == 201
+
+    with TestClient(create_app(settings)) as client:
+        login(client)
+        if cancel_when == "running":
+            with ThreadPoolExecutor() as pool:
+                pending = pool.submit(client.post, "/api/assistant/stream", json=body)
+                assert entered.wait(2)
+                assert client.post("/api/assistant/cancel", json=cancel_body).status_code == 200
+                assert pending.result(timeout=3).status_code == 200
+                assert finished.wait(2)
+        else:
+            if cancel_when == "completed":
+                release.set()
+                assert client.post("/api/assistant/stream", json=body).status_code == 200
+            assert client.post("/api/assistant/cancel", json=cancel_body).status_code == 200
+        assert client.post("/api/assistant/stream", json={**body, "resume": True}).status_code == 409
+
+    with TestClient(create_app(settings)) as client:
+        login(client)
+        for resume in (True, False):
+            response = client.post("/api/assistant/stream", json={**body, "resume": resume})
+            assert response.status_code == 409
+            assert response.json()["detail"] == "turn_cancelled"
+    assert calls == ([] if cancel_when == "before_start" else [body["question"]])

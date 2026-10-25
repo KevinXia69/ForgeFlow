@@ -89,6 +89,9 @@ export function DshComposer({
       aria-label={ariaLabel}
       onKeyDown={(event) => {
         if (event.key !== "Enter" || event.shiftKey) return;
+        // Enter confirms an IME candidate before it becomes a send command.
+        // Safari can clear isComposing on that keydown, but keeps keyCode 229.
+        if (disabled || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229 || editor.isComposing()) return;
         event.preventDefault();
         onSendRef.current();
       }}

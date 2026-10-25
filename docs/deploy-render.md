@@ -80,6 +80,7 @@ whole process command and binds to Render's assigned `$PORT`.
 | --- | --- | --- |
 | `FORGEFLOW_DEPLOYMENT` | `review` | Marks the instance as the review deployment (`/api/config`); validated by the API settings. |
 | `FORGEFLOW_DATA_ROOT` | `/app/demo-runs` | The curated, baked-in run subset. The app reads it and never writes there. |
+| `FORGEFLOW_PUBLIC_RUNS` | `p5-B-nop-meta-r1,p5-heldout-2281-pi-r1,permission-split-pi-20261021-09,permission-split-pi-b-20261021-01` | Makes these four curated runs visible to signed-in reviewers. Other unowned runs remain hidden. |
 | `FORGEFLOW_APPROVALS_ROOT` | `/tmp/approvals` | Approval records go to ephemeral local storage, not to a Render disk or the ERP. |
 | `FORGEFLOW_KNOWLEDGE_ROOT` | `/app` | The image copies `README.md`, `docs/`, and `contracts/` to `/app` for cited knowledge answers. |
 | `FORGEFLOW_SECURE_COOKIE` | `true` | The session cookie is `Secure` and only travels over HTTPS. Render provides TLS. |
@@ -90,6 +91,10 @@ whole process command and binds to Render's assigned `$PORT`.
 Do not add `NEBIUS_API_KEY`, `OPENAI_API_KEY`, Odoo credentials, or any ERP
 write credential. Nothing in this image reads them, and their absence is part
 of the read-only guarantee.
+
+Keep the public run list explicit when updating the demo bundle. An omitted
+list hides all unowned recorded runs; `*` would expose every unowned run found
+under the data root, including any later additions.
 
 ### Why review mode does not write
 

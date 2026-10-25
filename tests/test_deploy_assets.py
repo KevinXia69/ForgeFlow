@@ -7,6 +7,7 @@ importable, otherwise a few literal checks cover the same compose invariants.
 from __future__ import annotations
 
 import re
+import shlex
 from pathlib import Path
 
 try:
@@ -129,6 +130,25 @@ def test_compose_mounts_runs_read_only_and_persists_approvals():
     document = yaml.safe_load(text)
     assert isinstance(document, dict)
     assert "forgeflow-approvals" in document["volumes"]
+
+
+def test_image_initializes_both_deployments_approval_directories_for_runtime_user():
+    text = DOCKERFILE.read_text(encoding="utf-8")
+    configured = _dotenv_values(ENV_EXAMPLE.read_text(encoding="utf-8"))
+    image_path = re.search(r"FORGEFLOW_APPROVALS_ROOT=(\S+)", text).group(1)
+    expected = {image_path, configured["FORGEFLOW_APPROVALS_ROOT"]}
+    # Volume copy-up preserves the image destination's ownership. Check the
+    # provisioned paths against the actual image and Compose configuration.
+    setup = text.split("\nUSER ", 1)[0].replace("\\\n", " ")
+    created, owned = set(), set()
+    for command in re.findall(r"(?:^RUN\s+|&&\s+)([^&\n]+)", setup, re.MULTILINE):
+        words = shlex.split(command)
+        if words[0] == "mkdir":
+            created.update(word for word in words[1:] if word.startswith("/"))
+        elif words[0] == "chown" and "10001:10001" in words:
+            owned.update(words[words.index("10001:10001") + 1:])
+    assert expected <= created
+    assert expected <= owned
 
 
 def test_env_example_has_required_keys_and_safe_placeholders():

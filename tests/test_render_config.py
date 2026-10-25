@@ -1,4 +1,4 @@
-"""Static checks for the Render Blueprint and the review deployment runbook.
+"""Configuration and API checks for the Render review deployment.
 
 PyYAML is used when importable. The literal checks always run, so the same
 invariants are covered in environments where PyYAML is absent.
@@ -9,6 +9,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 try:
     import yaml
 except ImportError:  # pragma: no cover - exercised only when PyYAML is absent
@@ -18,10 +20,17 @@ ROOT = Path(__file__).resolve().parents[1]
 RENDER = ROOT / "render.yaml"
 DOC = ROOT / "docs/deploy-render.md"
 BUILDER = ROOT / "scripts" / "build_demo_runs.py"
+CURATED_RUNS = (
+    "p5-B-nop-meta-r1",
+    "p5-heldout-2281-pi-r1",
+    "permission-split-pi-20261021-09",
+    "permission-split-pi-b-20261021-01",
+)
 
 VALUES = {
     "FORGEFLOW_DEPLOYMENT": "review",
     "FORGEFLOW_DATA_ROOT": "/app/demo-runs",
+    "FORGEFLOW_PUBLIC_RUNS": ",".join(CURATED_RUNS),
     "FORGEFLOW_APPROVALS_ROOT": "/tmp/approvals",
     "FORGEFLOW_KNOWLEDGE_ROOT": "/app",
     "FORGEFLOW_SECURE_COOKIE": "true",
@@ -135,6 +144,43 @@ def test_render_yaml_has_no_hardcoded_secret_or_invite_value():
     assert re.search(
         r"(?im)^\s+-\s+key:\s+\S*INVITE\S*\s*\n\s+value:", text
     ) is None
+
+
+def test_render_environment_exposes_curated_runs_to_signed_in_reviewers(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from forgeflow.api.app import create_app
+    from forgeflow.api.settings import create_settings
+
+    service = _service()
+    if service is None:
+        pytest.skip("PyYAML is required to exercise the Render environment")
+    env = {item["key"]: item["value"] for item in service["envVars"] if "value" in item}
+    env.update({
+        "FORGEFLOW_DATA_ROOT": str(ROOT / "demo-runs"),
+        "FORGEFLOW_APPROVALS_ROOT": str(tmp_path / "approvals"),
+        "FORGEFLOW_KNOWLEDGE_ROOT": str(ROOT),
+        "FORGEFLOW_SESSION_SECRET": "render-regression-session-secret-0001",
+        "FORGEFLOW_INVITE_CODES": "render-regression-invite-0001",
+    })
+    settings = create_settings(env)
+    assert settings.public_runs == CURATED_RUNS
+    assert {path.name for path in settings.data_root.iterdir() if path.is_dir()} == set(CURATED_RUNS)
+    monkeypatch.setattr("forgeflow.api.app.DshHarness.from_env", lambda: None)
+    monkeypatch.setattr("forgeflow.api.app.platform_settings", lambda: None)
+    with TestClient(create_app(settings), base_url="https://testserver") as client:
+        assert client.get("/api/runs").status_code == 401
+        login = client.post("/api/auth/session", json={"invite_code": env["FORGEFLOW_INVITE_CODES"]})
+        assert login.status_code == 201
+        response = client.get("/api/runs")
+        assert response.status_code == 200
+        assert {row["run_id"] for row in response.json()} == set(CURATED_RUNS)
+        for run_id in CURATED_RUNS:
+            detail = client.get(f"/api/runs/{run_id}")
+            assert detail.status_code == 200, detail.text
+            assert detail.json()["run_id"] == run_id
+            assert detail.json()["access_scope"] == "public_evidence"
+        assert client.get("/api/runs/not-published").status_code == 404
 
 
 def test_doc_covers_new_service_github_app_domain_and_review_mode():

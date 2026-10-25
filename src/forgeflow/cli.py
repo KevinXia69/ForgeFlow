@@ -270,14 +270,18 @@ def main(argv: list[str] | None = None) -> int:
                 repo_root = Path(__file__).resolve().parents[2]
 
                 def spawn(command, run_id):
-                    run_dir = Path(settings.data_root) / run_id
-                    run_dir.mkdir(parents=True, exist_ok=True)
-                    log = open(run_dir / "api-runner.log", "ab")  # noqa: SIM115
-                    return subprocess.Popen(
-                        command, cwd=repo_root, env=os.environ.copy(),
-                        stdout=log, stderr=subprocess.STDOUT,
-                        start_new_session=True,
-                    )
+                    # The runner exclusively creates its own run directory.
+                    # Keep launch logs outside it so logging cannot reserve the
+                    # destination before the child reaches run_task().
+                    log_root = settings.approvals_root / "runner-logs"
+                    log_root.mkdir(parents=True, exist_ok=True, mode=0o700)
+                    with (log_root / f"{run_id}.log").open("ab") as log:
+                        os.fchmod(log.fileno(), 0o600)
+                        return subprocess.Popen(
+                            command, cwd=repo_root, env=os.environ.copy(),
+                            stdout=log, stderr=subprocess.STDOUT,
+                            start_new_session=True,
+                        )
 
             product_executor = None
             if os.environ.get("FORGEFLOW_LOCAL_PRODUCT", "").lower() in ("1", "true", "yes"):

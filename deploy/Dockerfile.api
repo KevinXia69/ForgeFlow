@@ -39,12 +39,13 @@ RUN pip install --no-cache-dir . \
     "uvicorn[standard]==0.54.0" \
     "cryptography==50.0.2"
 
-# Unprivileged runtime identity.
+# Unprivileged runtime identity. Docker copies the ownership of the Compose
+# mount destination into a fresh named volume; Render uses the temporary path.
 RUN groupadd --gid 10001 forgeflow \
     && useradd --uid 10001 --gid 10001 --no-create-home \
         --shell /bin/false forgeflow \
-    && mkdir -p /tmp/approvals \
-    && chown -R 10001:10001 /tmp/approvals
+    && mkdir -p /tmp/approvals /data/approvals \
+    && chown -R 10001:10001 /tmp/approvals /data/approvals
 
 USER 10001:10001
 

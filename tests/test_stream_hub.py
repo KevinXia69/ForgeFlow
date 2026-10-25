@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import threading
 
-from forgeflow.api.stream_hub import MAX_EVENTS, AssistantStreamHub
+import pytest
+
+from forgeflow.api.stream_hub import MAX_EVENTS, AssistantStreamHub, TurnJournal
 
 
 def _frames(text: str) -> list[dict]:
@@ -139,6 +142,82 @@ def test_turn_journal_does_not_resume_an_inflight_turn(tmp_path) -> None:
     assert restarted.get("owner:case:inflight") is None
     gate.set()
     job.cancel()
+
+
+@pytest.mark.parametrize("cancel_from", ["original", "restored", "unloaded"])
+def test_cancelling_a_completed_turn_revokes_its_saved_answer(tmp_path, cancel_from):
+    journal = TurnJournal(tmp_path / "journal")
+    hub = AssistantStreamHub(journal=journal)
+    key = "owner:case:completed-turn"
+    job = hub.start(key, lambda: iter([{"type": "final", "answer": "revoked answer"}]))
+    job._thread.join(2)
+    assert job.done
+    if cancel_from != "original":
+        hub = AssistantStreamHub(journal=journal)
+        if cancel_from == "restored":
+            assert hub.get(key) is not None
+    hub.cancel(key)
+
+    restored = AssistantStreamHub(journal=journal).get(key)
+    assert restored is not None and restored.cancelled
+    assert list(restored.subscribe(None)) == []
+    assert journal.load(key)["events"] == []
+
+
+def test_stop_during_final_persistence_wins_after_restart(tmp_path):
+    """Stop may race with a final already received by the browser."""
+    saving_final, release_save, stopped = threading.Event(), threading.Event(), threading.Event()
+
+    class DelayedJournal(TurnJournal):
+        def save(self, record):
+            if record["status"] == "complete":
+                saving_final.set()
+                assert release_save.wait(2)
+            super().save(record)
+
+    journal = DelayedJournal(tmp_path / "journal")
+    hub = AssistantStreamHub(journal=journal)
+    key = "owner:case:racing-turn"
+    job = hub.start(key, lambda: iter([{"type": "final", "answer": "late final"}]),
+                    on_cancel=stopped.set)
+    assert saving_final.wait(2)
+    cancel = threading.Thread(target=hub.cancel, args=(key,))
+    cancel.start()
+    try:
+        assert stopped.wait(2)
+    finally:
+        release_save.set()
+        cancel.join(2)
+        job._thread.join(2)
+    assert not cancel.is_alive() and not job._thread.is_alive()
+    restored = AssistantStreamHub(journal=journal).get(key)
+    assert restored is not None and restored.cancelled
+    assert list(restored.subscribe(None)) == []
+
+
+def test_cancelled_turn_stays_revoked_when_the_producer_finishes_later(tmp_path):
+    entered, release = threading.Event(), threading.Event()
+
+    def producer():
+        entered.set()
+        assert release.wait(2)
+        yield {"type": "final", "answer": "late final"}
+
+    journal = TurnJournal(tmp_path / "journal")
+    hub = AssistantStreamHub(journal=journal)
+    key = "owner:case:late-turn"
+    job = hub.start(key, producer)
+    assert entered.wait(2)
+    try:
+        hub.cancel(key)
+        restored = AssistantStreamHub(journal=journal).get(key)
+        assert restored is not None and restored.cancelled
+    finally:
+        release.set()
+        job._thread.join(2)
+    restored = AssistantStreamHub(journal=journal).get(key)
+    assert restored is not None and restored.cancelled
+    assert list(restored.subscribe(None)) == []
 
 
 def test_abandoned_turn_is_cancelled_after_the_grace(monkeypatch) -> None:

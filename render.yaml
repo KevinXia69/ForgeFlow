@@ -23,6 +23,8 @@ services:
         value: review
       - key: FORGEFLOW_DATA_ROOT
         value: /app/demo-runs
+      - key: FORGEFLOW_PUBLIC_RUNS
+        value: p5-B-nop-meta-r1,p5-heldout-2281-pi-r1,permission-split-pi-20261021-09,permission-split-pi-b-20261021-01
       - key: FORGEFLOW_APPROVALS_ROOT
         value: /tmp/approvals
       - key: FORGEFLOW_KNOWLEDGE_ROOT

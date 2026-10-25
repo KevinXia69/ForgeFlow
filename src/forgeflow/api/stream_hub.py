@@ -74,6 +74,7 @@ class StreamJob:
         self._next_sequence = 1
         self._subscribers: set[queue.Queue] = set()
         self._lock = threading.Lock()
+        self._persist_lock = threading.Lock()
         self._done = False
         self._cancelled = False
         self._error: str | None = None
@@ -105,13 +106,21 @@ class StreamJob:
         except Exception:
             self._publish({"type": "error", "code": "stream_failed"})
         finally:
-            if self._on_finish is not None:
+            try:
+                self._persist_snapshot()
+            finally:
+                with self._lock:
+                    self._done = True
+                    subscribers = list(self._subscribers)
+                for sink in subscribers:
+                    sink.put(DONE)
+
+    def _persist_snapshot(self) -> None:
+        if self._on_finish is not None:
+            # Take the snapshot inside the persistence lock: a producer finishing
+            # after Stop must not overwrite the cancellation with an older final.
+            with self._persist_lock:
                 self._on_finish(self.snapshot())
-            with self._lock:
-                self._done = True
-                subscribers = list(self._subscribers)
-            for sink in subscribers:
-                sink.put(DONE)
 
     def subscribe(self, last_event_id: int | None) -> Generator[str, None, None]:
         sink: queue.Queue = queue.Queue()
@@ -161,11 +170,14 @@ class StreamJob:
                     "updated_at": time.time(), "last_confirmed_at": time.time()}
 
     @classmethod
-    def from_journal(cls, record: dict) -> "StreamJob":
+    def from_journal(cls, record: dict, *, on_finish=None) -> "StreamJob":
         job = cls(str(record.get("key", "")), (), metadata=record.get("metadata"),
-                  request_hash=record.get("request_hash"))
+                  request_hash=record.get("request_hash"), on_finish=on_finish)
         job._events = [(int(seq), event) for seq, event in record.get("events", [])]
         job._next_sequence = max([seq for seq, _ in job._events], default=0) + 1
+        job._cancelled = record.get("status") == "cancelled"
+        if job._cancelled:
+            job._events.clear()
         job._done = True
         return job
 
@@ -214,6 +226,7 @@ class StreamJob:
             sink.put(DONE)
         if self._on_cancel is not None:
             self._on_cancel()
+        self._persist_snapshot()
 
 
 class AssistantStreamHub:
@@ -229,6 +242,10 @@ class AssistantStreamHub:
         self._max_jobs = max_jobs
         self._journal = journal
         self._lock = threading.Lock()
+
+    def _save_snapshot(self, snapshot: dict[str, Any]) -> None:
+        if self._journal is not None:
+            self._journal.save(snapshot)
 
     def start(self, key: str, producer_factory, *, request_hash=None, on_cancel=None,
               reuse_completed=False, metadata=None) -> StreamJob:
@@ -250,12 +267,8 @@ class AssistantStreamHub:
                     self._finished_at.pop(oldest, None)
                 else:
                     raise StreamCapacityError("stream_capacity")
-            def finished(snapshot):
-                if self._journal is not None:
-                    self._journal.save(snapshot)
-
             job = StreamJob(key, producer_factory(), request_hash=request_hash, on_cancel=on_cancel,
-                            on_finish=finished, metadata=metadata)
+                            on_finish=self._save_snapshot, metadata=metadata)
             self._jobs[key] = job
             self._finished_at.pop(key, None)
             job.start()
@@ -268,7 +281,7 @@ class AssistantStreamHub:
             if job is None and self._journal is not None:
                 record = self._journal.load(key)
                 if record is not None and record.get("status") in {"complete", "cancelled"}:
-                    job = StreamJob.from_journal(record)
+                    job = StreamJob.from_journal(record, on_finish=self._save_snapshot)
                     self._jobs[key] = job
                     self._finished_at[key] = time.monotonic()
             return job
@@ -295,7 +308,7 @@ class AssistantStreamHub:
             job = self._jobs.get(key)
             if job is None:
                 # Remember an early Stop even if its start request is in flight.
-                job = StreamJob(key, ())
+                job = StreamJob(key, (), on_finish=self._save_snapshot)
                 self._jobs[key] = job
         job.cancel()
         return True
