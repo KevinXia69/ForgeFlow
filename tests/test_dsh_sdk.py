@@ -146,3 +146,39 @@ def test_queued_turn_gives_up_before_any_model_call(tmp_path, monkeypatch):
     finally:
         lock.release()
     assert calls == []
+
+
+def test_stream_timeout_keeps_a_queued_turn_from_reaching_the_model(tmp_path):
+    """The stream may give up before the queue deadline; that must still stop the send.
+
+    With a stream timeout shorter than the queue deadline the caller sees
+    dsh_timeout while the worker is still queued. Releasing the lock later must
+    not turn that into a model call nobody asked for.
+    """
+    import threading
+    import time
+    from types import SimpleNamespace
+
+    calls = []
+    harness = dsh_sdk.SdkDshHarness(cli=tmp_path, patch=tmp_path, home=tmp_path,
+                                     workspace=tmp_path, timeout=0.3, queue_timeout=5.0)
+    harness.configured = lambda: True
+
+    class Session:
+        def run(self, question, **_kwargs):
+            calls.append(question)
+            return SimpleNamespace(events=[{"type": "final", "text": question}],
+                                   final_response=question, session_id="synthetic")
+
+    harness._session = lambda _key: Session()
+    lock = harness._turn_locks.setdefault("busy-chat", threading.Lock())
+    lock.acquire()
+    try:
+        with pytest.raises(DshUnavailable, match="dsh_timeout"):
+            list(harness.stream("queued", "busy-chat"))
+        lock.release()
+        time.sleep(0.5)
+        assert calls == []
+    finally:
+        if lock.locked():
+            lock.release()

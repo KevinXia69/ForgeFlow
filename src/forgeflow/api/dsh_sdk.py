@@ -303,10 +303,21 @@ class SdkDshHarness:
             events.append(event)
             queue_in.put(("trace", events))
 
+        # One stop signal for this call: the caller's cancel, or our own timeout.
+        # Setting it keeps a turn that has not been sent yet from ever reaching
+        # the model after the stream has already reported a failure.
+        stop = threading.Event()
+        if cancel_event is not None:
+            if cancel_event.is_set():
+                stop.set()
+            else:
+                threading.Thread(target=lambda: (
+                    cancel_event.wait(), stop.set()), daemon=True).start()
+
         def worker() -> None:
             try:
                 reply, result = self._reply(question, key, on_notification=on_notification,
-                                            cancel_event=cancel_event)
+                                            cancel_event=stop)
                 queue_in.put(("final", reply))
             except Exception as error:  # noqa: BLE001
                 queue_in.put(("error", error))
@@ -322,6 +333,7 @@ class SdkDshHarness:
                 kind, value = queue_in.get(timeout=0.2)
             except queue.Empty:
                 if time.monotonic() - last_event_time >= self.timeout:
+                    stop.set()
                     raise DshUnavailable("dsh_timeout") from None
                 continue
             last_event_time = time.monotonic()
