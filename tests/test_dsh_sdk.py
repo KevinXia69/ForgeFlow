@@ -148,37 +148,178 @@ def test_queued_turn_gives_up_before_any_model_call(tmp_path, monkeypatch):
     assert calls == []
 
 
-def test_stream_timeout_keeps_a_queued_turn_from_reaching_the_model(tmp_path):
-    """The stream may give up before the queue deadline; that must still stop the send.
-
-    With a stream timeout shorter than the queue deadline the caller sees
-    dsh_timeout while the worker is still queued. Releasing the lock later must
-    not turn that into a model call nobody asked for.
-    """
+@pytest.fixture
+def sdk_threads(monkeypatch):
+    """Track only this adapter's threads, without counting unrelated workers."""
     import threading
-    import time
     from types import SimpleNamespace
 
+    threads = []
+
+    def tracked_thread(*args, **kwargs):
+        thread = threading.Thread(*args, **kwargs)
+        threads.append(thread)
+        return thread
+
+    monkeypatch.setattr(dsh_sdk, "threading", SimpleNamespace(
+        Thread=tracked_thread, Event=threading.Event, Lock=threading.Lock,
+    ))
+    return threads
+
+
+@pytest.mark.parametrize("outcome", ["success", "error", "timeout"])
+def test_stream_completion_releases_threads(tmp_path, monkeypatch, sdk_threads, outcome):
+    """Repeated requests must not retain a waiter on the caller's unset event.
+
+    Timeout also covers releasing a busy session after the stream has failed:
+    the queued worker must exit without making a late model call.
+    """
+    import threading
+    from types import SimpleNamespace
+
+    cancellations = []
     calls = []
     harness = dsh_sdk.SdkDshHarness(cli=tmp_path, patch=tmp_path, home=tmp_path,
-                                     workspace=tmp_path, timeout=0.3, queue_timeout=5.0)
-    harness.configured = lambda: True
+                                  workspace=tmp_path, timeout=0.01, queue_timeout=5.0)
+    monkeypatch.setattr(harness, "configured", lambda: True)
 
     class Session:
         def run(self, question, **_kwargs):
             calls.append(question)
-            return SimpleNamespace(events=[{"type": "final", "text": question}],
-                                   final_response=question, session_id="synthetic")
+            if outcome == "error":
+                raise RuntimeError("synthetic model error")
+            return SimpleNamespace(events=[], final_response=question, session_id="synthetic")
 
-    harness._session = lambda _key: Session()
+    monkeypatch.setattr(harness, "_session", lambda _key: Session())
     lock = harness._turn_locks.setdefault("busy-chat", threading.Lock())
-    lock.acquire()
     try:
-        with pytest.raises(DshUnavailable, match="dsh_timeout"):
-            list(harness.stream("queued", "busy-chat"))
-        lock.release()
-        time.sleep(0.5)
-        assert calls == []
+        for index in range(3):
+            cancelled = threading.Event()
+            cancellations.append(cancelled)
+            if outcome == "timeout":
+                lock.acquire()
+            try:
+                stream = harness.stream(f"question {index}", "busy-chat", cancel_event=cancelled)
+                if outcome == "success":
+                    assert list(stream)[-1]["answer"] == f"question {index}"
+                else:
+                    with pytest.raises(DshUnavailable, match=f"^dsh_{'failed' if outcome == 'error' else 'timeout'}$"):
+                        list(stream)
+            finally:
+                if outcome == "timeout":
+                    lock.release()
+        for thread in sdk_threads:
+            thread.join(timeout=1)
+        assert not any(thread.is_alive() for thread in sdk_threads)
+        assert all(not cancelled.is_set() for cancelled in cancellations)
+        assert calls == ([] if outcome == "timeout" else [f"question {index}" for index in range(3)])
     finally:
-        if lock.locked():
-            lock.release()
+        # Release leaked waiters too when this regression runs against old code.
+        for cancelled in cancellations:
+            cancelled.set()
+        for thread in sdk_threads:
+            thread.join(timeout=1)
+
+
+@pytest.mark.parametrize("cancel_during", ["queue", "session_initialization"])
+def test_stream_cancel_before_dispatch_never_calls_model(tmp_path, monkeypatch, sdk_threads, cancel_during):
+    import threading
+    from types import SimpleNamespace
+
+    entered, release, cancelled = threading.Event(), threading.Event(), threading.Event()
+    calls = []
+    harness = dsh_sdk.SdkDshHarness(cli=tmp_path, patch=tmp_path, home=tmp_path, workspace=tmp_path)
+    monkeypatch.setattr(harness, "configured", lambda: True)
+
+    class Session:
+        def run(self, question, **_kwargs):
+            calls.append(question)
+            return SimpleNamespace(events=[], final_response=question, session_id="synthetic")
+
+    class BusyLock:
+        def acquire(self, *, timeout):
+            entered.set()
+            return release.wait(timeout)
+
+        def release(self):
+            pass
+
+    def session(_key):
+        if cancel_during == "session_initialization":
+            entered.set()
+            assert release.wait(2)
+        return Session()
+
+    monkeypatch.setattr(harness, "_session", session)
+    if cancel_during == "queue":
+        harness._turn_locks["same-chat"] = BusyLock()
+    output, errors = [], []
+
+    def consume():
+        try:
+            output.extend(harness.stream("cancel me", "same-chat", cancel_event=cancelled))
+        except DshUnavailable as error:
+            errors.append(str(error))
+
+    consumer = threading.Thread(target=consume)
+    consumer.start()
+    try:
+        assert entered.wait(2)
+        cancelled.set()
+        consumer.join(timeout=2)
+        assert not consumer.is_alive()
+        release.set()
+        for thread in sdk_threads:
+            thread.join(timeout=2)
+        assert not any(thread.is_alive() for thread in sdk_threads)
+        assert calls == []
+        assert output == []
+        assert errors in ([], ["turn_cancelled"])
+    finally:
+        cancelled.set()
+        release.set()
+        consumer.join(timeout=2)
+        for thread in sdk_threads:
+            thread.join(timeout=2)
+
+
+def test_closing_stream_stops_notifications_and_releases_threads(tmp_path, monkeypatch, sdk_threads):
+    import threading
+    from types import SimpleNamespace
+
+    release, cancelled = threading.Event(), threading.Event()
+    notifications = []
+    harness = dsh_sdk.SdkDshHarness(cli=tmp_path, patch=tmp_path, home=tmp_path, workspace=tmp_path)
+    monkeypatch.setattr(harness, "configured", lambda: True)
+
+    class Session:
+        def run(self, question, *, on_notification):
+            notifications.append(on_notification)
+            on_notification(SimpleNamespace(payload={"event": {
+                "type": "tool/call", "data": {"callId": "c1", "name": "case_brief", "arguments": "{}"},
+            }}))
+            assert release.wait(2)
+            return SimpleNamespace(events=[], final_response=question, session_id="synthetic")
+
+    class UnexpectedNotification:
+        @property
+        def payload(self):
+            pytest.fail("a closed stream must ignore subsequent notifications")
+
+    monkeypatch.setattr(harness, "_session", lambda _key: Session())
+    stream = harness.stream("close me", "same-chat", cancel_event=cancelled)
+    try:
+        assert next(stream)["type"] == "trace"
+        stream.close()
+        notifications[0](UnexpectedNotification())
+        assert not cancelled.is_set()
+        release.set()
+        for thread in sdk_threads:
+            thread.join(timeout=2)
+        assert not any(thread.is_alive() for thread in sdk_threads)
+    finally:
+        stream.close()
+        cancelled.set()
+        release.set()
+        for thread in sdk_threads:
+            thread.join(timeout=2)

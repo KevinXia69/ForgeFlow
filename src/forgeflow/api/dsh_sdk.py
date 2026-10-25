@@ -230,27 +230,32 @@ class SdkDshHarness:
             self._save()
             return session
 
-    def _reply(self, question: str, key: str, on_notification=None, cancel_event=None) -> tuple[DshReply, Any]:
+    def _reply(self, question: str, key: str, on_notification=None, cancel_event=None,
+               *, stop_event=None) -> tuple[DshReply, Any]:
         # The SDK has no per-session interrupt operation. Finish an in-flight
         # turn before admitting another prompt; cancelled queued turns never
         # send. Output cancellation does not claim provider billing stopped.
+        def check_cancelled() -> None:
+            if any(event is not None and event.is_set() for event in (cancel_event, stop_event)):
+                raise DshUnavailable("turn_cancelled")
+
+        check_cancelled()
         with self._lock:
             turn_lock = self._turn_locks.setdefault(key, threading.Lock())
         deadline = time.monotonic() + self.queue_timeout
         while not turn_lock.acquire(timeout=0.1):
-            if cancel_event is not None and cancel_event.is_set():
-                raise DshUnavailable("turn_cancelled")
+            check_cancelled()
             # A queued turn must not wait forever: if the turn ahead of it never
             # finishes, give up before any model call is made.
             if time.monotonic() >= deadline:
                 raise DshUnavailable("turn_queue_timeout")
         try:
-            if cancel_event is not None and cancel_event.is_set():
-                raise DshUnavailable("turn_cancelled")
+            check_cancelled()
             session = self._session(key)
             prompt = question
             if hasattr(self, "evidence_path") and PLANNED_COST_CONTEXT not in prompt:
                 prompt = f"ForgeFlow evidence field meaning: {PLANNED_COST_CONTEXT}\n\nQuestion: {question}"
+            check_cancelled()
             result = session.run(prompt, on_notification=on_notification)
         finally:
             turn_lock.release()
@@ -292,9 +297,12 @@ class SdkDshHarness:
         key = conversation_id or ""
         events: list[dict[str, Any]] = []
         queue_in: queue.Queue = queue.Queue()
+        # The worker checks both events directly. No extra thread needs to wait
+        # for an external cancellation that may never arrive after completion.
+        stop = threading.Event()
 
         def on_notification(notification) -> None:
-            if cancel_event is not None and cancel_event.is_set():
+            if stop.is_set() or (cancel_event is not None and cancel_event.is_set()):
                 return
             payload = notification.payload
             event = payload.get("event")
@@ -303,21 +311,10 @@ class SdkDshHarness:
             events.append(event)
             queue_in.put(("trace", events))
 
-        # One stop signal for this call: the caller's cancel, or our own timeout.
-        # Setting it keeps a turn that has not been sent yet from ever reaching
-        # the model after the stream has already reported a failure.
-        stop = threading.Event()
-        if cancel_event is not None:
-            if cancel_event.is_set():
-                stop.set()
-            else:
-                threading.Thread(target=lambda: (
-                    cancel_event.wait(), stop.set()), daemon=True).start()
-
         def worker() -> None:
             try:
                 reply, result = self._reply(question, key, on_notification=on_notification,
-                                            cancel_event=stop)
+                                            cancel_event=cancel_event, stop_event=stop)
                 queue_in.put(("final", reply))
             except Exception as error:  # noqa: BLE001
                 queue_in.put(("error", error))
@@ -326,30 +323,33 @@ class SdkDshHarness:
         thread.start()
         last_activity: list[dict[str, Any]] = []
         last_event_time = time.monotonic()
-        while True:
-            if cancel_event is not None and cancel_event.is_set():
-                return
-            try:
-                kind, value = queue_in.get(timeout=0.2)
-            except queue.Empty:
-                if time.monotonic() - last_event_time >= self.timeout:
-                    stop.set()
-                    raise DshUnavailable("dsh_timeout") from None
-                continue
-            last_event_time = time.monotonic()
-            if kind == "trace":
-                _, activity, _ = _events_to_view(value)
-                if activity != last_activity:
-                    last_activity = activity
-                    yield {"type": "trace", "activity": activity}
-            elif kind == "final":
-                reply = value
-                yield {
-                    "type": "final", "found": True, "mode": "harness",
-                    "answer": reply.answer, "citations": reply.citations,
-                    "passages": [], "activity": reply.activity,
-                    "scope": reply.scope, "session_id": reply.session_id,
-                }
-                return
-            else:
-                raise value if isinstance(value, DshUnavailable) else DshUnavailable("dsh_failed")
+        try:
+            while True:
+                if cancel_event is not None and cancel_event.is_set():
+                    return
+                try:
+                    kind, value = queue_in.get(timeout=0.2)
+                except queue.Empty:
+                    if time.monotonic() - last_event_time >= self.timeout:
+                        raise DshUnavailable("dsh_timeout") from None
+                    continue
+                last_event_time = time.monotonic()
+                if kind == "trace":
+                    _, activity, _ = _events_to_view(value)
+                    if activity != last_activity:
+                        last_activity = activity
+                        yield {"type": "trace", "activity": activity}
+                elif kind == "final":
+                    reply = value
+                    yield {
+                        "type": "final", "found": True, "mode": "harness",
+                        "answer": reply.answer, "citations": reply.citations,
+                        "passages": [], "activity": reply.activity,
+                        "scope": reply.scope, "session_id": reply.session_id,
+                    }
+                    return
+                else:
+                    raise value if isinstance(value, DshUnavailable) else DshUnavailable("dsh_failed")
+        finally:
+            # Also stop queued work when a consumer closes the generator.
+            stop.set()
