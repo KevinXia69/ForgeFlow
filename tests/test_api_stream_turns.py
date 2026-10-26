@@ -146,6 +146,72 @@ def test_case_answer_retains_original_state_after_progress_and_stream_replay(str
     assert len(calls) == 1
 
 
+@pytest.mark.parametrize('kind', ['knowledge', 'case'])
+def test_replay_and_cancel_do_not_require_a_new_runtime(streaming_app, monkeypatch, kind):
+    """An unavailable/full runtime cache cannot prevent recovery or stopping."""
+    client, calls, started, release, case_id = streaming_app
+    stream, cancel = routes(kind, case_id)
+    body = {'question': 'remember the original facts', 'conversation_id': 'busy-cache', 'turn_id': 'old'}
+    if kind == 'case':
+        body['lang'] = 'zh'
+
+    def cannot_create(_path):
+        pytest.fail('recovery or cancellation allocated a new runtime')
+
+    release.set()
+    original = client.post(stream, json=body)
+    assert original.status_code == 200
+    before = client.get(f'/api/product/cases/{case_id}').json()
+    assert client.post(f'/api/product/cases/{case_id}/approve',
+                       json={'plan_id': before['plan']['plan_id']}).status_code == 200
+    # New content has a different snapshot filename; obtaining a harness would
+    # now try to allocate a second runtime, even though the turn already exists.
+    monkeypatch.setattr(client.app.state.dsh_harness, 'with_evidence', cannot_create)
+    for resume in (True, False):
+        replay = client.post(stream, json={**body, 'resume': resume})
+        assert replay.status_code == 200
+        assert events(replay) == events(original)
+    if kind == 'case':
+        mismatch = client.post(stream, json={**body, 'lang': 'en', 'resume': True})
+        assert mismatch.status_code == 409
+        assert mismatch.json()['detail'] == 'turn_payload_mismatch'
+    assert client.post(cancel, json={'conversation_id': 'busy-cache', 'turn_id': 'old'}).json()['cancelled']
+    assert client.post(stream, json={**body, 'resume': True}).status_code == 409
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize('kind', ['knowledge', 'case'])
+def test_running_turn_can_cancel_after_content_changes_without_runtime_allocation(streaming_app, monkeypatch, kind):
+    client, calls, started, release, case_id = streaming_app
+    stream, cancel = routes(kind, case_id)
+    body = {'question': 'hold this turn', 'conversation_id': 'busy-cache', 'turn_id': 'running'}
+    with ThreadPoolExecutor() as pool:
+        pending = pool.submit(client.post, stream, json=body)
+        assert started.wait(2)
+        before = client.get(f'/api/product/cases/{case_id}').json()
+        assert client.post(f'/api/product/cases/{case_id}/approve',
+                           json={'plan_id': before['plan']['plan_id']}).status_code == 200
+        monkeypatch.setattr(client.app.state.dsh_harness, 'with_evidence',
+                            lambda _path: pytest.fail('cancel allocated a new runtime'))
+        assert client.post(cancel, json={'conversation_id': 'busy-cache', 'turn_id': 'running'}).json()['cancelled']
+        assert not any(row.get('type') == 'final' for row in events(pending.result(timeout=3)))
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize('kind', ['knowledge', 'case'])
+def test_recovery_still_rejects_changed_membership_without_starting_runtime(streaming_app, monkeypatch, kind):
+    client, calls, _, release, case_id = streaming_app
+    stream, _ = routes(kind, case_id)
+    body = {'question': 'original scope', 'conversation_id': 'scope-change', 'turn_id': 'old'}
+    release.set()
+    assert client.post(stream, json=body).status_code == 200
+    assert client.post('/api/product/cases', json={'scenario': 'A'}).status_code == 201
+    monkeypatch.setattr(client.app.state.dsh_harness, 'with_evidence',
+                        lambda _path: pytest.fail('resume allocated a new runtime'))
+    assert client.post(stream, json={**body, 'resume': True}).status_code == 410
+    assert len(calls) == 1
+
+
 def test_completed_turn_survives_a_restart_at_the_api_level(tmp_path, monkeypatch):
     """A restart must not turn the same question into a 409.
 

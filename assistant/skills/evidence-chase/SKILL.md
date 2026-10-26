@@ -12,7 +12,8 @@ Restate the claim in one line before searching: a plan exists, an approval was
 issued, the ERP was written, a readback was taken, or the original verifier
 returned a result. Each claim needs a different artifact.
 
-Use the read-only evidence tools in this order:
+Use host-provided facts when they already cover the claim. Otherwise use the
+read-only evidence tools for the missing part:
 
 1. `mcp__forgeflow__list_cases` and `get_case` for the case record, plan
    reference, approval state, and linked run.
@@ -21,7 +22,8 @@ Use the read-only evidence tools in this order:
 3. `mcp__forgeflow__search_evidence` for a specific identifier, order, product,
    or error phrase.
 
-For code-level claims, read the repository and cite `path:line`. Never read
+For code-level claims, cite an authorized source only when actually supplied.
+If repository evidence is unavailable to the scoped tools, say so. Never read
 `.runtime/` or `runs/` directly, never call or invent `approve`/`apply`, and
 never reconstruct missing evidence from memory.
 
@@ -44,6 +46,13 @@ If the chain stops early, say exactly where it stops:
 - Missing evidence: "not verified in this repository", then name the artifact
   that would verify it, such as the run's verifier output, a readback snapshot,
   or an approval receipt.
+
+Before saying a field was not recorded, distinguish an omitted summary from a
+completed read of the relevant evidence. Tool failure or pagination does not
+prove absence. Keep the answer and its field references on one snapshot and
+version. Count document changes as document entries, not database transactions.
+Original task-rule verification and ERP readback do not prove physical delivery
+or customer sign-off. Do not reinterpret task checks as legal certification.
 
 When sources disagree, name the conflict and the authority order: original
 verifier, then readback from the system of record, then executor result, then
@@ -69,9 +78,9 @@ home paths, or hidden reasoning.
 ## Answer shape
 
 Lead with the verification verdict in one sentence. Then give the shortest
-evidence chain that supports it, using record names rather than raw dumps. End
-with one natural next question, such as "Want the approval receipt, or the
-verifier output itself?"
+evidence chain that supports it, using record names rather than raw dumps.
+Answer each requested part. Ask another question only when the user must supply
+essential missing information, not as a mandatory ending.
 
 Do not soften an absent result with "should be", "likely applied", or "probably
 verified". Missing evidence is a finding, not a gap to fill with confidence.

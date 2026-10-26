@@ -1,0 +1,4588 @@
+[
+  {
+    "id": "independent-1-q1",
+    "timestamp": "2026-10-26T07:05:56Z",
+    "question": "这次供应商取消造成多大缺口？原有采购与制造安排保留了什么？请根据当前案例用中文三句话回答。",
+    "transport": "json",
+    "elapsed_seconds": 7.801,
+    "http_status": 200,
+    "raw_model_answer": "供应商 Stonewall Components 的取消造成了 3 Units 的成品 P27637E67E7-LED-CRS-009 缺口（原采购单 P00006），并已用新采购单 new:purchase.order:0006 的同款 3 Units 补齐。保留的原有制造安排是 4 份制造单 WH/MO/00001、WH/MO/00002、WH/MO/00003、WH/MO/00004，合计 40 Units 的同款成品。保留的原有采购安排是 5 份采购单 P00001–P00005：P27637E67E7-LED-DCI-121 共 31 Units、P27637E67E7-LED-PDS-116 22 Units、P27637E67E7-LED-SCS-124 共 76 Units。\n\n案例：ac1135b9b9b984a4e63060a111cac21d",
+    "response": {
+      "answer": "供应商 Stonewall Components 的取消造成了 3 Units 的成品 P27637E67E7-LED-CRS-009 缺口（原采购单 P00006），并已用新采购单 new:purchase.order:0006 的同款 3 Units 补齐。保留的原有制造安排是 4 份制造单 WH/MO/00001、WH/MO/00002、WH/MO/00003、WH/MO/00004，合计 40 Units 的同款成品。保留的原有采购安排是 5 份采购单 P00001–P00005：P27637E67E7-LED-DCI-121 共 31 Units、P27637E67E7-LED-PDS-116 22 Units、P27637E67E7-LED-SCS-124 共 76 Units。",
+      "mode": "harness",
+      "citations": [
+        {
+          "field": "plan.actions.0.kind",
+          "label": "动作或单据类型",
+          "value": "cancel_po"
+        },
+        {
+          "field": "plan.actions.0.document",
+          "label": "单据",
+          "value": "P00006"
+        },
+        {
+          "field": "plan.actions.0.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.0.before.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.0.before.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.actions.1.kind",
+          "label": "动作或单据类型",
+          "value": "create_po"
+        },
+        {
+          "field": "plan.actions.1.document",
+          "label": "单据",
+          "value": "new:purchase.order:0006"
+        },
+        {
+          "field": "plan.actions.1.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.1.after.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.1.after.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.0.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.0.document",
+          "label": "单据",
+          "value": "WH/MO/00001"
+        },
+        {
+          "field": "plan.costs.lines.0.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.0.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.0.after.quantity",
+          "label": "数量",
+          "value": "15"
+        },
+        {
+          "field": "plan.costs.lines.0.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.0.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.1.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.1.document",
+          "label": "单据",
+          "value": "WH/MO/00002"
+        },
+        {
+          "field": "plan.costs.lines.1.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.1.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.1.after.quantity",
+          "label": "数量",
+          "value": "6"
+        },
+        {
+          "field": "plan.costs.lines.1.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.1.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.2.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.2.document",
+          "label": "单据",
+          "value": "WH/MO/00003"
+        },
+        {
+          "field": "plan.costs.lines.2.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.2.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.2.after.quantity",
+          "label": "数量",
+          "value": "3"
+        },
+        {
+          "field": "plan.costs.lines.2.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.2.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.3.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.3.document",
+          "label": "单据",
+          "value": "WH/MO/00004"
+        },
+        {
+          "field": "plan.costs.lines.3.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.3.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.3.after.quantity",
+          "label": "数量",
+          "value": "16"
+        },
+        {
+          "field": "plan.costs.lines.3.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.3.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.4.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.4.document",
+          "label": "单据",
+          "value": "P00001"
+        },
+        {
+          "field": "plan.costs.lines.4.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.4.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-DCI-121"
+        },
+        {
+          "field": "plan.costs.lines.4.after.quantity",
+          "label": "数量",
+          "value": "15"
+        },
+        {
+          "field": "plan.costs.lines.4.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.4.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.5.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.5.document",
+          "label": "单据",
+          "value": "P00002"
+        },
+        {
+          "field": "plan.costs.lines.5.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.5.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-DCI-121"
+        },
+        {
+          "field": "plan.costs.lines.5.after.quantity",
+          "label": "数量",
+          "value": "16"
+        },
+        {
+          "field": "plan.costs.lines.5.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.5.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.6.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.6.document",
+          "label": "单据",
+          "value": "P00003"
+        },
+        {
+          "field": "plan.costs.lines.6.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.6.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-PDS-116"
+        },
+        {
+          "field": "plan.costs.lines.6.after.quantity",
+          "label": "数量",
+          "value": "22"
+        },
+        {
+          "field": "plan.costs.lines.6.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.6.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.7.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.7.document",
+          "label": "单据",
+          "value": "P00004"
+        },
+        {
+          "field": "plan.costs.lines.7.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.7.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-SCS-124"
+        },
+        {
+          "field": "plan.costs.lines.7.after.quantity",
+          "label": "数量",
+          "value": "29"
+        },
+        {
+          "field": "plan.costs.lines.7.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.7.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.8.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.8.document",
+          "label": "单据",
+          "value": "P00005"
+        },
+        {
+          "field": "plan.costs.lines.8.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.8.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-SCS-124"
+        },
+        {
+          "field": "plan.costs.lines.8.after.quantity",
+          "label": "数量",
+          "value": "47"
+        },
+        {
+          "field": "plan.costs.lines.8.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.8.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        }
+      ],
+      "source_mode": "model",
+      "case_context": {
+        "schema_version": 1,
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "state": "succeeded",
+        "version": 1,
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "comparison_id": null,
+        "selection_revision": null,
+        "selection_pending": false,
+        "updated_at": "2026-10-24T10:35:47.923057+00:00",
+        "outcome": "verified"
+      },
+      "evidence_usage": {
+        "source": "case_snapshot",
+        "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+        "coverage": [
+          {
+            "topic": "actions",
+            "status": "available",
+            "total": 2,
+            "shown": 2
+          },
+          {
+            "topic": "preserved",
+            "status": "available",
+            "total": 9,
+            "shown": 9
+          }
+        ]
+      },
+      "evidence_refs": [
+        {
+          "kind": "case",
+          "id": "ac1135b9b9b984a4e63060a111cac21d",
+          "href": "/api/product/cases/ac1135b9b9b984a4e63060a111cac21d",
+          "label": "Case evidence"
+        }
+      ]
+    },
+    "model_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "final_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "session_log_sha256": "d4a54a71d782380cbfc210d2ca7ba7a978566d1a9ef79d0fba9a65095b78dec4",
+    "turn_end_reasons": [
+      {
+        "kind": "completed"
+      }
+    ]
+  },
+  {
+    "id": "independent-1-q2",
+    "timestamp": "2026-10-26T07:06:08Z",
+    "question": "请只根据本案例已批准方案的数量和单据明细回答：被取消的采购有几件？替代采购有几件？哪些原有制造和采购单保持不变？如果记录不足，请明确说缺少什么，不要用成本差额代替数量。",
+    "transport": "json",
+    "elapsed_seconds": 11.541,
+    "http_status": 200,
+    "raw_model_answer": "根据本案例已批准方案的数量和单据明细：\n\n**被取消的采购：1 件，共 3 个单位（Units）**\n- 单据 P00006，产品 P27637E67E7-LED-CRS-009，供给角色：成品\n\n**替代采购：1 件，共 3 个单位（Units）**\n- 单据 new:purchase.order:0006，产品 P27637E67E7-LED-CRS-009，供给角色：成品\n- 该单据为计划标识，并非已确认的正式 ERP 订单号。\n\n**保持不变的原有制造订单（共 4 件）：**\n- WH/MO/00001，产品 P27637E67E7-LED-CRS-009，15 Units\n- WH/MO/00002，产品 P27637E67E7-LED-CRS-009，6 Units\n- WH/MO/00003，产品 P27637E67E7-LED-CRS-009，3 Units\n- WH/MO/00004，产品 P27637E67E7-LED-CRS-009，16 Units\n\n**保持不变的原有采购订单（共 5 件）：**\n- P00001，产品 P27637E67E7-LED-DCI-121，15 Units\n- P00002，产品 P27637E67E7-LED-DCI-121，16 Units\n- P00003，产品 P27637E67E7-LED-PDS-116，22 Units\n- P00004，产品 P27637E67E7-LED-SCS-124，29 Units\n- P00005，产品 P27637E67E7-LED-SCS-124，47 Units\n\n记录完整，未缺少数量或单据明细；未使用成本差额代替数量。\n\n案例参考：ac1135b9b9b984a4e63060a111cac21d",
+    "response": {
+      "answer": "异常恢复方案的单据变更：\n- P00006：取消采购，3 件（原单位 Units），P27637E67E7-LED-CRS-009；成品\n- new:purchase.order:0006（计划内新单标识）：新建采购，3 件（原单位 Units），P27637E67E7-LED-CRS-009；成品\n\n这些是方案记录的失效供给与替代安排，不表示当前仍然缺货；实际执行另看回执。\n\n方案保留的既有单据：\n- WH/MO/00001：保留制造单，15 件（原单位 Units），P27637E67E7-LED-CRS-009\n- WH/MO/00002：保留制造单，6 件（原单位 Units），P27637E67E7-LED-CRS-009\n- WH/MO/00003：保留制造单，3 件（原单位 Units），P27637E67E7-LED-CRS-009\n- WH/MO/00004：保留制造单，16 件（原单位 Units），P27637E67E7-LED-CRS-009\n- P00001：保留采购单，15 件（原单位 Units），P27637E67E7-LED-DCI-121\n- P00002：保留采购单，16 件（原单位 Units），P27637E67E7-LED-DCI-121\n- P00003：保留采购单，22 件（原单位 Units），P27637E67E7-LED-PDS-116\n- P00004：保留采购单，29 件（原单位 Units），P27637E67E7-LED-SCS-124\n- P00005：保留采购单，47 件（原单位 Units），P27637E67E7-LED-SCS-124\n\n不同物料与单据层级分别列出，数量不跨物料相加。",
+      "mode": "case",
+      "citations": [
+        {
+          "field": "plan.actions.0.kind",
+          "label": "动作或单据类型",
+          "value": "cancel_po"
+        },
+        {
+          "field": "plan.actions.0.document",
+          "label": "单据",
+          "value": "P00006"
+        },
+        {
+          "field": "plan.actions.0.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.0.before.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.0.before.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.actions.1.kind",
+          "label": "动作或单据类型",
+          "value": "create_po"
+        },
+        {
+          "field": "plan.actions.1.document",
+          "label": "单据",
+          "value": "new:purchase.order:0006"
+        },
+        {
+          "field": "plan.actions.1.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.1.after.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.1.after.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.0.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.0.document",
+          "label": "单据",
+          "value": "WH/MO/00001"
+        },
+        {
+          "field": "plan.costs.lines.0.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.0.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.0.after.quantity",
+          "label": "数量",
+          "value": "15"
+        },
+        {
+          "field": "plan.costs.lines.0.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.0.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.1.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.1.document",
+          "label": "单据",
+          "value": "WH/MO/00002"
+        },
+        {
+          "field": "plan.costs.lines.1.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.1.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.1.after.quantity",
+          "label": "数量",
+          "value": "6"
+        },
+        {
+          "field": "plan.costs.lines.1.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.1.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.2.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.2.document",
+          "label": "单据",
+          "value": "WH/MO/00003"
+        },
+        {
+          "field": "plan.costs.lines.2.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.2.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.2.after.quantity",
+          "label": "数量",
+          "value": "3"
+        },
+        {
+          "field": "plan.costs.lines.2.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.2.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.3.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.3.document",
+          "label": "单据",
+          "value": "WH/MO/00004"
+        },
+        {
+          "field": "plan.costs.lines.3.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.3.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.3.after.quantity",
+          "label": "数量",
+          "value": "16"
+        },
+        {
+          "field": "plan.costs.lines.3.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.3.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.4.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.4.document",
+          "label": "单据",
+          "value": "P00001"
+        },
+        {
+          "field": "plan.costs.lines.4.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.4.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-DCI-121"
+        },
+        {
+          "field": "plan.costs.lines.4.after.quantity",
+          "label": "数量",
+          "value": "15"
+        },
+        {
+          "field": "plan.costs.lines.4.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.4.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.5.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.5.document",
+          "label": "单据",
+          "value": "P00002"
+        },
+        {
+          "field": "plan.costs.lines.5.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.5.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-DCI-121"
+        },
+        {
+          "field": "plan.costs.lines.5.after.quantity",
+          "label": "数量",
+          "value": "16"
+        },
+        {
+          "field": "plan.costs.lines.5.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.5.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.6.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.6.document",
+          "label": "单据",
+          "value": "P00003"
+        },
+        {
+          "field": "plan.costs.lines.6.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.6.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-PDS-116"
+        },
+        {
+          "field": "plan.costs.lines.6.after.quantity",
+          "label": "数量",
+          "value": "22"
+        },
+        {
+          "field": "plan.costs.lines.6.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.6.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.7.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.7.document",
+          "label": "单据",
+          "value": "P00004"
+        },
+        {
+          "field": "plan.costs.lines.7.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.7.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-SCS-124"
+        },
+        {
+          "field": "plan.costs.lines.7.after.quantity",
+          "label": "数量",
+          "value": "29"
+        },
+        {
+          "field": "plan.costs.lines.7.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.7.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.8.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.8.document",
+          "label": "单据",
+          "value": "P00005"
+        },
+        {
+          "field": "plan.costs.lines.8.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.8.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-SCS-124"
+        },
+        {
+          "field": "plan.costs.lines.8.after.quantity",
+          "label": "数量",
+          "value": "47"
+        },
+        {
+          "field": "plan.costs.lines.8.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.8.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        }
+      ],
+      "source_mode": "deterministic",
+      "case_context": {
+        "schema_version": 1,
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "state": "succeeded",
+        "version": 1,
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "comparison_id": null,
+        "selection_revision": null,
+        "selection_pending": false,
+        "updated_at": "2026-10-24T10:35:47.923057+00:00",
+        "outcome": "verified"
+      },
+      "evidence_usage": {
+        "source": "case_snapshot",
+        "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+        "coverage": [
+          {
+            "topic": "actions",
+            "status": "available",
+            "total": 2,
+            "shown": 2
+          },
+          {
+            "topic": "preserved",
+            "status": "available",
+            "total": 9,
+            "shown": 9
+          }
+        ]
+      },
+      "evidence_refs": [
+        {
+          "kind": "case",
+          "id": "ac1135b9b9b984a4e63060a111cac21d",
+          "href": "/api/product/cases/ac1135b9b9b984a4e63060a111cac21d",
+          "label": "Case evidence"
+        }
+      ],
+      "fallback_reason": "model_evidence_mismatch"
+    },
+    "model_mechanical_check": {
+      "valid": false,
+      "issues": [
+        "contradictory_quantity:P00006",
+        "contradictory_action_quantity:cancel",
+        "contradictory_action_quantity:create"
+      ]
+    },
+    "final_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "session_log_sha256": "c587f5899922fdf5620117f519fcf4c52d918fd79d1c2aeb60087ce86384b663",
+    "turn_end_reasons": [
+      {
+        "kind": "completed"
+      }
+    ]
+  },
+  {
+    "id": "independent-1-q3",
+    "timestamp": "2026-10-26T07:06:15Z",
+    "question": "这个案例现在处于什么状态？涉及多少张订单、多少台产品？请用中文简短回答，并区分已记录的执行状态与实际客户交付。",
+    "transport": "json",
+    "elapsed_seconds": 7.186,
+    "http_status": 200,
+    "raw_model_answer": "案例目前处于“已成功”状态，记录结果为 verified，执行状态也是 succeeded。\n\n涉及 5 张确认销售订单（订单范围 SO-1..5），共 50 台产品（Clean Room Sealed Fixture，单位 Units）。\n\n已记录的执行情况：原始验收通过，7 个回读核对步骤全部通过，51 条适用规则全部通过，得分 100/100；记录了 2 条单据变更——取消采购单 P00006（数量 3）和新建采购订单 new:purchase.order:0006（数量 3，物料 P27637E67E7-LED-CRS-009）。但单据条目数不等于 ERP 事务数，验收通过也不等于实际生产完成。\n\n实际客户交付：未记录。案例只保留了规划可行性和任务验收证据，没有客户交付凭证，所以不能断言产品已发运或客户已签收。\n\n参考：案例 ac1135b9b9b984a4e63060a111cac21d",
+    "response": {
+      "answer": "案例目前处于“已成功”状态，记录结果为 verified，执行状态也是 succeeded。\n\n涉及 5 张确认销售订单（订单范围 SO-1..5），共 50 台产品（Clean Room Sealed Fixture，单位 Units）。\n\n已记录的执行情况：原始验收通过，7 个回读核对步骤全部通过，51 条适用规则全部通过，得分 100/100；记录了 2 条单据变更——取消采购单 P00006（数量 3）和新建采购订单 new:purchase.order:0006（数量 3，物料 P27637E67E7-LED-CRS-009）。但单据条目数不等于 ERP 事务数，验收通过也不等于实际生产完成。\n\n实际客户交付：未记录。案例只保留了规划可行性和任务验收证据，没有客户交付凭证，所以不能断言产品已发运或客户已签收。",
+      "mode": "harness",
+      "citations": [
+        {
+          "field": "state",
+          "label": "案例状态",
+          "value": "succeeded"
+        },
+        {
+          "field": "updated_at",
+          "label": "记录更新时间",
+          "value": "2026-10-24T10:35:47.923057+00:00"
+        },
+        {
+          "field": "order.ref",
+          "label": "订单范围",
+          "value": "SO-1..5"
+        },
+        {
+          "field": "order.units",
+          "label": "产品数量",
+          "value": 50
+        },
+        {
+          "field": "order.customer",
+          "label": "客户",
+          "value": "5 confirmed sales orders"
+        },
+        {
+          "field": "order.product",
+          "label": "产品",
+          "value": "Clean Room Sealed Fixture"
+        },
+        {
+          "field": "result.outcome",
+          "label": "记录结果",
+          "value": "verified"
+        },
+        {
+          "field": "execution.status",
+          "label": "执行状态",
+          "value": "succeeded"
+        },
+        {
+          "field": "execution.readback.verified_steps",
+          "label": "回读核对步骤数",
+          "value": 7
+        },
+        {
+          "field": "execution.verifier.status",
+          "label": "验收状态",
+          "value": "passed"
+        },
+        {
+          "field": "execution.verifier.evaluation_scope",
+          "label": "验收范围",
+          "value": "product_original_verifier"
+        },
+        {
+          "field": "execution.verifier.passed_rule_count",
+          "label": "通过规则数",
+          "value": 51
+        },
+        {
+          "field": "execution.verifier.applicable_rule_count",
+          "label": "适用规则数",
+          "value": 51
+        },
+        {
+          "field": "execution.verifier.score",
+          "label": "验收得分",
+          "value": 100.0
+        },
+        {
+          "field": "execution.writes.0.kind",
+          "label": "动作或单据类型",
+          "value": "cancel_po"
+        },
+        {
+          "field": "execution.writes.0.document",
+          "label": "单据",
+          "value": "P00006"
+        },
+        {
+          "field": "execution.writes.0.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "execution.writes.0.before.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "execution.writes.0.before.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "execution.writes.1.kind",
+          "label": "动作或单据类型",
+          "value": "create_po"
+        },
+        {
+          "field": "execution.writes.1.document",
+          "label": "单据",
+          "value": "new:purchase.order:0006"
+        },
+        {
+          "field": "execution.writes.1.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "execution.writes.1.after.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "execution.writes.1.after.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        }
+      ],
+      "source_mode": "model",
+      "case_context": {
+        "schema_version": 1,
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "state": "succeeded",
+        "version": 1,
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "comparison_id": null,
+        "selection_revision": null,
+        "selection_pending": false,
+        "updated_at": "2026-10-24T10:35:47.923057+00:00",
+        "outcome": "verified"
+      },
+      "evidence_usage": {
+        "source": "case_snapshot",
+        "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+        "coverage": [
+          {
+            "topic": "status",
+            "status": "available"
+          },
+          {
+            "topic": "execution",
+            "status": "available",
+            "total": 2,
+            "shown": 2
+          },
+          {
+            "topic": "delivery",
+            "status": "not_recorded",
+            "reason": "customer_delivery_evidence_not_bound"
+          }
+        ]
+      },
+      "evidence_refs": [
+        {
+          "kind": "case",
+          "id": "ac1135b9b9b984a4e63060a111cac21d",
+          "href": "/api/product/cases/ac1135b9b9b984a4e63060a111cac21d",
+          "label": "Case evidence"
+        }
+      ]
+    },
+    "model_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "final_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "session_log_sha256": "e04e220af3c07fbed7de3464cd6edbe632acceb6530049bdb4195461dc64515e",
+    "turn_end_reasons": [
+      {
+        "kind": "completed"
+      }
+    ]
+  },
+  {
+    "id": "independent-1-q4",
+    "timestamp": "2026-10-26T07:06:22Z",
+    "question": "计划成本 4,794.94 美元包含什么？比原安排增加多少，是否代表节省？请用中文三句话回答。",
+    "transport": "json",
+    "elapsed_seconds": 6.723,
+    "http_status": 200,
+    "raw_model_answer": "4,794.94 美元的方案规划成本包含采购成本 3,464.94 美元和制造成本 1,330.00 美元，币种为美元，并且已经计入已保留的既有采购单，现有库存按沉没成本处理。\n\n与原安排 4,634.89 美元相比，已知差额为增加 160.05 美元（采购由 3,304.89 美元升至 3,464.94 美元，制造成本维持 1,330.00 美元不变），但实际成本和全部差额尚未知晓，不能当作最终增量。\n\n所以这不代表节省，而是计划成本上升；标注的 80.0 利润率只按规划成本口径计算，并非事后会计利润，不能证明实际盈利。\n\n案 ID：ac1135b9b9b984a4e63060a111cac21d",
+    "response": {
+      "answer": "4,794.94 美元的方案规划成本包含采购成本 3,464.94 美元和制造成本 1,330.00 美元，币种为美元，并且已经计入已保留的既有采购单，现有库存按沉没成本处理。\n\n与原安排 4,634.89 美元相比，已知差额为增加 160.05 美元（采购由 3,304.89 美元升至 3,464.94 美元，制造成本维持 1,330.00 美元不变），但实际成本和全部差额尚未知晓，不能当作最终增量。\n\n所以这不代表节省，而是计划成本上升；标注的 80.0 利润率只按规划成本口径计算，并非事后会计利润，不能证明实际盈利。\n\n案 ID：本案例",
+      "mode": "harness",
+      "citations": [
+        {
+          "field": "plan.costs.baseline.total",
+          "label": "原安排规划成本",
+          "value": "4634.89"
+        },
+        {
+          "field": "plan.costs.planned.total",
+          "label": "方案规划成本",
+          "value": "4794.94"
+        },
+        {
+          "field": "plan.costs.known_delta",
+          "label": "已知规划成本差额",
+          "value": "160.05"
+        },
+        {
+          "field": "plan.costs.new_purchase_value",
+          "label": "新建采购单金额",
+          "value": "1432.32"
+        },
+        {
+          "field": "plan.costs.purchase_increase",
+          "label": "既有采购单金额增量",
+          "value": "0"
+        },
+        {
+          "field": "plan.costs.basis.currency",
+          "label": "币种",
+          "value": "USD"
+        },
+        {
+          "field": "plan.costs.planned.purchase",
+          "label": "方案采购成本",
+          "value": "3464.94"
+        },
+        {
+          "field": "plan.costs.planned.manufacturing",
+          "label": "方案制造成本",
+          "value": "1330.0"
+        },
+        {
+          "field": "plan.costs.baseline.purchase",
+          "label": "原安排采购成本",
+          "value": "3304.89"
+        },
+        {
+          "field": "plan.costs.baseline.manufacturing",
+          "label": "原安排制造成本",
+          "value": "1330.0"
+        }
+      ],
+      "source_mode": "model",
+      "case_context": {
+        "schema_version": 1,
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "state": "succeeded",
+        "version": 1,
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "comparison_id": null,
+        "selection_revision": null,
+        "selection_pending": false,
+        "updated_at": "2026-10-24T10:35:47.923057+00:00",
+        "outcome": "verified"
+      },
+      "evidence_usage": {
+        "source": "case_snapshot",
+        "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+        "coverage": [
+          {
+            "topic": "costs",
+            "status": "available"
+          }
+        ]
+      },
+      "evidence_refs": [
+        {
+          "kind": "case",
+          "id": "ac1135b9b9b984a4e63060a111cac21d",
+          "href": "/api/product/cases/ac1135b9b9b984a4e63060a111cac21d",
+          "label": "Case evidence"
+        }
+      ]
+    },
+    "model_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "final_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "session_log_sha256": "fa6f5744e249fa10901471b9b8de6eae1a94773f34bb299a6d0b622f0f6dff73",
+    "turn_end_reasons": [
+      {
+        "kind": "completed"
+      }
+    ]
+  },
+  {
+    "id": "independent-1-q5",
+    "timestamp": "2026-10-26T07:06:30Z",
+    "question": "这个案例实际改了哪些单据？51/51 验收证明了什么，能说明已经交付吗？请用中文三句话回答。",
+    "transport": "json",
+    "elapsed_seconds": 7.96,
+    "http_status": 200,
+    "raw_model_answer": "实际变更了两张单据：作废采购单 P00006（3 个 P27637E67E7-LED-CRS-009，Units）和新建采购单 new:purchase.order:0006（3 个同物料，Units），其中 new:purchase.order:0006 是计划标识，尚未确认为 ERP 正式单号。51/51 验收只证明在“产品原始验证”范围内，全部 51 条适用规则通过、7 步回读核对通过、得分 100，执行状态为成功，但它不等同于制造完成、发货或客户收货。因此不能说明已经交付，因为交付证据未被记录，计划可行性、ERP 单据变更和任务验收都不能确立实物生产、出货或客户收货。\n\n案例 ID：ac1135b9b9b984a4e63060a111cac21d",
+    "response": {
+      "answer": "实际变更了两张单据：作废采购单 P00006（3 个 P27637E67E7-LED-CRS-009，Units）和新建采购单 new:purchase.order:0006（3 个同物料，Units），其中 new:purchase.order:0006 是计划标识，尚未确认为 ERP 正式单号。51/51 验收只证明在“产品原始验证”范围内，全部 51 条适用规则通过、7 步回读核对通过、得分 100，执行状态为成功，但它不等同于制造完成、发货或客户收货。因此不能说明已经交付，因为交付证据未被记录，计划可行性、ERP 单据变更和任务验收都不能确立实物生产、出货或客户收货。\n\n案例 ID：本案例",
+      "mode": "harness",
+      "citations": [
+        {
+          "field": "plan.actions.0.kind",
+          "label": "动作或单据类型",
+          "value": "cancel_po"
+        },
+        {
+          "field": "plan.actions.0.document",
+          "label": "单据",
+          "value": "P00006"
+        },
+        {
+          "field": "plan.actions.0.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.0.before.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.0.before.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.actions.1.kind",
+          "label": "动作或单据类型",
+          "value": "create_po"
+        },
+        {
+          "field": "plan.actions.1.document",
+          "label": "单据",
+          "value": "new:purchase.order:0006"
+        },
+        {
+          "field": "plan.actions.1.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.1.after.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.1.after.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "execution.status",
+          "label": "执行状态",
+          "value": "succeeded"
+        },
+        {
+          "field": "execution.readback.verified_steps",
+          "label": "回读核对步骤数",
+          "value": 7
+        },
+        {
+          "field": "execution.verifier.status",
+          "label": "验收状态",
+          "value": "passed"
+        },
+        {
+          "field": "execution.verifier.evaluation_scope",
+          "label": "验收范围",
+          "value": "product_original_verifier"
+        },
+        {
+          "field": "execution.verifier.passed_rule_count",
+          "label": "通过规则数",
+          "value": 51
+        },
+        {
+          "field": "execution.verifier.applicable_rule_count",
+          "label": "适用规则数",
+          "value": 51
+        },
+        {
+          "field": "execution.verifier.score",
+          "label": "验收得分",
+          "value": 100.0
+        },
+        {
+          "field": "execution.writes.0.kind",
+          "label": "动作或单据类型",
+          "value": "cancel_po"
+        },
+        {
+          "field": "execution.writes.0.document",
+          "label": "单据",
+          "value": "P00006"
+        },
+        {
+          "field": "execution.writes.0.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "execution.writes.0.before.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "execution.writes.0.before.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "execution.writes.1.kind",
+          "label": "动作或单据类型",
+          "value": "create_po"
+        },
+        {
+          "field": "execution.writes.1.document",
+          "label": "单据",
+          "value": "new:purchase.order:0006"
+        },
+        {
+          "field": "execution.writes.1.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "execution.writes.1.after.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "execution.writes.1.after.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        }
+      ],
+      "source_mode": "model",
+      "case_context": {
+        "schema_version": 1,
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "state": "succeeded",
+        "version": 1,
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "comparison_id": null,
+        "selection_revision": null,
+        "selection_pending": false,
+        "updated_at": "2026-10-24T10:35:47.923057+00:00",
+        "outcome": "verified"
+      },
+      "evidence_usage": {
+        "source": "case_snapshot",
+        "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+        "coverage": [
+          {
+            "topic": "actions",
+            "status": "available",
+            "total": 2,
+            "shown": 2
+          },
+          {
+            "topic": "execution",
+            "status": "available",
+            "total": 2,
+            "shown": 2
+          },
+          {
+            "topic": "delivery",
+            "status": "not_recorded",
+            "reason": "customer_delivery_evidence_not_bound"
+          }
+        ]
+      },
+      "evidence_refs": [
+        {
+          "kind": "case",
+          "id": "ac1135b9b9b984a4e63060a111cac21d",
+          "href": "/api/product/cases/ac1135b9b9b984a4e63060a111cac21d",
+          "label": "Case evidence"
+        }
+      ]
+    },
+    "model_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "final_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "session_log_sha256": "04f9522d26b136596da963c19b1835e092e0620c52733e1845c7532ca119a015",
+    "turn_end_reasons": [
+      {
+        "kind": "completed"
+      }
+    ]
+  },
+  {
+    "id": "independent-2-q1",
+    "timestamp": "2026-10-26T07:07:05Z",
+    "question": "这次供应商取消造成多大缺口？原有采购与制造安排保留了什么？请根据当前案例用中文三句话回答。",
+    "transport": "stream",
+    "elapsed_seconds": 34.71,
+    "http_status": 200,
+    "raw_model_answer": "供应商 Stonewall Components 的取消导致采购单 P00006（成品 P27637E67E7-LED-CRS-009，3 个单位）被撤销，形成 3 个单位的成品供给缺口；该缺口由新采购单 new:purchase.order:0006（同样 3 个单位）补齐，计划净成本增加 known_delta 为 160.05 美元（基线 4,634.89 美元，计划总计 4,794.94 美元）。\n\n原有制造安排全部保留（keep），共 4 张制造订单：WH/MO/00001 15 个、WH/MO/00002 6 个、WH/MO/00003 3 个、WH/MO/00004 16 个，合计 40 个成品 P27637E67E7-LED-CRS-009。\n\n原有采购安排也全部保留，共 5 张采购订单：P00001 15 个和 P00002 16 个（产品 P27637E67E7-LED-DCI-121），P00003 22 个（产品 P27637E67E7-LED-PDS-116），P00004 29 个和 P00005 47 个（产品 P27637E67E7-LED-SCS-124）。\n\n案例 ID：ac1135b9b9b984a4e63060a111cac21d",
+    "response": {
+      "answer": "供应商 Stonewall Components 的取消导致采购单 P00006（成品 P27637E67E7-LED-CRS-009，3 个单位）被撤销，形成 3 个单位的成品供给缺口；该缺口由新采购单 new:purchase.order:0006（同样 3 个单位）补齐，计划净成本增加 known_delta 为 160.05 美元（基线 4,634.89 美元，计划总计 4,794.94 美元）。\n\n原有制造安排全部保留（keep），共 4 张制造订单：WH/MO/00001 15 个、WH/MO/00002 6 个、WH/MO/00003 3 个、WH/MO/00004 16 个，合计 40 个成品 P27637E67E7-LED-CRS-009。\n\n原有采购安排也全部保留，共 5 张采购订单：P00001 15 个和 P00002 16 个（产品 P27637E67E7-LED-DCI-121），P00003 22 个（产品 P27637E67E7-LED-PDS-116），P00004 29 个和 P00005 47 个（产品 P27637E67E7-LED-SCS-124）。\n\n案例 ID：本案例",
+      "mode": "harness",
+      "citations": [
+        {
+          "field": "plan.actions.0.kind",
+          "label": "动作或单据类型",
+          "value": "cancel_po"
+        },
+        {
+          "field": "plan.actions.0.document",
+          "label": "单据",
+          "value": "P00006"
+        },
+        {
+          "field": "plan.actions.0.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.0.before.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.0.before.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.actions.1.kind",
+          "label": "动作或单据类型",
+          "value": "create_po"
+        },
+        {
+          "field": "plan.actions.1.document",
+          "label": "单据",
+          "value": "new:purchase.order:0006"
+        },
+        {
+          "field": "plan.actions.1.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.1.after.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.1.after.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.0.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.0.document",
+          "label": "单据",
+          "value": "WH/MO/00001"
+        },
+        {
+          "field": "plan.costs.lines.0.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.0.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.0.after.quantity",
+          "label": "数量",
+          "value": "15"
+        },
+        {
+          "field": "plan.costs.lines.0.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.0.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.1.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.1.document",
+          "label": "单据",
+          "value": "WH/MO/00002"
+        },
+        {
+          "field": "plan.costs.lines.1.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.1.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.1.after.quantity",
+          "label": "数量",
+          "value": "6"
+        },
+        {
+          "field": "plan.costs.lines.1.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.1.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.2.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.2.document",
+          "label": "单据",
+          "value": "WH/MO/00003"
+        },
+        {
+          "field": "plan.costs.lines.2.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.2.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.2.after.quantity",
+          "label": "数量",
+          "value": "3"
+        },
+        {
+          "field": "plan.costs.lines.2.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.2.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.3.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.3.document",
+          "label": "单据",
+          "value": "WH/MO/00004"
+        },
+        {
+          "field": "plan.costs.lines.3.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.3.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.3.after.quantity",
+          "label": "数量",
+          "value": "16"
+        },
+        {
+          "field": "plan.costs.lines.3.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.3.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.4.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.4.document",
+          "label": "单据",
+          "value": "P00001"
+        },
+        {
+          "field": "plan.costs.lines.4.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.4.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-DCI-121"
+        },
+        {
+          "field": "plan.costs.lines.4.after.quantity",
+          "label": "数量",
+          "value": "15"
+        },
+        {
+          "field": "plan.costs.lines.4.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.4.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.5.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.5.document",
+          "label": "单据",
+          "value": "P00002"
+        },
+        {
+          "field": "plan.costs.lines.5.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.5.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-DCI-121"
+        },
+        {
+          "field": "plan.costs.lines.5.after.quantity",
+          "label": "数量",
+          "value": "16"
+        },
+        {
+          "field": "plan.costs.lines.5.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.5.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.6.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.6.document",
+          "label": "单据",
+          "value": "P00003"
+        },
+        {
+          "field": "plan.costs.lines.6.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.6.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-PDS-116"
+        },
+        {
+          "field": "plan.costs.lines.6.after.quantity",
+          "label": "数量",
+          "value": "22"
+        },
+        {
+          "field": "plan.costs.lines.6.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.6.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.7.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.7.document",
+          "label": "单据",
+          "value": "P00004"
+        },
+        {
+          "field": "plan.costs.lines.7.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.7.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-SCS-124"
+        },
+        {
+          "field": "plan.costs.lines.7.after.quantity",
+          "label": "数量",
+          "value": "29"
+        },
+        {
+          "field": "plan.costs.lines.7.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.7.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.8.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.8.document",
+          "label": "单据",
+          "value": "P00005"
+        },
+        {
+          "field": "plan.costs.lines.8.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.8.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-SCS-124"
+        },
+        {
+          "field": "plan.costs.lines.8.after.quantity",
+          "label": "数量",
+          "value": "47"
+        },
+        {
+          "field": "plan.costs.lines.8.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.8.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        }
+      ],
+      "source_mode": "model",
+      "case_context": {
+        "schema_version": 1,
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "state": "succeeded",
+        "version": 1,
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "comparison_id": null,
+        "selection_revision": null,
+        "selection_pending": false,
+        "updated_at": "2026-10-24T10:35:47.923057+00:00",
+        "outcome": "verified"
+      },
+      "evidence_usage": {
+        "source": "case_snapshot",
+        "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+        "coverage": [
+          {
+            "topic": "actions",
+            "status": "available",
+            "total": 2,
+            "shown": 2
+          },
+          {
+            "topic": "preserved",
+            "status": "available",
+            "total": 9,
+            "shown": 9
+          }
+        ]
+      },
+      "evidence_refs": [
+        {
+          "kind": "case",
+          "id": "ac1135b9b9b984a4e63060a111cac21d",
+          "href": "/api/product/cases/ac1135b9b9b984a4e63060a111cac21d",
+          "label": "Case evidence"
+        }
+      ],
+      "type": "final",
+      "activity": []
+    },
+    "model_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "final_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "session_log_sha256": "200d30b3157d4be7a27667c7765863fb9562f0034ba27d11ec3c0e696fc2e77d",
+    "turn_end_reasons": [
+      {
+        "kind": "completed"
+      }
+    ]
+  },
+  {
+    "id": "independent-2-q2",
+    "timestamp": "2026-10-26T07:07:13Z",
+    "question": "请只根据本案例已批准方案的数量和单据明细回答：被取消的采购有几件？替代采购有几件？哪些原有制造和采购单保持不变？如果记录不足，请明确说缺少什么，不要用成本差额代替数量。",
+    "transport": "stream",
+    "elapsed_seconds": 8.245,
+    "http_status": 200,
+    "raw_model_answer": "根据本案例已批准的方案明细：\n\n**被取消的采购**\n- 取消 1 张采购单，共 3 件。\n- 单据：P00006；物料：P27637E67E7-LED-CRS-009；数量：3 Units；供给角色：成品。\n\n**替代采购**\n- 新建 1 张采购单，共 3 件。\n- 计划单据：new:purchase.order:0006（这是计划标识，并非已确认的正式 ERP 订单号）；物料：P27637E67E7-LED-CRS-009；数量：3 Units；供给角色：成品。\n\n**保持不变的原有制造和采购单**\n共 9 张原有单据按“保持”处理，不做变动：\n\n制造单（共 4 张，均为产品 P27637E67E7-LED-CRS-009，计量单位 Units）：\n- WH/MO/00001：15 件\n- WH/MO/00002：6 件\n- WH/MO/00003：3 件\n- WH/MO/00004：16 件\n\n采购单（共 5 张，计量单位 Units）：\n- P00001：物料 P27637E67E7-LED-DCI-121，15 件\n- P00002：物料 P27637E67E7-LED-DCI-121，16 件\n- P00003：物料 P27637E67E7-LED-PDS-116，22 件\n- P00004：物料 P27637E67E7-LED-SCS-124，29 件\n- P00005：物料 P27637E67E7-LED-SCS-124，47 件\n\n未在此列出的 P00006 已按取消处理，不属于保持不变的单据。\n\n案例 ID: ac1135b9b9b984a4e63060a111cac21d",
+    "response": {
+      "answer": "根据本案例已批准的方案明细：\n\n**被取消的采购**\n- 取消 1 张采购单，共 3 件。\n- 单据：P00006；物料：P27637E67E7-LED-CRS-009；数量：3 Units；供给角色：成品。\n\n**替代采购**\n- 新建 1 张采购单，共 3 件。\n- 计划单据：new:purchase.order:0006（这是计划标识，并非已确认的正式 ERP 订单号）；物料：P27637E67E7-LED-CRS-009；数量：3 Units；供给角色：成品。\n\n**保持不变的原有制造和采购单**\n共 9 张原有单据按“保持”处理，不做变动：\n\n制造单（共 4 张，均为产品 P27637E67E7-LED-CRS-009，计量单位 Units）：\n- WH/MO/00001：15 件\n- WH/MO/00002：6 件\n- WH/MO/00003：3 件\n- WH/MO/00004：16 件\n\n采购单（共 5 张，计量单位 Units）：\n- P00001：物料 P27637E67E7-LED-DCI-121，15 件\n- P00002：物料 P27637E67E7-LED-DCI-121，16 件\n- P00003：物料 P27637E67E7-LED-PDS-116，22 件\n- P00004：物料 P27637E67E7-LED-SCS-124，29 件\n- P00005：物料 P27637E67E7-LED-SCS-124，47 件\n\n未在此列出的 P00006 已按取消处理，不属于保持不变的单据。\n\n案例 ID: 本案例",
+      "mode": "harness",
+      "citations": [
+        {
+          "field": "plan.actions.0.kind",
+          "label": "动作或单据类型",
+          "value": "cancel_po"
+        },
+        {
+          "field": "plan.actions.0.document",
+          "label": "单据",
+          "value": "P00006"
+        },
+        {
+          "field": "plan.actions.0.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.0.before.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.0.before.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.actions.1.kind",
+          "label": "动作或单据类型",
+          "value": "create_po"
+        },
+        {
+          "field": "plan.actions.1.document",
+          "label": "单据",
+          "value": "new:purchase.order:0006"
+        },
+        {
+          "field": "plan.actions.1.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.1.after.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.1.after.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.0.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.0.document",
+          "label": "单据",
+          "value": "WH/MO/00001"
+        },
+        {
+          "field": "plan.costs.lines.0.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.0.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.0.after.quantity",
+          "label": "数量",
+          "value": "15"
+        },
+        {
+          "field": "plan.costs.lines.0.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.0.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.1.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.1.document",
+          "label": "单据",
+          "value": "WH/MO/00002"
+        },
+        {
+          "field": "plan.costs.lines.1.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.1.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.1.after.quantity",
+          "label": "数量",
+          "value": "6"
+        },
+        {
+          "field": "plan.costs.lines.1.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.1.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.2.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.2.document",
+          "label": "单据",
+          "value": "WH/MO/00003"
+        },
+        {
+          "field": "plan.costs.lines.2.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.2.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.2.after.quantity",
+          "label": "数量",
+          "value": "3"
+        },
+        {
+          "field": "plan.costs.lines.2.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.2.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.3.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.3.document",
+          "label": "单据",
+          "value": "WH/MO/00004"
+        },
+        {
+          "field": "plan.costs.lines.3.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.3.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.3.after.quantity",
+          "label": "数量",
+          "value": "16"
+        },
+        {
+          "field": "plan.costs.lines.3.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.3.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.4.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.4.document",
+          "label": "单据",
+          "value": "P00001"
+        },
+        {
+          "field": "plan.costs.lines.4.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.4.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-DCI-121"
+        },
+        {
+          "field": "plan.costs.lines.4.after.quantity",
+          "label": "数量",
+          "value": "15"
+        },
+        {
+          "field": "plan.costs.lines.4.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.4.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.5.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.5.document",
+          "label": "单据",
+          "value": "P00002"
+        },
+        {
+          "field": "plan.costs.lines.5.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.5.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-DCI-121"
+        },
+        {
+          "field": "plan.costs.lines.5.after.quantity",
+          "label": "数量",
+          "value": "16"
+        },
+        {
+          "field": "plan.costs.lines.5.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.5.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.6.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.6.document",
+          "label": "单据",
+          "value": "P00003"
+        },
+        {
+          "field": "plan.costs.lines.6.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.6.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-PDS-116"
+        },
+        {
+          "field": "plan.costs.lines.6.after.quantity",
+          "label": "数量",
+          "value": "22"
+        },
+        {
+          "field": "plan.costs.lines.6.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.6.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.7.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.7.document",
+          "label": "单据",
+          "value": "P00004"
+        },
+        {
+          "field": "plan.costs.lines.7.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.7.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-SCS-124"
+        },
+        {
+          "field": "plan.costs.lines.7.after.quantity",
+          "label": "数量",
+          "value": "29"
+        },
+        {
+          "field": "plan.costs.lines.7.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.7.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.8.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.8.document",
+          "label": "单据",
+          "value": "P00005"
+        },
+        {
+          "field": "plan.costs.lines.8.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.8.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-SCS-124"
+        },
+        {
+          "field": "plan.costs.lines.8.after.quantity",
+          "label": "数量",
+          "value": "47"
+        },
+        {
+          "field": "plan.costs.lines.8.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.8.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        }
+      ],
+      "source_mode": "model",
+      "case_context": {
+        "schema_version": 1,
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "state": "succeeded",
+        "version": 1,
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "comparison_id": null,
+        "selection_revision": null,
+        "selection_pending": false,
+        "updated_at": "2026-10-24T10:35:47.923057+00:00",
+        "outcome": "verified"
+      },
+      "evidence_usage": {
+        "source": "case_snapshot",
+        "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+        "coverage": [
+          {
+            "topic": "actions",
+            "status": "available",
+            "total": 2,
+            "shown": 2
+          },
+          {
+            "topic": "preserved",
+            "status": "available",
+            "total": 9,
+            "shown": 9
+          }
+        ]
+      },
+      "evidence_refs": [
+        {
+          "kind": "case",
+          "id": "ac1135b9b9b984a4e63060a111cac21d",
+          "href": "/api/product/cases/ac1135b9b9b984a4e63060a111cac21d",
+          "label": "Case evidence"
+        }
+      ],
+      "type": "final",
+      "activity": []
+    },
+    "model_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "final_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "session_log_sha256": "6785cfd2319b688a1fae81c4a3b5de5751f218601dc596d667e10ad744ceebed",
+    "turn_end_reasons": [
+      {
+        "kind": "completed"
+      }
+    ]
+  },
+  {
+    "id": "independent-2-q3",
+    "timestamp": "2026-10-26T07:07:21Z",
+    "question": "这个案例现在处于什么状态？涉及多少张订单、多少台产品？请用中文简短回答，并区分已记录的执行状态与实际客户交付。",
+    "transport": "stream",
+    "elapsed_seconds": 8.293,
+    "http_status": 200,
+    "raw_model_answer": "案例记录状态为“成功”，结果已验证（verified）。涉及 5 张已确认的销售订单（SO-1..5），共 50 台产品（Clean Room Sealed Fixture）。\n\n已记录的执行状态：执行成功，回读已验证，原始验收 51 项通过／51 项适用，得分 100；记录了 2 条单据变更——取消 P00006（3 台）并新建 new:purchase.order:0006（3 台），物料均为 P27637E67E7-LED-CRS-009。\n\n实际客户交付：尚未记录，没有交付凭证绑定。系统明确说明，计划可行性、ERP 单据变更和任务验收不等同于实际生产、发货或客户收货，所以不能断定客户已收到产品。\n\n案例 ID: ac1135b9b9b984a4e63060a111cac21d",
+    "response": {
+      "answer": "案例记录状态为“成功”，结果已验证（verified）。涉及 5 张已确认的销售订单（SO-1..5），共 50 台产品（Clean Room Sealed Fixture）。\n\n已记录的执行状态：执行成功，回读已验证，原始验收 51 项通过／51 项适用，得分 100；记录了 2 条单据变更——取消 P00006（3 台）并新建 new:purchase.order:0006（3 台），物料均为 P27637E67E7-LED-CRS-009。\n\n实际客户交付：尚未记录，没有交付凭证绑定。系统明确说明，计划可行性、ERP 单据变更和任务验收不等同于实际生产、发货或客户收货，所以不能断定客户已收到产品。\n\n案例 ID: 本案例",
+      "mode": "harness",
+      "citations": [
+        {
+          "field": "state",
+          "label": "案例状态",
+          "value": "succeeded"
+        },
+        {
+          "field": "updated_at",
+          "label": "记录更新时间",
+          "value": "2026-10-24T10:35:47.923057+00:00"
+        },
+        {
+          "field": "order.ref",
+          "label": "订单范围",
+          "value": "SO-1..5"
+        },
+        {
+          "field": "order.units",
+          "label": "产品数量",
+          "value": 50
+        },
+        {
+          "field": "order.customer",
+          "label": "客户",
+          "value": "5 confirmed sales orders"
+        },
+        {
+          "field": "order.product",
+          "label": "产品",
+          "value": "Clean Room Sealed Fixture"
+        },
+        {
+          "field": "result.outcome",
+          "label": "记录结果",
+          "value": "verified"
+        },
+        {
+          "field": "execution.status",
+          "label": "执行状态",
+          "value": "succeeded"
+        },
+        {
+          "field": "execution.readback.verified_steps",
+          "label": "回读核对步骤数",
+          "value": 7
+        },
+        {
+          "field": "execution.verifier.status",
+          "label": "验收状态",
+          "value": "passed"
+        },
+        {
+          "field": "execution.verifier.evaluation_scope",
+          "label": "验收范围",
+          "value": "product_original_verifier"
+        },
+        {
+          "field": "execution.verifier.passed_rule_count",
+          "label": "通过规则数",
+          "value": 51
+        },
+        {
+          "field": "execution.verifier.applicable_rule_count",
+          "label": "适用规则数",
+          "value": 51
+        },
+        {
+          "field": "execution.verifier.score",
+          "label": "验收得分",
+          "value": 100.0
+        },
+        {
+          "field": "execution.writes.0.kind",
+          "label": "动作或单据类型",
+          "value": "cancel_po"
+        },
+        {
+          "field": "execution.writes.0.document",
+          "label": "单据",
+          "value": "P00006"
+        },
+        {
+          "field": "execution.writes.0.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "execution.writes.0.before.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "execution.writes.0.before.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "execution.writes.1.kind",
+          "label": "动作或单据类型",
+          "value": "create_po"
+        },
+        {
+          "field": "execution.writes.1.document",
+          "label": "单据",
+          "value": "new:purchase.order:0006"
+        },
+        {
+          "field": "execution.writes.1.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "execution.writes.1.after.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "execution.writes.1.after.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        }
+      ],
+      "source_mode": "model",
+      "case_context": {
+        "schema_version": 1,
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "state": "succeeded",
+        "version": 1,
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "comparison_id": null,
+        "selection_revision": null,
+        "selection_pending": false,
+        "updated_at": "2026-10-24T10:35:47.923057+00:00",
+        "outcome": "verified"
+      },
+      "evidence_usage": {
+        "source": "case_snapshot",
+        "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+        "coverage": [
+          {
+            "topic": "status",
+            "status": "available"
+          },
+          {
+            "topic": "execution",
+            "status": "available",
+            "total": 2,
+            "shown": 2
+          },
+          {
+            "topic": "delivery",
+            "status": "not_recorded",
+            "reason": "customer_delivery_evidence_not_bound"
+          }
+        ]
+      },
+      "evidence_refs": [
+        {
+          "kind": "case",
+          "id": "ac1135b9b9b984a4e63060a111cac21d",
+          "href": "/api/product/cases/ac1135b9b9b984a4e63060a111cac21d",
+          "label": "Case evidence"
+        }
+      ],
+      "type": "final",
+      "activity": []
+    },
+    "model_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "final_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "session_log_sha256": "978636597048b714bb95ed362d2bd6c4c54b93fc87fc69455731ac4826a2018c",
+    "turn_end_reasons": [
+      {
+        "kind": "completed"
+      }
+    ]
+  },
+  {
+    "id": "independent-2-q4",
+    "timestamp": "2026-10-26T07:07:28Z",
+    "question": "计划成本 4,794.94 美元包含什么？比原安排增加多少，是否代表节省？请用中文三句话回答。",
+    "transport": "stream",
+    "elapsed_seconds": 6.312,
+    "http_status": 200,
+    "raw_model_answer": "方案规划成本 4,794.94 美元由方案采购成本 3,464.94 美元和方案制造成本 1,330.00 美元组成，并保留了既有采购单，其中新建采购单金额为 1,432.32 美元、既有采购单增量为 0。它比原安排规划成本 4,634.89 美元增加了已知差额 160.05 美元。因此这不是节省，而是计划上的增加；实际成本尚未记录，无法断定最终是否省钱。\n\n案件 ID：ac1135b9b9b984a4e63060a111cac21d",
+    "response": {
+      "answer": "方案规划成本 4,794.94 美元由方案采购成本 3,464.94 美元和方案制造成本 1,330.00 美元组成，并保留了既有采购单，其中新建采购单金额为 1,432.32 美元、既有采购单增量为 0。它比原安排规划成本 4,634.89 美元增加了已知差额 160.05 美元。因此这不是节省，而是计划上的增加；实际成本尚未记录，无法断定最终是否省钱。\n\n案件 ID：本案例",
+      "mode": "harness",
+      "citations": [
+        {
+          "field": "plan.costs.baseline.total",
+          "label": "原安排规划成本",
+          "value": "4634.89"
+        },
+        {
+          "field": "plan.costs.planned.total",
+          "label": "方案规划成本",
+          "value": "4794.94"
+        },
+        {
+          "field": "plan.costs.known_delta",
+          "label": "已知规划成本差额",
+          "value": "160.05"
+        },
+        {
+          "field": "plan.costs.new_purchase_value",
+          "label": "新建采购单金额",
+          "value": "1432.32"
+        },
+        {
+          "field": "plan.costs.purchase_increase",
+          "label": "既有采购单金额增量",
+          "value": "0"
+        },
+        {
+          "field": "plan.costs.basis.currency",
+          "label": "币种",
+          "value": "USD"
+        },
+        {
+          "field": "plan.costs.planned.purchase",
+          "label": "方案采购成本",
+          "value": "3464.94"
+        },
+        {
+          "field": "plan.costs.planned.manufacturing",
+          "label": "方案制造成本",
+          "value": "1330.0"
+        },
+        {
+          "field": "plan.costs.baseline.purchase",
+          "label": "原安排采购成本",
+          "value": "3304.89"
+        },
+        {
+          "field": "plan.costs.baseline.manufacturing",
+          "label": "原安排制造成本",
+          "value": "1330.0"
+        }
+      ],
+      "source_mode": "model",
+      "case_context": {
+        "schema_version": 1,
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "state": "succeeded",
+        "version": 1,
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "comparison_id": null,
+        "selection_revision": null,
+        "selection_pending": false,
+        "updated_at": "2026-10-24T10:35:47.923057+00:00",
+        "outcome": "verified"
+      },
+      "evidence_usage": {
+        "source": "case_snapshot",
+        "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+        "coverage": [
+          {
+            "topic": "costs",
+            "status": "available"
+          }
+        ]
+      },
+      "evidence_refs": [
+        {
+          "kind": "case",
+          "id": "ac1135b9b9b984a4e63060a111cac21d",
+          "href": "/api/product/cases/ac1135b9b9b984a4e63060a111cac21d",
+          "label": "Case evidence"
+        }
+      ],
+      "type": "final",
+      "activity": []
+    },
+    "model_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "final_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "session_log_sha256": "5c0e42ca4e4a30cef83492dee147f74d2a19b0ac0b8ce6dc032fd912dff04d48",
+    "turn_end_reasons": [
+      {
+        "kind": "completed"
+      }
+    ]
+  },
+  {
+    "id": "independent-2-q5",
+    "timestamp": "2026-10-26T07:07:35Z",
+    "question": "这个案例实际改了哪些单据？51/51 验收证明了什么，能说明已经交付吗？请用中文三句话回答。",
+    "transport": "stream",
+    "elapsed_seconds": 7.356,
+    "http_status": 200,
+    "raw_model_answer": "实际共改动了 2 条单据条目：取消采购订单 P00006（物料 P27637E67E7-LED-CRS-009，3 Units），并创建新采购单 new:purchase.order:0006（同物料 3 Units）。51/51 的验收只表示全部 51 条适用规则通过、回读核对通过，属于原始任务验证，并不代表已经生产、发货或客户签收。因为交付证据未被绑定（delivery 状态为 not_recorded），所以不能说明已经交付。\n\n参考：ac1135b9b9b984a4e63060a111cac21d",
+    "response": {
+      "answer": "实际共改动了 2 条单据条目：取消采购订单 P00006（物料 P27637E67E7-LED-CRS-009，3 Units），并创建新采购单 new:purchase.order:0006（同物料 3 Units）。51/51 的验收只表示全部 51 条适用规则通过、回读核对通过，属于原始任务验证，并不代表已经生产、发货或客户签收。因为交付证据未被绑定（delivery 状态为 not_recorded），所以不能说明已经交付。",
+      "mode": "harness",
+      "citations": [
+        {
+          "field": "plan.actions.0.kind",
+          "label": "动作或单据类型",
+          "value": "cancel_po"
+        },
+        {
+          "field": "plan.actions.0.document",
+          "label": "单据",
+          "value": "P00006"
+        },
+        {
+          "field": "plan.actions.0.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.0.before.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.0.before.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.actions.1.kind",
+          "label": "动作或单据类型",
+          "value": "create_po"
+        },
+        {
+          "field": "plan.actions.1.document",
+          "label": "单据",
+          "value": "new:purchase.order:0006"
+        },
+        {
+          "field": "plan.actions.1.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.1.after.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.1.after.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "execution.status",
+          "label": "执行状态",
+          "value": "succeeded"
+        },
+        {
+          "field": "execution.readback.verified_steps",
+          "label": "回读核对步骤数",
+          "value": 7
+        },
+        {
+          "field": "execution.verifier.status",
+          "label": "验收状态",
+          "value": "passed"
+        },
+        {
+          "field": "execution.verifier.evaluation_scope",
+          "label": "验收范围",
+          "value": "product_original_verifier"
+        },
+        {
+          "field": "execution.verifier.passed_rule_count",
+          "label": "通过规则数",
+          "value": 51
+        },
+        {
+          "field": "execution.verifier.applicable_rule_count",
+          "label": "适用规则数",
+          "value": 51
+        },
+        {
+          "field": "execution.verifier.score",
+          "label": "验收得分",
+          "value": 100.0
+        },
+        {
+          "field": "execution.writes.0.kind",
+          "label": "动作或单据类型",
+          "value": "cancel_po"
+        },
+        {
+          "field": "execution.writes.0.document",
+          "label": "单据",
+          "value": "P00006"
+        },
+        {
+          "field": "execution.writes.0.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "execution.writes.0.before.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "execution.writes.0.before.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "execution.writes.1.kind",
+          "label": "动作或单据类型",
+          "value": "create_po"
+        },
+        {
+          "field": "execution.writes.1.document",
+          "label": "单据",
+          "value": "new:purchase.order:0006"
+        },
+        {
+          "field": "execution.writes.1.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "execution.writes.1.after.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "execution.writes.1.after.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        }
+      ],
+      "source_mode": "model",
+      "case_context": {
+        "schema_version": 1,
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "state": "succeeded",
+        "version": 1,
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "comparison_id": null,
+        "selection_revision": null,
+        "selection_pending": false,
+        "updated_at": "2026-10-24T10:35:47.923057+00:00",
+        "outcome": "verified"
+      },
+      "evidence_usage": {
+        "source": "case_snapshot",
+        "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+        "coverage": [
+          {
+            "topic": "actions",
+            "status": "available",
+            "total": 2,
+            "shown": 2
+          },
+          {
+            "topic": "execution",
+            "status": "available",
+            "total": 2,
+            "shown": 2
+          },
+          {
+            "topic": "delivery",
+            "status": "not_recorded",
+            "reason": "customer_delivery_evidence_not_bound"
+          }
+        ]
+      },
+      "evidence_refs": [
+        {
+          "kind": "case",
+          "id": "ac1135b9b9b984a4e63060a111cac21d",
+          "href": "/api/product/cases/ac1135b9b9b984a4e63060a111cac21d",
+          "label": "Case evidence"
+        }
+      ],
+      "type": "final",
+      "activity": []
+    },
+    "model_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "final_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "session_log_sha256": "5f556c8eb11b978987d3d5224476f064011aff24c537484a414678cf46354888",
+    "turn_end_reasons": [
+      {
+        "kind": "completed"
+      }
+    ]
+  },
+  {
+    "id": "chain-q1",
+    "timestamp": "2026-10-26T07:07:47Z",
+    "question": "这次供应商取消造成多大缺口？原有采购与制造安排保留了什么？请根据当前案例用中文三句话回答。",
+    "transport": "stream",
+    "elapsed_seconds": 12.437,
+    "http_status": 200,
+    "raw_model_answer": "供应商 Stonewall Components 的取消导致采购单 P00006 被取消，留下 3 个成品 P27637E67E7-LED-CRS-009 的缺口，计划靠新增采购单 new:purchase.order:0006（同样 3 个）来补齐。\n\n原有的制造安排全部保留，共 4 份制造单 WH/MO/00001–WH/MO/00004，计划生产 40 个 P27637E67E7-LED-CRS-009。\n\n原有的采购安排也全部保留，共 5 张采购单 P00001–P00005，分别是 31 个 P27637E67E7-LED-DCI-121、22 个 P27637E67E7-LED-PDS-116、76 个 P27637E67E7-LED-SCS-124。\n\n案例 ID：ac1135b9b9b984a4e63060a111cac21d",
+    "response": {
+      "answer": "供应商 Stonewall Components 的取消导致采购单 P00006 被取消，留下 3 个成品 P27637E67E7-LED-CRS-009 的缺口，计划靠新增采购单 new:purchase.order:0006（同样 3 个）来补齐。\n\n原有的制造安排全部保留，共 4 份制造单 WH/MO/00001–WH/MO/00004，计划生产 40 个 P27637E67E7-LED-CRS-009。\n\n原有的采购安排也全部保留，共 5 张采购单 P00001–P00005，分别是 31 个 P27637E67E7-LED-DCI-121、22 个 P27637E67E7-LED-PDS-116、76 个 P27637E67E7-LED-SCS-124。\n\n案例 ID：本案例",
+      "mode": "harness",
+      "citations": [
+        {
+          "field": "plan.actions.0.kind",
+          "label": "动作或单据类型",
+          "value": "cancel_po"
+        },
+        {
+          "field": "plan.actions.0.document",
+          "label": "单据",
+          "value": "P00006"
+        },
+        {
+          "field": "plan.actions.0.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.0.before.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.0.before.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.actions.1.kind",
+          "label": "动作或单据类型",
+          "value": "create_po"
+        },
+        {
+          "field": "plan.actions.1.document",
+          "label": "单据",
+          "value": "new:purchase.order:0006"
+        },
+        {
+          "field": "plan.actions.1.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.1.after.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.1.after.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.0.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.0.document",
+          "label": "单据",
+          "value": "WH/MO/00001"
+        },
+        {
+          "field": "plan.costs.lines.0.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.0.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.0.after.quantity",
+          "label": "数量",
+          "value": "15"
+        },
+        {
+          "field": "plan.costs.lines.0.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.0.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.1.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.1.document",
+          "label": "单据",
+          "value": "WH/MO/00002"
+        },
+        {
+          "field": "plan.costs.lines.1.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.1.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.1.after.quantity",
+          "label": "数量",
+          "value": "6"
+        },
+        {
+          "field": "plan.costs.lines.1.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.1.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.2.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.2.document",
+          "label": "单据",
+          "value": "WH/MO/00003"
+        },
+        {
+          "field": "plan.costs.lines.2.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.2.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.2.after.quantity",
+          "label": "数量",
+          "value": "3"
+        },
+        {
+          "field": "plan.costs.lines.2.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.2.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.3.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.3.document",
+          "label": "单据",
+          "value": "WH/MO/00004"
+        },
+        {
+          "field": "plan.costs.lines.3.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.3.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.3.after.quantity",
+          "label": "数量",
+          "value": "16"
+        },
+        {
+          "field": "plan.costs.lines.3.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.3.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.4.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.4.document",
+          "label": "单据",
+          "value": "P00001"
+        },
+        {
+          "field": "plan.costs.lines.4.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.4.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-DCI-121"
+        },
+        {
+          "field": "plan.costs.lines.4.after.quantity",
+          "label": "数量",
+          "value": "15"
+        },
+        {
+          "field": "plan.costs.lines.4.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.4.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.5.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.5.document",
+          "label": "单据",
+          "value": "P00002"
+        },
+        {
+          "field": "plan.costs.lines.5.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.5.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-DCI-121"
+        },
+        {
+          "field": "plan.costs.lines.5.after.quantity",
+          "label": "数量",
+          "value": "16"
+        },
+        {
+          "field": "plan.costs.lines.5.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.5.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.6.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.6.document",
+          "label": "单据",
+          "value": "P00003"
+        },
+        {
+          "field": "plan.costs.lines.6.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.6.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-PDS-116"
+        },
+        {
+          "field": "plan.costs.lines.6.after.quantity",
+          "label": "数量",
+          "value": "22"
+        },
+        {
+          "field": "plan.costs.lines.6.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.6.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.7.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.7.document",
+          "label": "单据",
+          "value": "P00004"
+        },
+        {
+          "field": "plan.costs.lines.7.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.7.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-SCS-124"
+        },
+        {
+          "field": "plan.costs.lines.7.after.quantity",
+          "label": "数量",
+          "value": "29"
+        },
+        {
+          "field": "plan.costs.lines.7.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.7.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.8.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.8.document",
+          "label": "单据",
+          "value": "P00005"
+        },
+        {
+          "field": "plan.costs.lines.8.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.8.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-SCS-124"
+        },
+        {
+          "field": "plan.costs.lines.8.after.quantity",
+          "label": "数量",
+          "value": "47"
+        },
+        {
+          "field": "plan.costs.lines.8.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.8.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        }
+      ],
+      "source_mode": "model",
+      "case_context": {
+        "schema_version": 1,
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "state": "succeeded",
+        "version": 1,
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "comparison_id": null,
+        "selection_revision": null,
+        "selection_pending": false,
+        "updated_at": "2026-10-24T10:35:47.923057+00:00",
+        "outcome": "verified"
+      },
+      "evidence_usage": {
+        "source": "case_snapshot",
+        "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+        "coverage": [
+          {
+            "topic": "actions",
+            "status": "available",
+            "total": 2,
+            "shown": 2
+          },
+          {
+            "topic": "preserved",
+            "status": "available",
+            "total": 9,
+            "shown": 9
+          }
+        ]
+      },
+      "evidence_refs": [
+        {
+          "kind": "case",
+          "id": "ac1135b9b9b984a4e63060a111cac21d",
+          "href": "/api/product/cases/ac1135b9b9b984a4e63060a111cac21d",
+          "label": "Case evidence"
+        }
+      ],
+      "type": "final",
+      "activity": []
+    },
+    "model_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "final_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "session_log_sha256": "88709f1043806c0a0007e06d3dfe15d5d31f6d2e6953754e6505223e2fa6f7af",
+    "turn_end_reasons": [
+      {
+        "kind": "completed"
+      },
+      {
+        "kind": "completed"
+      }
+    ]
+  },
+  {
+    "id": "chain-q2",
+    "timestamp": "2026-10-26T07:08:09Z",
+    "question": "请只根据本案例已批准方案的数量和单据明细回答：被取消的采购有几件？替代采购有几件？哪些原有制造和采购单保持不变？如果记录不足，请明确说缺少什么，不要用成本差额代替数量。",
+    "transport": "stream",
+    "elapsed_seconds": 22.098,
+    "http_status": 200,
+    "raw_model_answer": "被取消的采购单 P00006 涉及 3 个成品 P27637E67E7-LED-CRS-009，单位为 Units。替代采购单 new:purchase.order:0006 计划补入同样 3 个同款成品，但该编号仍是计划标识，并非已确认的 ERP 单号。保持不变的原有单据为 4 份制造单（WH/MO/00001 15 件、WH/MO/00002 6 件、WH/MO/00003 3 件、WH/MO/00004 16 件，合计 40 件 P27637E67E7-LED-CRS-009）和 5 份采购单（P00001 15 件、P00002 16 件 P27637E67E7-LED-DCI-121；P00003 22 件 P27637E67E7-LED-PDS-116；P00004 29 件、P00005 47 件 P27637E67E7-LED-SCS-124）。\n\n案例 ID：ac1135b9b9b984a4e63060a111cac21d",
+    "response": {
+      "answer": "被取消的采购单 P00006 涉及 3 个成品 P27637E67E7-LED-CRS-009，单位为 Units。替代采购单 new:purchase.order:0006 计划补入同样 3 个同款成品，但该编号仍是计划标识，并非已确认的 ERP 单号。保持不变的原有单据为 4 份制造单（WH/MO/00001 15 件、WH/MO/00002 6 件、WH/MO/00003 3 件、WH/MO/00004 16 件，合计 40 件 P27637E67E7-LED-CRS-009）和 5 份采购单（P00001 15 件、P00002 16 件 P27637E67E7-LED-DCI-121；P00003 22 件 P27637E67E7-LED-PDS-116；P00004 29 件、P00005 47 件 P27637E67E7-LED-SCS-124）。\n\n案例 ID：本案例",
+      "mode": "harness",
+      "citations": [
+        {
+          "field": "plan.actions.0.kind",
+          "label": "动作或单据类型",
+          "value": "cancel_po"
+        },
+        {
+          "field": "plan.actions.0.document",
+          "label": "单据",
+          "value": "P00006"
+        },
+        {
+          "field": "plan.actions.0.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.0.before.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.0.before.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.actions.1.kind",
+          "label": "动作或单据类型",
+          "value": "create_po"
+        },
+        {
+          "field": "plan.actions.1.document",
+          "label": "单据",
+          "value": "new:purchase.order:0006"
+        },
+        {
+          "field": "plan.actions.1.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.1.after.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.1.after.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.0.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.0.document",
+          "label": "单据",
+          "value": "WH/MO/00001"
+        },
+        {
+          "field": "plan.costs.lines.0.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.0.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.0.after.quantity",
+          "label": "数量",
+          "value": "15"
+        },
+        {
+          "field": "plan.costs.lines.0.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.0.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.1.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.1.document",
+          "label": "单据",
+          "value": "WH/MO/00002"
+        },
+        {
+          "field": "plan.costs.lines.1.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.1.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.1.after.quantity",
+          "label": "数量",
+          "value": "6"
+        },
+        {
+          "field": "plan.costs.lines.1.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.1.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.2.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.2.document",
+          "label": "单据",
+          "value": "WH/MO/00003"
+        },
+        {
+          "field": "plan.costs.lines.2.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.2.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.2.after.quantity",
+          "label": "数量",
+          "value": "3"
+        },
+        {
+          "field": "plan.costs.lines.2.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.2.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.3.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.3.document",
+          "label": "单据",
+          "value": "WH/MO/00004"
+        },
+        {
+          "field": "plan.costs.lines.3.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.3.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.3.after.quantity",
+          "label": "数量",
+          "value": "16"
+        },
+        {
+          "field": "plan.costs.lines.3.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.3.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.4.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.4.document",
+          "label": "单据",
+          "value": "P00001"
+        },
+        {
+          "field": "plan.costs.lines.4.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.4.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-DCI-121"
+        },
+        {
+          "field": "plan.costs.lines.4.after.quantity",
+          "label": "数量",
+          "value": "15"
+        },
+        {
+          "field": "plan.costs.lines.4.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.4.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.5.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.5.document",
+          "label": "单据",
+          "value": "P00002"
+        },
+        {
+          "field": "plan.costs.lines.5.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.5.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-DCI-121"
+        },
+        {
+          "field": "plan.costs.lines.5.after.quantity",
+          "label": "数量",
+          "value": "16"
+        },
+        {
+          "field": "plan.costs.lines.5.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.5.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.6.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.6.document",
+          "label": "单据",
+          "value": "P00003"
+        },
+        {
+          "field": "plan.costs.lines.6.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.6.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-PDS-116"
+        },
+        {
+          "field": "plan.costs.lines.6.after.quantity",
+          "label": "数量",
+          "value": "22"
+        },
+        {
+          "field": "plan.costs.lines.6.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.6.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.7.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.7.document",
+          "label": "单据",
+          "value": "P00004"
+        },
+        {
+          "field": "plan.costs.lines.7.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.7.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-SCS-124"
+        },
+        {
+          "field": "plan.costs.lines.7.after.quantity",
+          "label": "数量",
+          "value": "29"
+        },
+        {
+          "field": "plan.costs.lines.7.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.7.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.8.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.8.document",
+          "label": "单据",
+          "value": "P00005"
+        },
+        {
+          "field": "plan.costs.lines.8.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.8.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-SCS-124"
+        },
+        {
+          "field": "plan.costs.lines.8.after.quantity",
+          "label": "数量",
+          "value": "47"
+        },
+        {
+          "field": "plan.costs.lines.8.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.8.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        }
+      ],
+      "source_mode": "model",
+      "case_context": {
+        "schema_version": 1,
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "state": "succeeded",
+        "version": 1,
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "comparison_id": null,
+        "selection_revision": null,
+        "selection_pending": false,
+        "updated_at": "2026-10-24T10:35:47.923057+00:00",
+        "outcome": "verified"
+      },
+      "evidence_usage": {
+        "source": "case_snapshot",
+        "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+        "coverage": [
+          {
+            "topic": "actions",
+            "status": "available",
+            "total": 2,
+            "shown": 2
+          },
+          {
+            "topic": "preserved",
+            "status": "available",
+            "total": 9,
+            "shown": 9
+          }
+        ]
+      },
+      "evidence_refs": [
+        {
+          "kind": "case",
+          "id": "ac1135b9b9b984a4e63060a111cac21d",
+          "href": "/api/product/cases/ac1135b9b9b984a4e63060a111cac21d",
+          "label": "Case evidence"
+        }
+      ],
+      "type": "final",
+      "activity": []
+    },
+    "model_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "final_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "session_log_sha256": "88709f1043806c0a0007e06d3dfe15d5d31f6d2e6953754e6505223e2fa6f7af",
+    "turn_end_reasons": [
+      {
+        "kind": "completed"
+      },
+      {
+        "kind": "completed"
+      }
+    ]
+  },
+  {
+    "id": "paraphrase-1",
+    "timestamp": "2026-10-26T07:08:18Z",
+    "question": "请先列出保留的制造单与采购单明细，再说明取消和替代的成品采购数量。不同物料不要相加。",
+    "transport": "stream",
+    "elapsed_seconds": 8.458,
+    "http_status": 200,
+    "raw_model_answer": "保留的制造单明细（共 4 张，物料全部为 P27637E67E7-LED-CRS-009，单位 Units）：\n\n- WH/MO/00001：15 Units\n- WH/MO/00002：6 Units\n- WH/MO/00003：3 Units\n- WH/MO/00004：16 Units\n\n保留的采购单明细（共 5 张）：\n\n- P00001：P27637E67E7-LED-DCI-121，15 Units\n- P00002：P27637E67E7-LED-DCI-121，16 Units\n- P00003：P27637E67E7-LED-PDS-116，22 Units\n- P00004：P27637E67E7-LED-SCS-124，29 Units\n- P00005：P27637E67E7-LED-SCS-124，47 Units\n\n取消与替代的成品采购（物料均为 P27637E67E7-LED-CRS-009，供给角色：成品）：\n\n- 取消采购单 P00006，数量 3 Units\n- 新建替代采购单 new:purchase.order:0006，数量 3 Units（这是计划标识，尚未确认为正式 ERP 单号）\n\n两笔都是同一物料、同一数量 3 Units，相当于以新采购单替换被取消的 P00006。不同物料的数量未相加。\n\n案例：ac1135b9b9b984a4e63060a111cac21d",
+    "response": {
+      "answer": "保留的制造单明细（共 4 张，物料全部为 P27637E67E7-LED-CRS-009，单位 Units）：\n\n- WH/MO/00001：15 Units\n- WH/MO/00002：6 Units\n- WH/MO/00003：3 Units\n- WH/MO/00004：16 Units\n\n保留的采购单明细（共 5 张）：\n\n- P00001：P27637E67E7-LED-DCI-121，15 Units\n- P00002：P27637E67E7-LED-DCI-121，16 Units\n- P00003：P27637E67E7-LED-PDS-116，22 Units\n- P00004：P27637E67E7-LED-SCS-124，29 Units\n- P00005：P27637E67E7-LED-SCS-124，47 Units\n\n取消与替代的成品采购（物料均为 P27637E67E7-LED-CRS-009，供给角色：成品）：\n\n- 取消采购单 P00006，数量 3 Units\n- 新建替代采购单 new:purchase.order:0006，数量 3 Units（这是计划标识，尚未确认为正式 ERP 单号）\n\n两笔都是同一物料、同一数量 3 Units，相当于以新采购单替换被取消的 P00006。不同物料的数量未相加。",
+      "mode": "harness",
+      "citations": [
+        {
+          "field": "plan.actions.0.kind",
+          "label": "动作或单据类型",
+          "value": "cancel_po"
+        },
+        {
+          "field": "plan.actions.0.document",
+          "label": "单据",
+          "value": "P00006"
+        },
+        {
+          "field": "plan.actions.0.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.0.before.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.0.before.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.actions.1.kind",
+          "label": "动作或单据类型",
+          "value": "create_po"
+        },
+        {
+          "field": "plan.actions.1.document",
+          "label": "单据",
+          "value": "new:purchase.order:0006"
+        },
+        {
+          "field": "plan.actions.1.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "plan.actions.1.after.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.actions.1.after.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.0.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.0.document",
+          "label": "单据",
+          "value": "WH/MO/00001"
+        },
+        {
+          "field": "plan.costs.lines.0.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.0.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.0.after.quantity",
+          "label": "数量",
+          "value": "15"
+        },
+        {
+          "field": "plan.costs.lines.0.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.0.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.1.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.1.document",
+          "label": "单据",
+          "value": "WH/MO/00002"
+        },
+        {
+          "field": "plan.costs.lines.1.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.1.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.1.after.quantity",
+          "label": "数量",
+          "value": "6"
+        },
+        {
+          "field": "plan.costs.lines.1.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.1.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.2.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.2.document",
+          "label": "单据",
+          "value": "WH/MO/00003"
+        },
+        {
+          "field": "plan.costs.lines.2.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.2.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.2.after.quantity",
+          "label": "数量",
+          "value": "3"
+        },
+        {
+          "field": "plan.costs.lines.2.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.2.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.3.kind",
+          "label": "动作或单据类型",
+          "value": "manufacturing_order"
+        },
+        {
+          "field": "plan.costs.lines.3.document",
+          "label": "单据",
+          "value": "WH/MO/00004"
+        },
+        {
+          "field": "plan.costs.lines.3.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.3.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "plan.costs.lines.3.after.quantity",
+          "label": "数量",
+          "value": "16"
+        },
+        {
+          "field": "plan.costs.lines.3.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.3.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.4.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.4.document",
+          "label": "单据",
+          "value": "P00001"
+        },
+        {
+          "field": "plan.costs.lines.4.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.4.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-DCI-121"
+        },
+        {
+          "field": "plan.costs.lines.4.after.quantity",
+          "label": "数量",
+          "value": "15"
+        },
+        {
+          "field": "plan.costs.lines.4.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.4.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.5.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.5.document",
+          "label": "单据",
+          "value": "P00002"
+        },
+        {
+          "field": "plan.costs.lines.5.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.5.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-DCI-121"
+        },
+        {
+          "field": "plan.costs.lines.5.after.quantity",
+          "label": "数量",
+          "value": "16"
+        },
+        {
+          "field": "plan.costs.lines.5.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.5.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.6.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.6.document",
+          "label": "单据",
+          "value": "P00003"
+        },
+        {
+          "field": "plan.costs.lines.6.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.6.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-PDS-116"
+        },
+        {
+          "field": "plan.costs.lines.6.after.quantity",
+          "label": "数量",
+          "value": "22"
+        },
+        {
+          "field": "plan.costs.lines.6.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.6.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.7.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.7.document",
+          "label": "单据",
+          "value": "P00004"
+        },
+        {
+          "field": "plan.costs.lines.7.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.7.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-SCS-124"
+        },
+        {
+          "field": "plan.costs.lines.7.after.quantity",
+          "label": "数量",
+          "value": "29"
+        },
+        {
+          "field": "plan.costs.lines.7.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.7.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "plan.costs.lines.8.kind",
+          "label": "动作或单据类型",
+          "value": "purchase_order"
+        },
+        {
+          "field": "plan.costs.lines.8.document",
+          "label": "单据",
+          "value": "P00005"
+        },
+        {
+          "field": "plan.costs.lines.8.action",
+          "label": "安排动作",
+          "value": "keep"
+        },
+        {
+          "field": "plan.costs.lines.8.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-SCS-124"
+        },
+        {
+          "field": "plan.costs.lines.8.after.quantity",
+          "label": "数量",
+          "value": "47"
+        },
+        {
+          "field": "plan.costs.lines.8.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.8.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        }
+      ],
+      "source_mode": "model",
+      "case_context": {
+        "schema_version": 1,
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "state": "succeeded",
+        "version": 1,
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "comparison_id": null,
+        "selection_revision": null,
+        "selection_pending": false,
+        "updated_at": "2026-10-24T10:35:47.923057+00:00",
+        "outcome": "verified"
+      },
+      "evidence_usage": {
+        "source": "case_snapshot",
+        "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+        "coverage": [
+          {
+            "topic": "actions",
+            "status": "available",
+            "total": 2,
+            "shown": 2
+          },
+          {
+            "topic": "preserved",
+            "status": "available",
+            "total": 9,
+            "shown": 9
+          }
+        ]
+      },
+      "evidence_refs": [
+        {
+          "kind": "case",
+          "id": "ac1135b9b9b984a4e63060a111cac21d",
+          "href": "/api/product/cases/ac1135b9b9b984a4e63060a111cac21d",
+          "label": "Case evidence"
+        }
+      ],
+      "type": "final",
+      "activity": []
+    },
+    "model_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "final_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "session_log_sha256": "2bb2aed700ed0123fd7b58939d3c485ca0362cdc1d6263da9eecc9a164d2fc94",
+    "turn_end_reasons": [
+      {
+        "kind": "completed"
+      }
+    ]
+  },
+  {
+    "id": "paraphrase-2",
+    "timestamp": "2026-10-26T07:08:28Z",
+    "question": "请分别说明原安排成本、计划成本、新建采购金额和已知差额；增加还是节省？取消费用和税费是否已经包含？",
+    "transport": "stream",
+    "elapsed_seconds": 10.42,
+    "http_status": 200,
+    "raw_model_answer": "原安排成本：4634.89 美元（原安排规划成本总额）。\n\n计划成本：4794.94 美元（方案规划成本总额，其中采购 3464.94 美元，制造 1330.0 美元）。\n\n新建采购金额：1432.32 美元（新建采购单金额）。既有采购单没有金额增量，增量为 0 美元。\n\n已知差额：160.05 美元，即计划成本减去可比基准（4794.94 − 4634.89 = 160.05）。\n\n这是**增加**，不是节省：方案比原安排多 160.05 美元。\n\n关于取消费用和税费：记录里没有显示已包含。实际成本（actual_cost）为空，完整差额（full_delta）也未知，所以不能断言取消费用或税费已经计入，也不能把它们当作零处理。\n\n案例 ID：ac1135b9b9b984a4e63060a111cac21d",
+    "response": {
+      "answer": "原安排规划成本 USD 4,634.89；方案规划成本 USD 4,794.94；已知规划成本差额 USD 160.05；新建采购单金额 USD 1,432.32。\n\n已知规划成本增加，不代表节省。\n\n规划成本包含保留的采购与制造安排；仅现有库存按既有规划口径作沉没成本处理。规划金额本身不能推导实际收益。\n\n实际财务成本未记录。\n\n取消费用与税费调整等完整费用差额仍未知。",
+      "mode": "case",
+      "citations": [
+        {
+          "field": "plan.costs.baseline.total",
+          "label": "原安排规划成本",
+          "value": "4634.89"
+        },
+        {
+          "field": "plan.costs.planned.total",
+          "label": "方案规划成本",
+          "value": "4794.94"
+        },
+        {
+          "field": "plan.costs.known_delta",
+          "label": "已知规划成本差额",
+          "value": "160.05"
+        },
+        {
+          "field": "plan.costs.new_purchase_value",
+          "label": "新建采购单金额",
+          "value": "1432.32"
+        },
+        {
+          "field": "plan.costs.purchase_increase",
+          "label": "既有采购单金额增量",
+          "value": "0"
+        },
+        {
+          "field": "plan.costs.basis.currency",
+          "label": "币种",
+          "value": "USD"
+        },
+        {
+          "field": "plan.costs.planned.purchase",
+          "label": "方案采购成本",
+          "value": "3464.94"
+        },
+        {
+          "field": "plan.costs.planned.manufacturing",
+          "label": "方案制造成本",
+          "value": "1330.0"
+        },
+        {
+          "field": "plan.costs.baseline.purchase",
+          "label": "原安排采购成本",
+          "value": "3304.89"
+        },
+        {
+          "field": "plan.costs.baseline.manufacturing",
+          "label": "原安排制造成本",
+          "value": "1330.0"
+        }
+      ],
+      "source_mode": "deterministic",
+      "case_context": {
+        "schema_version": 1,
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "state": "succeeded",
+        "version": 1,
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "comparison_id": null,
+        "selection_revision": null,
+        "selection_pending": false,
+        "updated_at": "2026-10-24T10:35:47.923057+00:00",
+        "outcome": "verified"
+      },
+      "evidence_usage": {
+        "source": "case_snapshot",
+        "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+        "coverage": [
+          {
+            "topic": "costs",
+            "status": "available"
+          }
+        ]
+      },
+      "evidence_refs": [
+        {
+          "kind": "case",
+          "id": "ac1135b9b9b984a4e63060a111cac21d",
+          "href": "/api/product/cases/ac1135b9b9b984a4e63060a111cac21d",
+          "label": "Case evidence"
+        }
+      ],
+      "fallback_reason": "model_evidence_mismatch",
+      "type": "final",
+      "activity": []
+    },
+    "model_mechanical_check": {
+      "valid": false,
+      "issues": [
+        "contradictory_cost:planned",
+        "missing_actual_cost_boundary"
+      ]
+    },
+    "final_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "session_log_sha256": "434d196da97804990823fdb5c36705fc8c95d1021c5d2590f7528e0db9c65279",
+    "turn_end_reasons": [
+      {
+        "kind": "completed"
+      }
+    ]
+  },
+  {
+    "id": "paraphrase-3",
+    "timestamp": "2026-10-26T07:08:38Z",
+    "question": "客户已经收货了吗？请用记录区分客户交付、51/51任务验收、ERP回读和实际变更的单据。",
+    "transport": "stream",
+    "elapsed_seconds": 9.535,
+    "http_status": 200,
+    "raw_model_answer": "简短回答：记录里没有显示客户已经收货。\n\n下面按您要求的四点分别说明：\n\n1. 客户交付：未记录。交付覆盖状态为 “not_recorded”，原因是 “customer_delivery_evidence_not_bound”，即客户交付证据在案中未被绑定。记录边界也明确说明：计划可行性、ERP 变更和任务验收，都不等同于实物生产、发货或客户签收。订单方面，有 5 个已确认客户订单（SO-1..5），产品为 “Clean Room Sealed Fixture”，共 50 单位，距交期还有 8 天，但没有任何收货记录。\n\n2. 51/51 任务验收：已通过。执行验收状态为 “passed”，适用规则 51 项，通过 51 项，验收得分 100.0，验收范围是 “product_original_verifier”，严格成功为真。这只说明任务层面的验收通过，不能据此断言客户已收货。\n\n3. ERP 回读：已验证。回读已验证（readback_validated = true），回读核对步骤 7 个，执行状态 “succeed”，结果 “verified”。回读只确认记录的一致性，不证明客户签收。\n\n4. 实际变更的单据：记录了 2 条单据变更（这是单据条目数，不等于 ERP 事务数）：\n   - 取消采购订单 P00006，数量 3，物料 P27637E67E7-LED-CRS-009，供给角色 “finished”，计量单位 Units。\n   - 新建采购订单 new:purchase.order:0006（这是计划标识，尚不是确认的 ERP 订单号），数量 3，物料 P27637E67E7-LED-CRS-009，供给角色 “finished”，计量单位 Units。\n   这两条变更属于采购单取消与新建，不能据此断言货物已发出或客户已签收。\n\n结论：基于现有记录，不能确认客户已收货；客户交付证据在案中未被记录。\n\n案例 ID: ac1135b9b9b984a4e63060a111cac21d",
+    "response": {
+      "answer": "简短回答：记录里没有显示客户已经收货。\n\n下面按您要求的四点分别说明：\n\n1. 客户交付：未记录。交付覆盖状态为 “not_recorded”，原因是 “customer_delivery_evidence_not_bound”，即客户交付证据在案中未被绑定。记录边界也明确说明：计划可行性、ERP 变更和任务验收，都不等同于实物生产、发货或客户签收。订单方面，有 5 个已确认客户订单（SO-1..5），产品为 “Clean Room Sealed Fixture”，共 50 单位，距交期还有 8 天，但没有任何收货记录。\n\n2. 51/51 任务验收：已通过。执行验收状态为 “passed”，适用规则 51 项，通过 51 项，验收得分 100.0，验收范围是 “product_original_verifier”，严格成功为真。这只说明任务层面的验收通过，不能据此断言客户已收货。\n\n3. ERP 回读：已验证。回读已验证（readback_validated = true），回读核对步骤 7 个，执行状态 “succeed”，结果 “verified”。回读只确认记录的一致性，不证明客户签收。\n\n4. 实际变更的单据：记录了 2 条单据变更（这是单据条目数，不等于 ERP 事务数）：\n   - 取消采购订单 P00006，数量 3，物料 P27637E67E7-LED-CRS-009，供给角色 “finished”，计量单位 Units。\n   - 新建采购订单 new:purchase.order:0006（这是计划标识，尚不是确认的 ERP 订单号），数量 3，物料 P27637E67E7-LED-CRS-009，供给角色 “finished”，计量单位 Units。\n   这两条变更属于采购单取消与新建，不能据此断言货物已发出或客户已签收。\n\n结论：基于现有记录，不能确认客户已收货；客户交付证据在案中未被记录。\n\n案例 ID: 本案例",
+      "mode": "harness",
+      "citations": [
+        {
+          "field": "execution.status",
+          "label": "执行状态",
+          "value": "succeeded"
+        },
+        {
+          "field": "execution.readback.verified_steps",
+          "label": "回读核对步骤数",
+          "value": 7
+        },
+        {
+          "field": "execution.verifier.status",
+          "label": "验收状态",
+          "value": "passed"
+        },
+        {
+          "field": "execution.verifier.evaluation_scope",
+          "label": "验收范围",
+          "value": "product_original_verifier"
+        },
+        {
+          "field": "execution.verifier.passed_rule_count",
+          "label": "通过规则数",
+          "value": 51
+        },
+        {
+          "field": "execution.verifier.applicable_rule_count",
+          "label": "适用规则数",
+          "value": 51
+        },
+        {
+          "field": "execution.verifier.score",
+          "label": "验收得分",
+          "value": 100.0
+        },
+        {
+          "field": "execution.writes.0.kind",
+          "label": "动作或单据类型",
+          "value": "cancel_po"
+        },
+        {
+          "field": "execution.writes.0.document",
+          "label": "单据",
+          "value": "P00006"
+        },
+        {
+          "field": "execution.writes.0.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "execution.writes.0.before.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "execution.writes.0.before.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.9.before.uom_id",
+          "label": "单位标识",
+          "value": 1
+        },
+        {
+          "field": "execution.writes.1.kind",
+          "label": "动作或单据类型",
+          "value": "create_po"
+        },
+        {
+          "field": "execution.writes.1.document",
+          "label": "单据",
+          "value": "new:purchase.order:0006"
+        },
+        {
+          "field": "execution.writes.1.quantity",
+          "label": "数量",
+          "value": 3
+        },
+        {
+          "field": "execution.writes.1.after.product_code",
+          "label": "物料",
+          "value": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "field": "execution.writes.1.after.supply_role",
+          "label": "供给角色",
+          "value": "finished"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_label",
+          "label": "计量单位",
+          "value": "Units"
+        },
+        {
+          "field": "plan.costs.lines.10.after.uom_id",
+          "label": "单位标识",
+          "value": 1
+        }
+      ],
+      "source_mode": "model",
+      "case_context": {
+        "schema_version": 1,
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "state": "succeeded",
+        "version": 1,
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "comparison_id": null,
+        "selection_revision": null,
+        "selection_pending": false,
+        "updated_at": "2026-10-24T10:35:47.923057+00:00",
+        "outcome": "verified"
+      },
+      "evidence_usage": {
+        "source": "case_snapshot",
+        "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+        "coverage": [
+          {
+            "topic": "execution",
+            "status": "available",
+            "total": 2,
+            "shown": 2
+          },
+          {
+            "topic": "delivery",
+            "status": "not_recorded",
+            "reason": "customer_delivery_evidence_not_bound"
+          }
+        ]
+      },
+      "evidence_refs": [
+        {
+          "kind": "case",
+          "id": "ac1135b9b9b984a4e63060a111cac21d",
+          "href": "/api/product/cases/ac1135b9b9b984a4e63060a111cac21d",
+          "label": "Case evidence"
+        }
+      ],
+      "type": "final",
+      "activity": []
+    },
+    "model_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "final_mechanical_check": {
+      "valid": true,
+      "issues": []
+    },
+    "session_log_sha256": "8c156d1e57b95efbd0891229777cabc8bae8e3cc1362e7ede6042f4cb70226cd",
+    "turn_end_reasons": [
+      {
+        "kind": "completed"
+      }
+    ]
+  }
+]

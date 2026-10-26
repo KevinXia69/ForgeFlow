@@ -109,10 +109,10 @@ export const reconcileProductCase = (caseId: string) =>
  * Optional case Q&A. The route may not exist yet; callers fall back to a
  * deterministic answer built from the current case fields.
  */
-export const askProductCase = (caseId: string, question: string, conversationId?: string, signal?: AbortSignal) =>
+export const askProductCase = (caseId: string, question: string, conversationId?: string, signal?: AbortSignal, lang?: "zh" | "en") =>
   api<ProductAskAnswer>(`/api/product/cases/${encodeURIComponent(caseId)}/ask`, {
     method: "POST",
-    body: JSON.stringify({ question, conversation_id: conversationId }),
+    body: JSON.stringify({ question, conversation_id: conversationId, ...(lang ? { lang } : {}) }),
     signal,
   });
 
@@ -199,8 +199,8 @@ export const cancelAssistantTurn = (conversationId: string, turnId: string) =>
 export const cancelCaseTurn = (caseId: string, conversationId: string, turnId: string) =>
   api<void>(`/api/product/cases/${encodeURIComponent(caseId)}/ask/cancel`, { method: "POST", body: JSON.stringify({ conversation_id: conversationId, turn_id: turnId }), signal: AbortSignal.timeout(10_000) });
 
-export function streamProductCase(caseId: string, question: string, conversationId: string, onTrace: (activity: ActivityState) => void, signal: AbortSignal | undefined, turn: StreamTurn): Promise<ProductAskAnswer> {
-  return streamReply(`/api/product/cases/${encodeURIComponent(caseId)}/ask/stream`, { question, conversation_id: conversationId }, onTrace, signal, turn);
+export function streamProductCase(caseId: string, question: string, conversationId: string, onTrace: (activity: ActivityState) => void, signal: AbortSignal | undefined, turn: StreamTurn, lang?: "zh" | "en"): Promise<ProductAskAnswer> {
+  return streamReply(`/api/product/cases/${encodeURIComponent(caseId)}/ask/stream`, { question, conversation_id: conversationId, ...(lang ? { lang } : {}) }, onTrace, signal, turn);
 }
 
 export function streamAssistant(question: string, history: AssistantHistoryTurn[] | undefined, conversationId: string, lang: "zh" | "en", onTrace: (activity: ActivityState) => void, signal?: AbortSignal, turn?: StreamTurn): Promise<Answer> {

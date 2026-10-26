@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "source_commit": "c42063a95f6bb7104d1c37e3e0be83d843f3b112",
+  "source_fixture": "web/e2e/fixtures/approved-case.json",
+  "source_sha256": "8a4dad17cddc44f51feaa082d2d679f57a4a7f164d501de0195d7a2688e9576d",
+  "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+  "questions": [
+    "这次供应商取消造成多大缺口？原有采购与制造安排保留了什么？请根据当前案例用中文三句话回答。",
+    "请只根据本案例已批准方案的数量和单据明细回答：被取消的采购有几件？替代采购有几件？哪些原有制造和采购单保持不变？如果记录不足，请明确说缺少什么，不要用成本差额代替数量。",
+    "这个案例现在处于什么状态？涉及多少张订单、多少台产品？请用中文简短回答，并区分已记录的执行状态与实际客户交付。",
+    "计划成本 4,794.94 美元包含什么？比原安排增加多少，是否代表节省？请用中文三句话回答。",
+    "这个案例实际改了哪些单据？51/51 验收证明了什么，能说明已经交付吗？请用中文三句话回答。"
+  ],
+  "expectations": {
+    "cancelled_finished_quantity": 3,
+    "replacement_finished_quantity": 3,
+    "retained_manufacturing_documents": 4,
+    "retained_purchase_documents": 5,
+    "baseline_cost": "4634.89",
+    "planned_cost": "4794.94",
+    "known_delta": "160.05",
+    "new_purchase_value": "1432.32",
+    "applicable_rules": 51,
+    "passed_rules": 51
+  },
+  "forbidden_inferences": [
+    "all 50 units are missing",
+    "retained purchases are sunk cost",
+    "planned cost increase is a saving",
+    "ERP readback proves customer delivery",
+    "document entries equal ERP transactions"
+  ],
+  "purpose": "Semantic regression contract. Expected facts are targets, not fabricated model output."
+}

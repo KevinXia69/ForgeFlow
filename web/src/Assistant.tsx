@@ -7,17 +7,21 @@ import { useWorkspace } from "./workspace";
 import { ActivityPanel } from "./Activity";
 import { DshComposer } from "./dsh/Composer";
 import chatCss from "./dsh/ChatView.module.css";
-import { useI18n, type Translate } from "./i18n";
+import { useI18n, type Translate, type MessageKey } from "./i18n";
 import { isModelConfigComplete, loadModelConfig } from "./modelConfig";
 import type {
   ActivityState,
   CaseAnswerContext,
+  CaseSourceMode,
+  CaseEvidenceUsage,
+  ProductAskCitation,
   Answer,
   AssistantHistoryTurn,
   Passage,
 } from "./types";
 
 import type { AnswerContextNotice } from "./caseAnswerContext";
+import { caseCitationValue, readCaseCitations, readCaseEvidenceUsage, readCaseReferenceLabels, readCaseSourceMode } from "./caseAnswerEvidence";
 
 const MAX_HISTORY_TURNS = 6;
 const MAX_HISTORY_CHARS = 1000;
@@ -31,6 +35,10 @@ export type ChatAnswerMeta = {
   activity?: ActivityState;
   scope?: string;
   caseContext?: CaseAnswerContext;
+  sourceMode?: CaseSourceMode;
+  caseCitations?: ProductAskCitation[];
+  relatedCaseLabels?: string[];
+  evidenceUsage?: CaseEvidenceUsage;
   evidenceRefs?: { kind: string; id: string; href: string; label: string }[];
 };
 
@@ -117,7 +125,15 @@ function AssistantMessage({ message, displayText, contextNotice }: {
   // their timestamps can be a fabricated zero. Keep the reply but hide that time.
   const activity = meta?.activity && meta.mode === "harness" && meta.activity.hideDuration === undefined
     ? { ...meta.activity, hideDuration: true } : meta?.activity;
-  const citations = meta && (meta.mode === "model" || meta.mode === "case" || meta.mode === "harness")
+  const isCase = meta?.mode === "case";
+  const sourceMode = readCaseSourceMode(meta?.sourceMode);
+  const factCitations = isCase ? readCaseCitations(meta?.caseCitations) : [];
+  const caseLabels = isCase ? readCaseReferenceLabels(meta?.relatedCaseLabels ?? meta?.citations) : [];
+  const topicLabels: Record<string, MessageKey> = { status: "caseChat.topicStatus", actions: "caseChat.topicActions", preserved: "caseChat.topicPreserved", costs: "caseChat.topicCosts", execution: "caseChat.topicExecution", delivery: "caseChat.topicDelivery" };
+  const statusLabels: Record<string, MessageKey> = { available: "caseChat.coverageAvailable", not_recorded: "caseChat.coverageMissing", omitted: "caseChat.coverageOmitted", unavailable: "caseChat.coverageUnavailable" };
+  const usage = isCase ? readCaseEvidenceUsage(meta?.evidenceUsage) : undefined;
+  const evidenceRefs = Array.isArray(meta?.evidenceRefs) ? meta.evidenceRefs.filter(ref => ref && ["case", "run"].includes(ref.kind) && /^[A-Za-z0-9_.-]+$/.test(ref.id)) : [];
+  const citations = meta && !isCase && (meta.mode === "model" || meta.mode === "harness")
     ? answerCitations(meta)
     : [];
   const labels = useMemo(
@@ -133,12 +149,34 @@ function AssistantMessage({ message, displayText, contextNotice }: {
       {meta?.warning ? (
         <p className="assistant-fallback">{t("assistant.modelFallback")}</p>
       ) : null}
+      {isCase && <p className="case-answer-context" data-case-answer-source={sourceMode ?? "unknown"}>{t(sourceMode === "model" ? "caseChat.sourceModel" : sourceMode === "deterministic" ? "caseChat.sourceDeterministic" : sourceMode === "local" ? "caseChat.sourceLocal" : "caseChat.sourceUnknown")}</p>}
       {contextNotice && <p className="case-answer-context" data-case-answer-context={contextNotice.kind}>{contextNotice.text}</p>}
       <div className="assistant-markdown">
         <MarkdownText text={displayText ? displayText(message.text) : message.text} streaming={false} labels={labels} />
       </div>
       {meta?.note ? <p className="assistant-fallback">{meta.note}</p> : null}
-      {meta?.evidenceRefs?.filter(ref => ["case", "run"].includes(ref.kind) && /^[A-Za-z0-9_.-]+$/.test(ref.id)).map(ref => <a className="citation" key={`${ref.kind}:${ref.id}`} href={`#${ref.kind}=${encodeURIComponent(ref.id)}${ref.kind === "case" ? "&evidence=1" : ""}`}>{ref.label}</a>)}
+      {isCase && factCitations.length > 0 && <section data-case-fact-citations="true" aria-label={t("caseChat.factCitations")}>
+        <details><summary>{t(sourceMode ? "caseChat.factCitations" : "caseChat.legacyFactCitations")} ({factCitations.length})</summary>
+        {usage?.source === "case_snapshot" && <p className="assistant-fallback">{t("caseChat.snapshotFacts")}</p>}
+        <ul className="answer-citations">
+          {factCitations.map((citation, index) => <li className="citation" key={`${citation.field}:${index}`}>
+            <details><summary>{citation.label}: {caseCitationValue(citation, t("runs.notRecorded"))}</summary>
+              <p>{t("caseChat.evidenceField")}: <code>{citation.field}</code></p>
+              {(citation.snapshot_id || usage?.snapshot_id) && <p>{t("caseChat.evidenceSnapshot")}: <code>{citation.snapshot_id || usage?.snapshot_id}</code></p>}
+            </details>
+          </li>)}
+        </ul></details>
+      </section>}
+      {isCase && Boolean(usage?.coverage?.length) && <details data-case-coverage="true">
+        <summary>{t("caseChat.coverage")}</summary>
+        <ul>{usage?.coverage?.map((item, index) => <li key={index}>{t(topicLabels[item.topic ?? ""] ?? "caseChat.topicOther")}: {t(statusLabels[item.status] ?? "caseChat.coverageUnknown")}{item.shown !== undefined && item.total !== undefined ? ` (${t("caseChat.coverageCounts", { shown: item.shown, total: item.total })})` : ""}</li>)}</ul>
+      </details>}
+      {(evidenceRefs.length > 0 || caseLabels.length > 0) && <section data-related-evidence="true" aria-label={t("caseChat.relatedEvidence")}>
+        <p>{t("caseChat.relatedEvidence")}</p>
+        {isCase && <p className="assistant-fallback">{t("caseChat.relatedEvidenceNote")}</p>}
+        {evidenceRefs.map(ref => <a className="citation" key={`${ref.kind}:${ref.id}`} href={`#${ref.kind}=${encodeURIComponent(ref.id)}${ref.kind === "case" ? "&evidence=1" : ""}`}>{ref.label}</a>)}
+        {caseLabels.length > 0 && <ul className="answer-citations">{caseLabels.map((label, index) => <li className="citation" key={index}>{label}</li>)}</ul>}
+      </section>}
       {citations.length > 0 ? (
         <ul className="answer-citations" aria-label={t("assistant.citationsAria")}>
           {citations.map((citation) => (

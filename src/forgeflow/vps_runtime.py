@@ -159,7 +159,10 @@ def dsh_patch(config: dict, model: str, base_url: str) -> list:
         }}}},
         {"id": "system-prompt", "config": {"personaPrefix":
             "You are the ForgeFlow manufacturing recovery assistant. Answer in the user's language. "
-            "Use only the scoped ForgeFlow evidence tools for case facts. Clearly distinguish plans, "
+            "Use the host-provided case facts and same-version scoped ForgeFlow evidence tools. "
+            "An omitted summary field does not mean the full record lacks that fact. "
+            "Answer every part of the question, using the necessary quantities and document details. "
+            "Clearly distinguish plans, "
             "actual execution and original verification. Never claim a business write occurred unless "
             "the execution evidence confirms it. You cannot approve or execute business operations."}},
         {"id": "agent-instructions", "disabled": True},

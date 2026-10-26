@@ -107,7 +107,15 @@ class StreamJob:
             self._publish({"type": "error", "code": "stream_failed"})
         finally:
             try:
-                self._persist_snapshot()
+                # Breaking a generator after cancellation does not close it.
+                # Close explicitly so runtime leases and budget cancellation
+                # run even while the completed job remains cached for replay.
+                try:
+                    close = getattr(self._producer, "close", None)
+                    if close is not None:
+                        close()
+                finally:
+                    self._persist_snapshot()
             finally:
                 with self._lock:
                     self._done = True

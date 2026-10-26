@@ -26,6 +26,10 @@ PLANNED_COST_CONTEXT = (
     "it is not measured post-execution accounting margin. Customer sales-order "
     "budget caps are not a new-purchase authorization limit. Keep cost_delta "
     "unknown without a measured baseline, and do not infer an increment from action kinds. "
+    "plan.costs.new_purchase_value is the value of newly created purchase orders; "
+    "plan.costs.purchase_increase is only the value increase on existing purchase orders, "
+    "so a zero purchase_increase does not mean zero newly created purchasing. "
+    "A new:purchase.order identifier is a planned identifier, not a confirmed ERP order number. "
 ) + BUDGET_CONTEXT_RULE + IMPACT_CONTEXT_RULE
 
 _IMPACT_WORDS = (
@@ -1118,9 +1122,10 @@ def _readiness_answer(case: dict[str, Any], lang: str) -> dict[str, Any]:
             "mode": MODE, "citations": _citations(case, specs, lang)}
 
 
-def _answer_case_impl(question: str, case: dict[str, Any]) -> dict[str, Any]:
+def _answer_case_impl(question: str, case: dict[str, Any], lang: str | None = None) -> dict[str, Any]:
     """Answer one question from a CaseFile view, without any external call."""
-    lang = _language(question)
+    from .answer_evidence import language
+    lang = language(question, lang)
     if case.get("reason") == "product_selection_conflict" and not case.get("execution"):
         answer = (
             "这次选择与执行器当前版本冲突，未能确认。已有候选记录仍保留，但不能据此批准或继续原选择。"
@@ -1170,6 +1175,14 @@ def _answer_case_impl(question: str, case: dict[str, Any]) -> dict[str, Any]:
                 "citations": _citations(case, _STATE_CITATIONS + (
                     ("revision.version", "Displayed version", "展示版本"),
                     ("revision_request.version", "Requested version", "请求版本")), lang)}
+    from .answer_evidence import grounded_answer, requested_topics, wants_document_detail
+    scoped_cost = (isinstance(_get(case, "plan.costs"), dict) and requested_topics(question) == ["costs"]
+                   and not any(word in question.casefold() for word in ("预算", "毛利", "利润", "budget", "margin", "profit", *_COMPARISON_WORDS))
+                   and (not isinstance(case.get("comparison"), dict) or any(word in question.casefold() for word in (
+                       "原安排", "基线", "差额", "新建采购", "增加", "节省", "三句", "baseline", "difference", "new purchase", "increase", "saving", "three sentences")))
+                   and not chain_intent(question))
+    if wants_document_detail(question) or scoped_cost:
+        return grounded_answer(question, case, lang)
     mixed = _mixed_answer(question, case, lang)
     if mixed is not None:
         return mixed
@@ -1249,11 +1262,13 @@ def _plain_lead(case: dict[str, Any], lang: str) -> str:
     return f"{subject}. {status}"
 
 
-def answer_case(question: str, case: dict[str, Any]) -> dict[str, Any]:
+def answer_case(question: str, case: dict[str, Any], lang: str | None = None) -> dict[str, Any]:
     """Answer one case question; broad questions get a plain-language lead."""
-    reply = _answer_case_impl(question, case)
+    from .answer_evidence import language
+    resolved = language(question, lang)
+    reply = _answer_case_impl(question, case, resolved)
     if _broad_question(question):
-        lead = _plain_lead(case, _language(question))
+        lead = _plain_lead(case, resolved)
         reply["answer"] = lead + "\n\n" + reply["answer"]
     return reply
 

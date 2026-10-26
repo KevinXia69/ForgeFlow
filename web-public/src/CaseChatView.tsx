@@ -11,6 +11,7 @@ import { useI18n } from "./i18n";
 import { localCaseAnswer, caseOutcomeLabel, stateLabel, formatDateTime } from "./caseUi";
 import { answerContextKind, caseAnswerContext, readAnswerContext, type AnswerContextNotice } from "./caseAnswerContext";
 import type { CaseFile } from "./types";
+import { readCaseCitations, readCaseEvidenceUsage, readCaseReferenceLabels, readCaseSourceMode } from "./caseAnswerEvidence";
 
 type Props = {
   caseFile: CaseFile;
@@ -33,7 +34,7 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
     const withoutReference = /(?:^|\n)(?:Reference|Case)\s*[:].*(?:\n|$)/gi;
     const caseLabel = "this case";
     return (text: string) => text.replace(withoutReference, "").replace(protectedOrId, match => match === fullId ? caseLabel : match);
-  }, [caseFile.case_id]);
+  }, [caseFile.case_id, lang]);
 
   const answerContextNotice = useMemo(() => (meta: ChatAnswerMeta | undefined): AnswerContextNotice => {
     const current = caseAnswerContext(caseFile);
@@ -55,41 +56,40 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
 
   const responder = useMemo<ChatResponder>(
     () => async (question, _history, trace, signal, conversation, turn) => {
-      const local = localCaseAnswer(caseFile, question, t, mode === "fixture");
       if (mode !== "fixture") {
         try {
           let response;
           try {
-            response = turn && trace ? await streamProductCase(caseFile.case_id, question, conversation ?? "default", trace, signal, turn) : await askProductCase(caseFile.case_id, question, conversation, signal);
+            response = turn && trace ? await streamProductCase(caseFile.case_id, question, conversation ?? "default", trace, signal, turn, lang) : await askProductCase(caseFile.case_id, question, conversation, signal, lang);
           } catch (failure) {
-            if (turn?.resume || signal?.aborted || !(failure instanceof ApiError && ([404, 405, 501].includes(failure.status) || failure.status === 503 && failure.message === "stream_unavailable"))) throw failure;
-            response = await askProductCase(caseFile.case_id, question, conversation, signal);
+            if (!turn || !trace || turn.resume || signal?.aborted || !(failure instanceof ApiError && ([404, 405, 501].includes(failure.status) || failure.status === 503 && failure.message === "stream_unavailable"))) throw failure;
+            response = await askProductCase(caseFile.case_id, question, conversation, signal, lang);
           }
           const text =
             typeof response.answer === "string" ? response.answer.trim() : "";
           if (response.found !== false && text) {
-            const citations = Array.isArray(response.citations)
-              ? response.citations
-                  .map((citation) => {
-                    if (typeof citation === "string") return citation;
-                    if (citation && typeof citation === "object") {
-                      const label = citation.label ?? citation.field ?? t("caseChat.context");
-                      const value =
-                        citation.value === null || citation.value === undefined
-                          ? ""
-                          : String(citation.value);
-                      return value ? `${label}: ${value}` : label;
-                    }
-                    return "";
-                  })
-                  .filter((citation) => citation.length > 0)
-              : [];
+            const sourceMode = readCaseSourceMode(response.source_mode);
+            const activity = Array.isArray(response.activity) ? {
+              active: false,
+              startedAt: typeof response.elapsed_ms === "number" && Number.isFinite(response.elapsed_ms) ? Date.now() - Math.max(0, response.elapsed_ms) : 0,
+              finishedAt: Date.now(),
+              hideDuration: typeof response.elapsed_ms !== "number" || !Number.isFinite(response.elapsed_ms),
+              steps: response.activity.filter(step => step.kind !== "think" && step.kind !== "reasoning"),
+            } : undefined;
             const reply: ChatReply = {
               text,
               meta: {
                 mode: "case",
                 caseContext: readAnswerContext(response.case_context) ?? undefined,
-                citations: citations.length > 0 ? citations : local.citations,
+                sourceMode,
+                note: response.fallback_reason === "model_unavailable" ? t("caseChat.fallbackUnavailable")
+                  : response.fallback_reason === "model_evidence_mismatch" ? t("caseChat.fallbackMismatch")
+                  : response.fallback_reason === "model_empty" ? t("caseChat.fallbackEmpty") : undefined,
+                caseCitations: readCaseCitations(response.citations),
+                relatedCaseLabels: readCaseReferenceLabels(response.citations),
+                evidenceUsage: readCaseEvidenceUsage(response.evidence_usage),
+                activity,
+                citations: [],
                 passages: [],
                 evidenceRefs: response.evidence_refs,
               },
@@ -97,22 +97,28 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
             return reply;
           }
         } catch (failure) {
-          if (signal?.aborted || turn?.resume) throw failure;
-          // The deterministic case-field answer remains the safe fallback.
+          // A stale local record must never hide revoked access, a missing case,
+          // conflicting turn, or another explicit server rejection.
+          const unsupported = failure instanceof ApiError && [405, 501].includes(failure.status);
+          const networkFailure = failure instanceof TypeError;
+          if (signal?.aborted || turn?.resume || (!unsupported && !networkFailure)) throw failure;
         }
       }
+      const local = localCaseAnswer(caseFile, question, t, mode === "fixture");
       return {
         text: local.text,
         meta: {
           mode: "case",
           caseContext: caseAnswerContext(caseFile),
           note: mode === "fixture" ? t("caseChat.demoNote") : t("caseChat.localNote"),
-          citations: local.citations,
+          sourceMode: "local",
+          relatedCaseLabels: local.citations,
+          citations: [],
           passages: [],
         },
       };
     },
-    [caseFile, mode, t],
+    [caseFile, mode, t, lang],
   );
 
   return (

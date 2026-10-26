@@ -30,6 +30,49 @@ PRIVATE_KEYS = {
 }
 
 
+def snapshot_scope_key(path: Path) -> str:
+    """Stable authorization identity, independent of the immutable content version.
+
+    Legacy snapshots use their filename. New snapshots carry an explicit key so
+    stream replay/cancellation can still find a turn after case content changes.
+    """
+    value = json.loads(path.read_text(encoding="utf-8"))
+    key = value.get("scope_key") if isinstance(value, dict) else None
+    return key if isinstance(key, str) and key else path.stem
+
+
+def _canonical(value: Any) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"),
+                      ensure_ascii=False, allow_nan=False).encode("utf-8")
+
+
+def _publish_json(path: Path, value: dict[str, Any], *, shared: bool, immutable: bool = False) -> None:
+    encoded = _canonical(value)
+    if immutable and path.exists():
+        if path.is_symlink() or path.read_bytes() != encoded:
+            raise ValueError("invalid_evidence_store")
+        return
+    fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=".scope-")
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(encoded)
+            handle.flush()
+            os.fsync(handle.fileno())
+        if shared:
+            os.chmod(temporary, 0o640)
+        if immutable:
+            # Publish without replacing a concurrent writer's immutable inode.
+            try:
+                os.link(temporary, path)
+            except FileExistsError:
+                if path.is_symlink() or path.read_bytes() != encoded:
+                    raise ValueError("invalid_evidence_store") from None
+        else:
+            os.replace(temporary, path)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+
+
 def public_evidence(value: Any) -> Any:
     if isinstance(value, dict):
         projected = {key: public_evidence(item) for key, item in value.items()
@@ -165,7 +208,12 @@ class ReadOnlyEvidenceProjection:
                 "run_details": [self.get_run(row["run_id"], uid) or row for row in runs]}
 
     def publish(self, uid: str) -> Path:
-        """Atomically publish to a host-private path, outside the agent workspace."""
+        """Publish immutable content plus a separately refreshed access guard.
+
+        Content updates do not change authorization identity or overwrite facts
+        held by an in-flight turn. The guard invalidates every older snapshot
+        when the authenticated owner's visible object membership changes.
+        """
         value = self.snapshot(uid)
         shared_root = os.environ.get("FORGEFLOW_ASSISTANT_EVIDENCE_ROOT", "").strip()
         root = Path(shared_root) if shared_root else self.settings.approvals_root / "assistant-evidence"
@@ -178,17 +226,36 @@ class ReadOnlyEvidenceProjection:
             "cases": sorted(case["case_id"] for case in value["cases"]),
             "runs": sorted((run["run_id"], run["access_scope"]) for run in value["runs"]),
         }
-        revision = hashlib.sha256(json.dumps(permissions, sort_keys=True).encode()).hexdigest()[:16]
-        path = root / f"{value['scope_id']}-{revision}.json"
-        fd, temporary = tempfile.mkstemp(dir=root, prefix=".scope-")
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as handle:
-                json.dump(value, handle, ensure_ascii=False, allow_nan=False)
-                handle.flush()
-                os.fsync(handle.fileno())
-            if shared_root:
-                os.chmod(temporary, 0o640)
-            os.replace(temporary, path)
-        finally:
-            Path(temporary).unlink(missing_ok=True)
+        revision = hashlib.sha256(_canonical(permissions)).hexdigest()[:16]
+        scope_key = f"{value['scope_id']}-{revision}"
+        value["scope_key"] = scope_key
+        value["scope_guard"] = f"{value['scope_id']}.scope.json"
+        content_revision = hashlib.sha256(_canonical(value)).hexdigest()
+        value["content_revision"] = content_revision
+        path = root / f"{scope_key}-{content_revision}.json"
+        _publish_json(root / value["scope_guard"], {
+            "schema_version": 1, "scope_id": value["scope_id"], "scope_key": scope_key,
+        }, shared=bool(shared_root))
+        _publish_json(path, value, shared=bool(shared_root), immutable=True)
         return path
+
+    def is_current(self, uid: str, path: Path) -> bool:
+        """Refresh authorization without invalidating an older content version."""
+        try:
+            return snapshot_scope_key(self.publish(uid)) == snapshot_scope_key(path)
+        except (OSError, ValueError, TypeError):
+            return False
+
+    @staticmethod
+    def snapshot_case(path: Path, case_id: str) -> dict[str, Any] | None:
+        """Read prompt facts from the same host-selected snapshot as the tools."""
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("evidence_scope_unavailable")
+        value = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(value, dict) or not isinstance(value.get("cases"), list):
+            raise ValueError("evidence_scope_unavailable")
+        return next((row for row in value["cases"]
+                     if isinstance(row, dict) and row.get("case_id") == case_id), None)
+
+    def scope_key_for(self, uid: str) -> str:
+        return snapshot_scope_key(self.publish(uid))

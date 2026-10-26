@@ -28,6 +28,7 @@ from .dsh_harness import (
     _short,
     _tool_step,
 )
+from .evidence_budget import turn_budget
 
 
 def _session_id_for(key: str) -> str:
@@ -113,8 +114,14 @@ class SdkDshHarness:
         self._harness: Any = None
         self._lock = threading.Lock()
         self._turn_locks: dict[str, threading.Lock] = {}
+        self._active_budgets: dict[int, Any] = {}
 
     supports_turn_cancellation = True
+
+    @property
+    def is_busy(self) -> bool:
+        with self._lock:
+            return any(lock.locked() for lock in self._turn_locks.values())
 
     @classmethod
     def from_env(cls) -> "SdkDshHarness | None":
@@ -258,12 +265,28 @@ class SdkDshHarness:
                 raise DshUnavailable("turn_queue_timeout")
         try:
             check_cancelled()
-            session = self._session(key)
-            prompt = question
-            if hasattr(self, "evidence_path") and PLANNED_COST_CONTEXT not in prompt:
-                prompt = f"ForgeFlow evidence field meaning: {PLANNED_COST_CONTEXT}\n\nQuestion: {question}"
-            check_cancelled()
-            result = session.run(prompt, on_notification=on_notification)
+            try:
+                with turn_budget(getattr(self, "evidence_path", None), timeout=self.timeout,
+                                 check_cancelled=check_cancelled,
+                                 queue_timeout=max(0, deadline - time.monotonic())) as lease:
+                    if lease is not None and stop_event is not None:
+                        with self._lock:
+                            self._active_budgets[id(stop_event)] = lease
+                    try:
+                        session = self._session(key)
+                        prompt = question
+                        if hasattr(self, "evidence_path") and PLANNED_COST_CONTEXT not in prompt:
+                            prompt = f"ForgeFlow evidence field meaning: {PLANNED_COST_CONTEXT}\n\nQuestion: {question}"
+                        check_cancelled()
+                        result = session.run(prompt, on_notification=on_notification)
+                    finally:
+                        if stop_event is not None:
+                            with self._lock:
+                                self._active_budgets.pop(id(stop_event), None)
+            except TimeoutError:
+                raise DshUnavailable("turn_queue_timeout") from None
+            except (OSError, ValueError):
+                raise DshUnavailable("evidence_budget_unavailable") from None
         finally:
             turn_lock.release()
         final, activity, sid = _events_to_view(result.events)
@@ -360,3 +383,7 @@ class SdkDshHarness:
         finally:
             # Also stop queued work when a consumer closes the generator.
             stop.set()
+            with self._lock:
+                lease = self._active_budgets.get(id(stop))
+            if lease is not None:
+                lease.cancel()

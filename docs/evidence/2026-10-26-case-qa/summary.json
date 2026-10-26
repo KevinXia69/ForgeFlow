@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "baseline_commit": "c42063a95f6bb7104d1c37e3e0be83d843f3b112",
+  "completion_scope": "M0–M3 / T01–T16 local implementation and required finite real-task validation; no public rollout",
+  "model": "nvidia/Nemotron-3.5-Super-VL",
+  "provider": "nebius",
+  "backend": "DSH CLI fallback",
+  "sdk_real_end_to_end": false,
+  "requests_total": 38,
+  "source_mode_counts": {
+    "model": 31,
+    "deterministic": 7
+  },
+  "mode_counts_are_accuracy_metrics": false,
+  "batches": [
+    {
+      "id": "round1",
+      "count": 15,
+      "source_mode_counts": {
+        "model": 12,
+        "deterministic": 3
+      },
+      "record_file": "round1.json",
+      "review_file": "manual-review-round1.json",
+      "stage": "Earlier development build; failures are preserved"
+    },
+    {
+      "id": "round2",
+      "count": 15,
+      "source_mode_counts": {
+        "model": 13,
+        "deterministic": 2
+      },
+      "record_file": "round2.json",
+      "review_file": "manual-review-round2.json",
+      "stage": "Earlier development build; failures are preserved"
+    },
+    {
+      "id": "ui",
+      "count": 3,
+      "source_mode_counts": {
+        "model": 3
+      },
+      "record_file": "ui.json",
+      "review_file": "manual-review-ui.json",
+      "stage": "Earlier development build; failures are preserved"
+    },
+    {
+      "id": "final",
+      "count": 5,
+      "source_mode_counts": {
+        "deterministic": 2,
+        "model": 3
+      },
+      "record_file": "final.json",
+      "review_file": "manual-review-final.json",
+      "stage": "Final frozen implementation"
+    }
+  ],
+  "case_snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+  "all_response_snapshot_ids_match": true,
+  "source_case_file_unchanged": true,
+  "fixture_file_unchanged": true,
+  "final_runtime_code_hashes": "final-code-hashes.json",
+  "real_tool_use": {
+    "request_id": "tool-pagination",
+    "successful_calls": 2,
+    "tool": "mcp__forgeflow__get_case",
+    "section": "preserved_documents",
+    "page_items": [
+      5,
+      4
+    ],
+    "total": 9,
+    "same_content_revision": true,
+    "other_requests_with_tool_activity": 0
+  },
+  "local_checks": {
+    "python": {
+      "files": 28,
+      "passed": 435,
+      "failed": 0,
+      "seconds": 23.99,
+      "warning": "Existing Starlette TestClient/httpx deprecation",
+      "log": "local-python-tests.txt"
+    },
+    "node": {
+      "passed": 42,
+      "failed": 0,
+      "log": "local-node-tests.txt"
+    },
+    "builds": {
+      "web": "passed with TypeScript check",
+      "web-public": "passed with TypeScript check",
+      "warning": "Existing Vite large-chunk warning"
+    },
+    "ci_run": false
+  },
+  "browser_checks": "browser-review.json",
+  "final_review": {
+    "file": "manual-review-final.json",
+    "required_final_facts": "Complete and correct in all five final follow-ups, including two explicitly deterministic responses",
+    "citation_values": "All five responses match original scalar field values",
+    "remaining_false_rejections": [
+      "retry-cost",
+      "retry-four-costs"
+    ]
+  },
+  "no_new_erp_writes": true,
+  "formal_reviewer_workspaces_used": false,
+  "public_deployment_performed": false,
+  "limitations": [
+    "Mechanical validation can reject correct natural-language cost explanations; fallback remains explicitly labelled.",
+    "Facts and citations for this finite task set do not prove general model accuracy.",
+    "Some older raw answers contain extra unsupported-by-citation assertions or business wording issues; preserved in the failure ledger.",
+    "Only the CLI fallback was exercised with the real provider; SDK contracts use local mocks.",
+    "Public rollout, real customer delivery, financial benefit and production SLA are outside this validation."
+  ]
+}

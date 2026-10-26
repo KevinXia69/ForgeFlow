@@ -69,26 +69,9 @@ ACTION_KEYS = {"kind", "document", "summary", "quantity", "before", "after"}
 EXECUTION_KEYS = {"status", "readback", "verifier", "writes"}
 CHECK_KEYS = {"code", "label", "status", "actual", "threshold", "source"}
 CHECK_STATUSES = {"pass", "warn", "block", "unknown"}
-ASK_KEYS = {"answer", "mode", "citations", "evidence_refs", "case_context"}
+ASK_KEYS = {"answer", "mode", "citations", "evidence_refs", "case_context",
+            "source_mode", "evidence_usage"}
 CITATION_KEYS = {"field", "label", "value"}
-CITATION_FIELDS = {
-    "order.ref",
-    "order.product",
-    "order.units",
-    "order.customer",
-    "order.due_days",
-    "disruption.vendor",
-    "plan.new_spend",
-    "plan.margin",
-    "plan.actions",
-    "plan.policy_sha256",
-    "execution.status",
-    "execution.verifier.status",
-    "execution.verifier.score",
-    "execution.writes",
-    "state",
-    "reason",
-}
 
 
 def make_settings(root: Path, *, deployment: str = "local") -> Settings:
@@ -158,6 +141,9 @@ def assert_case_answer(body: dict, case: dict) -> None:
         "updated_at": case["updated_at"], "outcome": case["result"]["outcome"],
     }
     assert body["mode"] == "case"
+    assert body["source_mode"] == "deterministic"
+    assert body["evidence_usage"]["source"] == "case_snapshot"
+    assert re.fullmatch(r"[a-f0-9]{64}", body["evidence_usage"]["snapshot_id"])
     assert isinstance(body["answer"], str) and body["answer"]
     assert body["citations"]
     serialized = json.dumps(body, ensure_ascii=False)
@@ -168,29 +154,24 @@ def assert_case_answer(body: dict, case: dict) -> None:
     cited: set[str] = set()
     for citation in body["citations"]:
         assert set(citation) == CITATION_KEYS
-        assert citation["field"] in CITATION_FIELDS
         assert isinstance(citation["label"], str) and citation["label"]
         assert citation["value"] is None or isinstance(
-            citation["value"], (str, int, float)
+            citation["value"], (str, int, float, bool)
         )
-        assert not isinstance(citation["value"], bool)
         assert citation["value"] == citation_value(case, citation["field"])
         cited.add(citation["field"])
     assert cited
 
 
 def citation_value(case: dict, field: str) -> object:
-    if field == "plan.actions":
-        return len(case["plan"]["actions"]) if case.get("plan") else None
-    if field == "execution.writes":
-        execution = case.get("execution") or {}
-        writes = execution.get("writes")
-        return len(writes) if isinstance(writes, list) else None
     current: object = case
     for part in field.split("."):
-        if not isinstance(current, dict):
+        if isinstance(current, dict):
+            current = current.get(part)
+        elif isinstance(current, list) and part.isdecimal() and int(part) < len(current):
+            current = current[int(part)]
+        else:
             return None
-        current = current.get(part)
     return current
 
 
@@ -760,7 +741,6 @@ def test_ask_answers_impact_plan_and_execution_from_the_case_file(
         assert {c["field"] for c in plan_body["citations"]} == {
             "plan.new_spend",
             "plan.margin",
-            "plan.actions",
             "plan.policy_sha256",
         }
 
@@ -788,12 +768,10 @@ def test_ask_answers_impact_plan_and_execution_from_the_case_file(
         assert "passed" in after_body["answer"]
         assert "3 simulated document changes" in after_body["answer"]
         assert "document entries are not ERP transactions" in after_body["answer"]
-        assert {c["field"] for c in after_body["citations"]} == {
-            "execution.status",
-            "execution.verifier.status",
-            "execution.writes",
-            "state",
-        }
+        fields = {c["field"] for c in after_body["citations"]}
+        assert {"execution.status", "execution.verifier.status"} <= fields
+        assert any(field.startswith("execution.writes.0.") for field in fields)
+        assert "execution.writes" not in fields  # A count is not the stored array.
 
         detail = client.get(f"/api/product/cases/{case_id}").json()
         repeated = ask(client, case_id, "Did execution pass the verifier?")
@@ -841,9 +819,8 @@ def test_ask_answers_in_chinese_and_keeps_citation_labels_localized(
         assert "执行结束" in execution_body["answer"]
         assert "成功" in execution_body["answer"]
         assert "通过" in execution_body["answer"]
-        assert {c["label"] for c in execution_body["citations"]} >= {
-            "执行状态", "验收", "单据变更记录数", "案件状态"
-        }
+        assert all(any("\u3400" <= char <= "\u9fff" for char in citation["label"])
+                   for citation in execution_body["citations"])
 
 
 def test_ask_unknown_question_falls_back_to_the_case_state(tmp_path: Path) -> None:

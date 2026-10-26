@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-26T07:17:04.475925+00:00",
+  "review_method": "Independent semantic review of the three UI capture JSON records and exact field-citation values; no hidden reasoning or session events read. PNG layout/screenshots themselves not inspected in this review.",
+  "runtime_public_case": "repository/.runtime/case-qa-validation/runtime-public-case.json",
+  "verified_snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+  "hash_serialization": "json.dumps(runtime_case, sort_keys=True, ensure_ascii=False, default=str), UTF-8, default separators",
+  "summary": {
+    "reviewed": 3,
+    "all_recorded_source_mode_model": true,
+    "all_snapshot_hashes_match": true,
+    "all_citation_values_match": true,
+    "specified_ppt_claims_supported": true,
+    "limits": "Supports the selected quantity, +160.05 planned-cost increase and execution-not-delivery statements, not a generalized accuracy claim or actual profit/delivery result."
+  },
+  "entries": [
+    {
+      "id": "01-数量与保留安排",
+      "source_file": "local-materials/补充材料/中文问答开发验收/新版界面/01-数量与保留安排.json",
+      "source_file_sha256": "bbdafd8d3ef54a9bfc78cfdece5ea2cc876b8af142d30f3ac9091003f4091d4e",
+      "question": "这次供应商取消造成多大缺口？原有采购与制造安排保留了什么？请根据当前案例用中文三句话回答。",
+      "verdict": "core_facts_correct",
+      "raw_and_final_reason": [
+        "取消P00006与替代计划采购均3 Units，物料对应正确；原采购5张及同物料汇总31/22/76、原制造4张合计40均来自fixture。",
+        "明确说“计划以新采购补回”，没有把规划数量当作当前实物已到货或客户已交付。",
+        "附加已知差额160.05真实，但该问的字段引用仅覆盖actions/preserved，没有单列成本差额引用；PPT本页宜只取数量与保留安排。"
+      ],
+      "eligible_ppt_claims": [
+        "供应商取消3件成品采购，替代采购计划为3件。",
+        "保留4张制造单、5张采购单；不同物料数量分别列示。"
+      ],
+      "do_not_infer": [
+        "全部50台曾短缺",
+        "组件数量可以直接加成成品缺口",
+        "3件实物已到货或客户已收货"
+      ],
+      "optional_wording_notes": [
+        "new:purchase.order:0006是计划标识，不是独立核实出的正式ERP单号。"
+      ],
+      "source_mode": "model",
+      "fallback_reason": null,
+      "raw_answer_sha256": "d2e5e9e75ff03ffd17df2d7a7484ba6bbb12bdc9059b543c7d3479bbd2d0e7a1",
+      "final_answer_sha256": "5339314e26aa4f6967643c749f3fdb8961254b39d51f1d3a2fce3209aa205c1d",
+      "response_equals_raw_after_case_id_shortening": true,
+      "snapshot_matches_runtime": true,
+      "citation_count": 77,
+      "citation_value_mismatches": []
+    },
+    {
+      "id": "02-成本解释",
+      "source_file": "local-materials/补充材料/中文问答开发验收/新版界面/02-成本解释.json",
+      "source_file_sha256": "2fe27add626a76404fecc383737b62fba87f0ca34fc20bd52c3368260dcd4663",
+      "question": "计划成本 4,794.94 美元包含什么？比原安排增加多少，是否代表节省？请用中文三句话回答。",
+      "verdict": "selected_cost_claim_correct_with_wording_limits",
+      "raw_and_final_reason": [
+        "规划成本4794.94由采购3464.94与制造1330构成，原安排4634.89，差额增加160.05均正确。",
+        "actual_cost与full_delta未记录，不代表实际节省的结论正确。",
+        "“现有库存视为已沉淀成本”用词不如项目约定的“沉没成本”准确；回答也没有明确展开保留既有单据计入成本这一口径。",
+        "80.0的margin对应80%的规划毛利率，但正文缺少百分号且使用内部英文术语；不得从它推导实际利润或展示为本次新增收益。"
+      ],
+      "eligible_ppt_claims": [
+        "规划成本4,794.94美元，较原安排4,634.89美元增加160.05美元。",
+        "这是规划成本增加，不代表节省；实际财务成本和完整费用差额仍未知。"
+      ],
+      "do_not_infer": [
+        "节省160.05美元",
+        "已确认实际成本只增加160.05美元",
+        "新增利润或实际毛利率80%",
+        "原有采购全属于沉没成本"
+      ],
+      "optional_wording_notes": [
+        "PPT按父任务指定不把80.0 margin作为成果。",
+        "若另写成本口径说明，应使用已有经验证中文资料：保留采购与制造仍计入计划成本，仅现有库存按既有规划口径视为沉没成本。"
+      ],
+      "source_mode": "model",
+      "fallback_reason": null,
+      "raw_answer_sha256": "535ab5e6982ca81b6eeab4df5d66cf70c7adcf1ffee9a0de981db77684c2e1ec",
+      "final_answer_sha256": "7581f0b915f06a8483cd5ab3b7c5fe2dd7d630ba7c573f0df14e75bc3a04ce1d",
+      "response_equals_raw_after_case_id_shortening": true,
+      "snapshot_matches_runtime": true,
+      "citation_count": 10,
+      "citation_value_mismatches": []
+    },
+    {
+      "id": "03-执行与验收",
+      "source_file": "local-materials/补充材料/中文问答开发验收/新版界面/03-执行与验收.json",
+      "source_file_sha256": "108869cdccd2dd03e4161af8e1e70d3cc950882e781919d231c73893d4165afe",
+      "question": "这个案例实际改了哪些单据？51/51 验收证明了什么，能说明已经交付吗？请用中文三句话回答。",
+      "verdict": "core_facts_correct",
+      "raw_and_final_reason": [
+        "两条执行单据动作是取消P00006和新建计划标识new:purchase.order:0006，各3 Units；明确新标识不是正式ERP单号。",
+        "51项适用原始业务规则通过、100分、7步回读均有记录；没有把两条单据变更称为两个ERP事务。",
+        "客户交付证据未记录，不能说明已交付，准确区分了ERP记录与实物生产、发运、签收。"
+      ],
+      "eligible_ppt_claims": [
+        "记录中有2项采购单据变更，原始适用业务规则51/51通过，回读已验证。",
+        "验收与回读不等于实际客户交付；该案例没有绑定客户交付证据。"
+      ],
+      "do_not_infer": [
+        "两个ERP事务",
+        "已经生产完成/发货/客户签收",
+        "51/51代表法律合规认证或通用成功率"
+      ],
+      "optional_wording_notes": [
+        "“51项规则通过”与“7步回读核对”是不同证据项，讲解时分开陈述更清楚。"
+      ],
+      "source_mode": "model",
+      "fallback_reason": null,
+      "raw_answer_sha256": "5b84e09f6ebd111ca14dd2439bc72b1d09c45be1372e094849ff8c830233762d",
+      "final_answer_sha256": "fecd7d254c60483ec3ceff0f8e1961457cf4de01b6ec57f14ca3d96002b548ca",
+      "response_equals_raw_after_case_id_shortening": true,
+      "snapshot_matches_runtime": true,
+      "citation_count": 31,
+      "citation_value_mismatches": []
+    }
+  ]
+}

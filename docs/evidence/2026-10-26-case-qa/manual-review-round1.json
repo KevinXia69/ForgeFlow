@@ -1,0 +1,877 @@
+{
+  "schema_version": 1,
+  "round": 1,
+  "created_at": "2026-10-26T07:03:32.029495+00:00",
+  "review_method": "Independent semantic review by a review agent against the fixed case fields; not a repetition of the mechanical checker and not a human sign-off.",
+  "reviewed_result_fields": [
+    "id",
+    "question",
+    "raw_model_answer",
+    "response"
+  ],
+  "not_read": [
+    "events",
+    "model_mechanical_check",
+    "final_mechanical_check",
+    "session logs",
+    "hidden reasoning"
+  ],
+  "source_results": ".runtime/case-qa-validation/results.json",
+  "source_results_sha256": "07cbd480b8a6e8ba08aff39fb02a4d38415febbaa5981b44a51fea90882cce54",
+  "source_fixture": "web/e2e/fixtures/approved-case.json",
+  "source_fixture_sha256": "8a4dad17cddc44f51feaa082d2d679f57a4a7f164d501de0195d7a2688e9576d",
+  "ground_truth": {
+    "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+    "state": "succeeded",
+    "outcome": "verified",
+    "orders": {
+      "ref": "SO-1..5",
+      "count_from_ref": 5,
+      "units": 50
+    },
+    "actions": [
+      {
+        "document": "P00006",
+        "kind": "cancel_po",
+        "quantity": 3
+      },
+      {
+        "document": "new:purchase.order:0006",
+        "kind": "create_po",
+        "quantity": 3
+      }
+    ],
+    "retained_documents": [
+      {
+        "document": "WH/MO/00001",
+        "product_code": "P27637E67E7-LED-CRS-009",
+        "quantity": "15",
+        "unit": "Units"
+      },
+      {
+        "document": "WH/MO/00002",
+        "product_code": "P27637E67E7-LED-CRS-009",
+        "quantity": "6",
+        "unit": "Units"
+      },
+      {
+        "document": "WH/MO/00003",
+        "product_code": "P27637E67E7-LED-CRS-009",
+        "quantity": "3",
+        "unit": "Units"
+      },
+      {
+        "document": "WH/MO/00004",
+        "product_code": "P27637E67E7-LED-CRS-009",
+        "quantity": "16",
+        "unit": "Units"
+      },
+      {
+        "document": "P00001",
+        "product_code": "P27637E67E7-LED-DCI-121",
+        "quantity": "15",
+        "unit": "Units"
+      },
+      {
+        "document": "P00002",
+        "product_code": "P27637E67E7-LED-DCI-121",
+        "quantity": "16",
+        "unit": "Units"
+      },
+      {
+        "document": "P00003",
+        "product_code": "P27637E67E7-LED-PDS-116",
+        "quantity": "22",
+        "unit": "Units"
+      },
+      {
+        "document": "P00004",
+        "product_code": "P27637E67E7-LED-SCS-124",
+        "quantity": "29",
+        "unit": "Units"
+      },
+      {
+        "document": "P00005",
+        "product_code": "P27637E67E7-LED-SCS-124",
+        "quantity": "47",
+        "unit": "Units"
+      }
+    ],
+    "costs": {
+      "baseline": {
+        "known_subtotal": "4634.89",
+        "manufacturing": "1330.0",
+        "purchase": "3304.89",
+        "total": "4634.89"
+      },
+      "planned": {
+        "known_subtotal": "4794.94",
+        "manufacturing": "1330.0",
+        "purchase": "3464.94",
+        "total": "4794.94"
+      },
+      "new_purchase_value": "1432.32",
+      "purchase_increase": "0",
+      "known_delta": "160.05",
+      "full_delta": null,
+      "actual_cost": null,
+      "missing": [
+        "tax_treatment",
+        "price_validity_dates",
+        "actual_financials",
+        "cancellation_fees"
+      ]
+    },
+    "execution": {
+      "write_document_count": 2,
+      "verified_steps": 7,
+      "verified_at": "2026-10-24T10:35:47.921721+00:00",
+      "passed_rules": 51,
+      "applicable_rules": 51,
+      "evaluation_scope": "product_original_verifier"
+    },
+    "customer_delivery": "No bound customer-delivery field in this fixture; absence of such evidence does not prove no physical shipment occurred."
+  },
+  "summary": {
+    "reviewed": 15,
+    "raw_definite_core_factual_error_ids": [
+      "independent-1-q4"
+    ],
+    "raw_business_explanation_omission_ids": [
+      "independent-2-q4"
+    ],
+    "raw_material_scope_or_cost_ambiguity_ids": [
+      "independent-2-q4",
+      "chain-q1"
+    ],
+    "raw_coverage_state_error_ids": [
+      "paraphrase-3"
+    ],
+    "mechanical_false_positive_ids": [
+      "independent-2-q1",
+      "paraphrase-2"
+    ],
+    "final_definite_core_factual_error_ids": [
+      "independent-1-q4"
+    ],
+    "final_coverage_state_error_ids": [
+      "paraphrase-3"
+    ],
+    "final_citation_binding_error_ids": [
+      "independent-2-q4",
+      "paraphrase-2"
+    ],
+    "final_required_subquestion_omission_ids": [],
+    "final_three_sentence_format_failure_ids": [
+      "independent-2-q1",
+      "independent-2-q4"
+    ],
+    "all_pass": false,
+    "interpretation": "Do not compress this report into model accuracy: text correctness, business ambiguity, coverage-state semantics, citation binding, and requested format are separate axes. Passing mechanical checks or having valid citations cannot cancel an incorrect final claim."
+  },
+  "entries": [
+    {
+      "id": "independent-1-q1",
+      "question": "这次供应商取消造成多大缺口？原有采购与制造安排保留了什么？请根据当前案例用中文三句话回答。",
+      "raw_model": {
+        "verdict": "correct",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "取消 P00006 和替代计划标识 new:purchase.order:0006 均为成品 3 Units；未将组件数量相加为成品缺口。",
+          "保留制造单数量 15/6/3/16 合计 40；组件采购按同物料汇总为 DCI-121 31、PDS-116 22、SCS-124 76，均与原字段一致。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。",
+          "三句话覆盖原问；“缺口”随后接相同数量补齐，没有明确宣称客户已收到货。"
+        ],
+        "format_issues": []
+      },
+      "final_response": {
+        "verdict": "correct",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "取消 P00006 和替代计划标识 new:purchase.order:0006 均为成品 3 Units；未将组件数量相加为成品缺口。",
+          "保留制造单数量 15/6/3/16 合计 40；组件采购按同物料汇总为 DCI-121 31、PDS-116 22、SCS-124 76，均与原字段一致。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。",
+          "三句话覆盖原问；“缺口”随后接相同数量补齐，没有明确宣称客户已收到货。"
+        ],
+        "format_issues": []
+      },
+      "mechanical_rejection_review": {
+        "classification": "not_rejected",
+        "reason": ""
+      },
+      "observed_response_mode": "model",
+      "observed_fallback_reason": null,
+      "raw_model_answer_sha256": "90eee7dcf3504347866da290ad71304fb3ed1a2de88b53fc99f96500372bc9d4",
+      "final_answer_sha256": "76a1cbf64467f94122a67bf7681b8b8598d551f5574a7447e1d435342dab9e6f",
+      "citation_audit": {
+        "total": 77,
+        "all_values_match_original_fields": true,
+        "mismatches": []
+      }
+    },
+    {
+      "id": "independent-1-q2",
+      "question": "请只根据本案例已批准方案的数量和单据明细回答：被取消的采购有几件？替代采购有几件？哪些原有制造和采购单保持不变？如果记录不足，请明确说缺少什么，不要用成本差额代替数量。",
+      "raw_model": {
+        "verdict": "correct",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "取消/替代各 3 Units，4 张 MO 与 5 张 PO 的编号、数量、物料逐一正确。",
+          "“记录完整”限于本问的数量和单据明细，不能理解为案例所有领域均无缺失。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "final_response": {
+        "verdict": "correct",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "取消/替代各 3 Units，4 张 MO 与 5 张 PO 的编号、数量、物料逐一正确。",
+          "“记录完整”限于本问的数量和单据明细，不能理解为案例所有领域均无缺失。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "mechanical_rejection_review": {
+        "classification": "not_rejected",
+        "reason": ""
+      },
+      "observed_response_mode": "model",
+      "observed_fallback_reason": null,
+      "raw_model_answer_sha256": "f5c1c96fd4d5e308155cd74ef305f054ec8c2adbb33d3f9f4b1eab0762d3e51f",
+      "final_answer_sha256": "0e63fd6c4ececba07191391d1d358709c61ee536e4480ac9729e590274380d83",
+      "citation_audit": {
+        "total": 77,
+        "all_values_match_original_fields": true,
+        "mismatches": []
+      }
+    },
+    {
+      "id": "independent-1-q3",
+      "question": "这个案例现在处于什么状态？涉及多少张订单、多少台产品？请用中文简短回答，并区分已记录的执行状态与实际客户交付。",
+      "raw_model": {
+        "verdict": "correct_with_minor_wording",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "succeeded/verified、5 张订单/50 台、7 个回读验证步骤、51/51 与得分 100 均吻合。",
+          "明确区分回读/验收与实际交付；客户交付未记录。",
+          "将产品 Clean Room Sealed Fixture 译为“洁净室密封夹具”不符合本项目 LED 灯具语境，属于术语问题，不影响数量/执行判断。"
+        ],
+        "format_issues": []
+      },
+      "final_response": {
+        "verdict": "correct_with_minor_wording",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "succeeded/verified、5 张订单/50 台、7 个回读验证步骤、51/51 与得分 100 均吻合。",
+          "明确区分回读/验收与实际交付；客户交付未记录。",
+          "将产品 Clean Room Sealed Fixture 译为“洁净室密封夹具”不符合本项目 LED 灯具语境，属于术语问题，不影响数量/执行判断。"
+        ],
+        "format_issues": []
+      },
+      "mechanical_rejection_review": {
+        "classification": "not_rejected",
+        "reason": ""
+      },
+      "observed_response_mode": "model",
+      "observed_fallback_reason": null,
+      "raw_model_answer_sha256": "e1a35fdc6d62eed341a99ab83eea1d8d5d3535c689c28967d73c65d3ac981dc5",
+      "final_answer_sha256": "ea9d86a257429ec7f58eb94a6ece2a6dd4a1b01db9bb2676740c9387da76ab3d",
+      "citation_audit": {
+        "total": 28,
+        "all_values_match_original_fields": true,
+        "mismatches": []
+      }
+    },
+    {
+      "id": "independent-1-q4",
+      "question": "计划成本 4,794.94 美元包含什么？比原安排增加多少，是否代表节省？请用中文三句话回答。",
+      "raw_model": {
+        "verdict": "incorrect",
+        "factual_errors": [
+          {
+            "code": "new_purchase_value_confused_with_existing_purchase_increase",
+            "quote": "新增采购增量为 0",
+            "reason": "0 对应 plan.costs.purchase_increase（既有采购增加额），新建采购金额实际为 1432.32；采购总额相对基线增加 160.05。该表述把不同口径混同，最终回答也原样放行。",
+            "source_fields": [
+              "plan.costs.new_purchase_value",
+              "plan.costs.purchase_increase",
+              "plan.costs.known_delta",
+              "plan.costs.planned.purchase",
+              "plan.costs.baseline.purchase"
+            ],
+            "severity": "material"
+          }
+        ],
+        "omissions": [],
+        "notes": [
+          "总额 4794.94、制造 1330、采购 3464.94、基线 4634.89、差额 160.05 与不代表节省均正确，不能用这些正确值抵消新增采购口径错误。",
+          "“现有库存按沉没成本处理”与项目规划口径一致；它没有把所有已有采购单据称为沉没成本。",
+          "已有 new_purchase_value=1432.32 的正确字段引用仍不足以修复正文错误。"
+        ],
+        "format_issues": []
+      },
+      "final_response": {
+        "verdict": "incorrect",
+        "factual_errors": [
+          {
+            "code": "new_purchase_value_confused_with_existing_purchase_increase",
+            "quote": "新增采购增量为 0",
+            "reason": "0 对应 plan.costs.purchase_increase（既有采购增加额），新建采购金额实际为 1432.32；采购总额相对基线增加 160.05。该表述把不同口径混同，最终回答也原样放行。",
+            "source_fields": [
+              "plan.costs.new_purchase_value",
+              "plan.costs.purchase_increase",
+              "plan.costs.known_delta",
+              "plan.costs.planned.purchase",
+              "plan.costs.baseline.purchase"
+            ],
+            "severity": "material"
+          }
+        ],
+        "omissions": [],
+        "notes": [
+          "总额 4794.94、制造 1330、采购 3464.94、基线 4634.89、差额 160.05 与不代表节省均正确，不能用这些正确值抵消新增采购口径错误。",
+          "“现有库存按沉没成本处理”与项目规划口径一致；它没有把所有已有采购单据称为沉没成本。",
+          "已有 new_purchase_value=1432.32 的正确字段引用仍不足以修复正文错误。"
+        ],
+        "format_issues": []
+      },
+      "mechanical_rejection_review": {
+        "classification": "missed_error",
+        "reason": "响应保留 source_mode=model，未拦截新增采购口径错误。"
+      },
+      "observed_response_mode": "model",
+      "observed_fallback_reason": null,
+      "raw_model_answer_sha256": "c0659e30ed1c1e1294fe210792ffb09502404d82f5c731b79118f8219da19f79",
+      "final_answer_sha256": "eae379658daa491df047d62f6b06633bc24f947c65c852aaf630f080b73b685e",
+      "citation_audit": {
+        "total": 6,
+        "all_values_match_original_fields": true,
+        "mismatches": []
+      }
+    },
+    {
+      "id": "independent-1-q5",
+      "question": "这个案例实际改了哪些单据？51/51 验收证明了什么，能说明已经交付吗？请用中文三句话回答。",
+      "raw_model": {
+        "verdict": "correct_with_presentation_notes",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "两条执行动作及各 3 Units 正确；51/51 限定为原始任务适用规则；回读不推出生产/发运/签收。",
+          "customer_delivery_evidence_not_bound 是内部状态码，用户文案可直接说未绑定客户交付证据。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "final_response": {
+        "verdict": "correct_with_presentation_notes",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "两条执行动作及各 3 Units 正确；51/51 限定为原始任务适用规则；回读不推出生产/发运/签收。",
+          "customer_delivery_evidence_not_bound 是内部状态码，用户文案可直接说未绑定客户交付证据。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "mechanical_rejection_review": {
+        "classification": "not_rejected",
+        "reason": ""
+      },
+      "observed_response_mode": "model",
+      "observed_fallback_reason": null,
+      "raw_model_answer_sha256": "a6eeaf28856b2c0db1f578d85ee60b3b0789b87a2e79a56f5f0bba7356fcb75c",
+      "final_answer_sha256": "56979e8851ac3a21e5051684bda0167ee35711bc6270b399b7ce6d3772489e8b",
+      "citation_audit": {
+        "total": 31,
+        "all_values_match_original_fields": true,
+        "mismatches": []
+      }
+    },
+    {
+      "id": "independent-2-q1",
+      "question": "这次供应商取消造成多大缺口？原有采购与制造安排保留了什么？请根据当前案例用中文三句话回答。",
+      "raw_model": {
+        "verdict": "correct",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "取消 P00006 和替代计划标识 new:purchase.order:0006 均为成品 3 Units；未将组件数量相加为成品缺口。",
+          "保留制造单数量 15/6/3/16 合计 40；组件采购按同物料汇总为 DCI-121 31、PDS-116 22、SCS-124 76，均与原字段一致。",
+          "WH/MO/00001–00004、P00001–P00005 的范围写法在当前完整清单中无歧义，不能因未逐字重复所有编号判为漏答。"
+        ],
+        "format_issues": []
+      },
+      "final_response": {
+        "verdict": "correct",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "确定性最终正文逐条列出正确的 2 项动作与 9 项保留安排，字段事实没有遗漏。"
+        ],
+        "format_issues": [
+          "用户要求三句话，最终改为多段清单，未遵从该格式。"
+        ]
+      },
+      "mechanical_rejection_review": {
+        "classification": "false_positive",
+        "reason": "模型三句话已覆盖数量、保留类型/数量及编号范围；最终却以 model_evidence_mismatch 降级。"
+      },
+      "observed_response_mode": "deterministic",
+      "observed_fallback_reason": "model_evidence_mismatch",
+      "raw_model_answer_sha256": "a8e5bf89f422894f88b414980679a52ae87fef02865127551f25ac79a33b0ebf",
+      "final_answer_sha256": "42790e2e86ed62fa86554bed9fb9c91349263e480904665a277cc515ee6874d9",
+      "citation_audit": {
+        "total": 77,
+        "all_values_match_original_fields": true,
+        "mismatches": []
+      }
+    },
+    {
+      "id": "independent-2-q2",
+      "question": "请只根据本案例已批准方案的数量和单据明细回答：被取消的采购有几件？替代采购有几件？哪些原有制造和采购单保持不变？如果记录不足，请明确说缺少什么，不要用成本差额代替数量。",
+      "raw_model": {
+        "verdict": "correct",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "首级标题“1 张”是单据数，明细明确每张 3 件，不构成把问题数量答成 1 件。",
+          "4 张 MO、5 张 PO 所有数量与物料对应正确；没有用成本代替数量。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "final_response": {
+        "verdict": "correct",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "首级标题“1 张”是单据数，明细明确每张 3 件，不构成把问题数量答成 1 件。",
+          "4 张 MO、5 张 PO 所有数量与物料对应正确；没有用成本代替数量。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "mechanical_rejection_review": {
+        "classification": "not_rejected",
+        "reason": ""
+      },
+      "observed_response_mode": "model",
+      "observed_fallback_reason": null,
+      "raw_model_answer_sha256": "7ace734c92f54687cec4325e550afe21635c54d0d04e088d6b56cfaab96bd511",
+      "final_answer_sha256": "405180218d11dc4673ed87b33459d07e023ecf58e52b5788aabd9bf375b76768",
+      "citation_audit": {
+        "total": 77,
+        "all_values_match_original_fields": true,
+        "mismatches": []
+      }
+    },
+    {
+      "id": "independent-2-q3",
+      "question": "这个案例现在处于什么状态？涉及多少张订单、多少台产品？请用中文简短回答，并区分已记录的执行状态与实际客户交付。",
+      "raw_model": {
+        "verdict": "correct",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "成功/已验证、5 单/50 台、51 项通过、2 条变更及各 3 件正确。",
+          "明确指出单据条目非事务数、非实际生产，客户交付未记录。",
+          "回答略长于“简短”的要求，但必答事实完整。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "final_response": {
+        "verdict": "correct",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "成功/已验证、5 单/50 台、51 项通过、2 条变更及各 3 件正确。",
+          "明确指出单据条目非事务数、非实际生产，客户交付未记录。",
+          "回答略长于“简短”的要求，但必答事实完整。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "mechanical_rejection_review": {
+        "classification": "not_rejected",
+        "reason": ""
+      },
+      "observed_response_mode": "model",
+      "observed_fallback_reason": null,
+      "raw_model_answer_sha256": "7046054459c21a0439fe98efd2fe7e3a3973a9c395dbc30ada722997fb5c030a",
+      "final_answer_sha256": "bad23752c0bcb9665e448991ddf59ab824ff54ea1f2fc0608fd6880653942546",
+      "citation_audit": {
+        "total": 28,
+        "all_values_match_original_fields": true,
+        "mismatches": []
+      }
+    },
+    {
+      "id": "independent-2-q4",
+      "question": "计划成本 4,794.94 美元包含什么？比原安排增加多少，是否代表节省？请用中文三句话回答。",
+      "raw_model": {
+        "verdict": "ambiguous_and_incomplete",
+        "factual_errors": [
+          {
+            "code": "purchase_increase_missing_existing_order_scope",
+            "quote": "采购增量记为 0",
+            "reason": "0 确实存在于 purchase_increase，但它仅指既有采购增加额；不限定“既有”时，会与新建采购 1432.32、采购总额增加 160.05 混淆。此句不是已证实的完整正确成本说明。",
+            "source_fields": [
+              "plan.costs.purchase_increase",
+              "plan.costs.new_purchase_value",
+              "plan.costs.known_delta"
+            ],
+            "severity": "ambiguity"
+          }
+        ],
+        "omissions": [
+          "未说明计划成本包含保留的既有单据，成本口径解释不完整。"
+        ],
+        "notes": [
+          "制造/采购分项、计划/基线总额和增加 160.05 均正确。",
+          "没有说明实际费用仍未知，属于业务边界说明不足；原问没有直接问取消费和税费，未将这两项单独计为漏答。"
+        ],
+        "format_issues": []
+      },
+      "final_response": {
+        "verdict": "correct_text_with_invalid_citation",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "最终明确新建采购 1432.32、既有采购增加额 0，并说明未知实际费用，消除了原有口径歧义。",
+          "毛利、预算、策略等额外内容没有必要，但与当前字段相符。"
+        ],
+        "format_issues": [
+          "最终为多段长回答，未遵从三句话。"
+        ]
+      },
+      "mechanical_rejection_review": {
+        "classification": "not_a_clear_false_positive",
+        "reason": "原回答存在采购增量口径歧义和保留成本解释遗漏；最终补充有实质价值。不能仅因关键金额相等就认定降级误杀。"
+      },
+      "observed_response_mode": "deterministic",
+      "observed_fallback_reason": "model_evidence_mismatch",
+      "raw_model_answer_sha256": "7987fab77e382ec67d17876ca91defbd3b543d096803f976604493652698d61e",
+      "final_answer_sha256": "1b29e6ed43d9ad7a07771889f38336f36ac699e326e4c2a90db276e43402054c",
+      "citation_audit": {
+        "total": 16,
+        "all_values_match_original_fields": false,
+        "mismatches": [
+          {
+            "field": "plan.actions",
+            "cited_value": 2,
+            "actual_field_type": "list",
+            "reason": "该引用路径指向原始数组，2 是 len(array) 派生值，不能冒充字段原值；正文条目数正确不代表引用绑定正确。"
+          }
+        ]
+      }
+    },
+    {
+      "id": "independent-2-q5",
+      "question": "这个案例实际改了哪些单据？51/51 验收证明了什么，能说明已经交付吗？请用中文三句话回答。",
+      "raw_model": {
+        "verdict": "correct_with_presentation_notes",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "两条变更、各 3 件、成品物料和 51/51 任务范围正确；明确不能据此证明交付。",
+          "not_recorded 是内部覆盖状态，建议替换为自然中文“记录未提供”。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "final_response": {
+        "verdict": "correct_with_presentation_notes",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "两条变更、各 3 件、成品物料和 51/51 任务范围正确；明确不能据此证明交付。",
+          "not_recorded 是内部覆盖状态，建议替换为自然中文“记录未提供”。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "mechanical_rejection_review": {
+        "classification": "not_rejected",
+        "reason": ""
+      },
+      "observed_response_mode": "model",
+      "observed_fallback_reason": null,
+      "raw_model_answer_sha256": "66381e25883a1dc23f2aaed72fdfba7f4a9d04c6a3704d06e72d0f2a32003756",
+      "final_answer_sha256": "66381e25883a1dc23f2aaed72fdfba7f4a9d04c6a3704d06e72d0f2a32003756",
+      "citation_audit": {
+        "total": 31,
+        "all_values_match_original_fields": true,
+        "mismatches": []
+      }
+    },
+    {
+      "id": "chain-q1",
+      "question": "这次供应商取消造成多大缺口？原有采购与制造安排保留了什么？请根据当前案例用中文三句话回答。",
+      "raw_model": {
+        "verdict": "correct_with_scope_ambiguity",
+        "factual_errors": [
+          {
+            "code": "unqualified_recovery_scope",
+            "quote": "已补回相同数量，因此没有造成未满足的缺口",
+            "reason": "计划需求覆盖检查通过，且单据执行/回读成功，足以支持“计划/供应承诺口径的数量已补齐”；不足以证明现实收货/库存缺口已归零。应明确口径；本句没有直接声称客户已收货，因此不判作明确交付事实错误。",
+            "source_fields": [
+              "plan.checks.2",
+              "execution.writes",
+              "execution.readback.records"
+            ],
+            "severity": "ambiguity"
+          }
+        ],
+        "omissions": [],
+        "notes": [
+          "取消 P00006 和替代计划标识 new:purchase.order:0006 均为成品 3 Units；未将组件数量相加为成品缺口。",
+          "保留制造单数量 15/6/3/16 合计 40；组件采购按同物料汇总为 DCI-121 31、PDS-116 22、SCS-124 76，均与原字段一致。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "final_response": {
+        "verdict": "correct_with_scope_ambiguity",
+        "factual_errors": [
+          {
+            "code": "unqualified_recovery_scope",
+            "quote": "已补回相同数量，因此没有造成未满足的缺口",
+            "reason": "计划需求覆盖检查通过，且单据执行/回读成功，足以支持“计划/供应承诺口径的数量已补齐”；不足以证明现实收货/库存缺口已归零。应明确口径；本句没有直接声称客户已收货，因此不判作明确交付事实错误。",
+            "source_fields": [
+              "plan.checks.2",
+              "execution.writes",
+              "execution.readback.records"
+            ],
+            "severity": "ambiguity"
+          }
+        ],
+        "omissions": [],
+        "notes": [
+          "取消 P00006 和替代计划标识 new:purchase.order:0006 均为成品 3 Units；未将组件数量相加为成品缺口。",
+          "保留制造单数量 15/6/3/16 合计 40；组件采购按同物料汇总为 DCI-121 31、PDS-116 22、SCS-124 76，均与原字段一致。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "mechanical_rejection_review": {
+        "classification": "not_rejected",
+        "reason": ""
+      },
+      "observed_response_mode": "model",
+      "observed_fallback_reason": null,
+      "raw_model_answer_sha256": "e41c4dae2c5a1e92f86b9507cb72b8525330577789f4d87169ae603f310c6fa8",
+      "final_answer_sha256": "c83888739931a2474f0dcbbaab2f1cd7f9f81d433b1bedb571016f7440729c0b",
+      "citation_audit": {
+        "total": 77,
+        "all_values_match_original_fields": true,
+        "mismatches": []
+      }
+    },
+    {
+      "id": "chain-q2",
+      "question": "请只根据本案例已批准方案的数量和单据明细回答：被取消的采购有几件？替代采购有几件？哪些原有制造和采购单保持不变？如果记录不足，请明确说缺少什么，不要用成本差额代替数量。",
+      "raw_model": {
+        "verdict": "correct",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "同会话追问逐项列出取消/替代 3 Units 和全部 9 张保留单据；每张数量和物料均正确。",
+          "没有因前一问已汇总而漏掉明细。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "final_response": {
+        "verdict": "correct",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "同会话追问逐项列出取消/替代 3 Units 和全部 9 张保留单据；每张数量和物料均正确。",
+          "没有因前一问已汇总而漏掉明细。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "mechanical_rejection_review": {
+        "classification": "not_rejected",
+        "reason": ""
+      },
+      "observed_response_mode": "model",
+      "observed_fallback_reason": null,
+      "raw_model_answer_sha256": "1806b8e93536bf65b2a73b4bcb4d16e0fd8c59a71ede02a3a054faf890a25d19",
+      "final_answer_sha256": "bdd208b82c9bab5335723b1de8bd2453970d75c5420dc1799aaeb5dc0eb4d386",
+      "citation_audit": {
+        "total": 77,
+        "all_values_match_original_fields": true,
+        "mismatches": []
+      }
+    },
+    {
+      "id": "paraphrase-1",
+      "question": "请先列出保留的制造单与采购单明细，再说明取消和替代的成品采购数量。不同物料不要相加。",
+      "raw_model": {
+        "verdict": "correct",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "遵从“先保留清单，再取消/替代”顺序；4 张 MO 和 5 张 PO 的数量、物料、单位完整。",
+          "没有跨物料相加；成品取消与替代均为 3 Units。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "final_response": {
+        "verdict": "correct",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "遵从“先保留清单，再取消/替代”顺序；4 张 MO 和 5 张 PO 的数量、物料、单位完整。",
+          "没有跨物料相加；成品取消与替代均为 3 Units。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "mechanical_rejection_review": {
+        "classification": "not_rejected",
+        "reason": ""
+      },
+      "observed_response_mode": "model",
+      "observed_fallback_reason": null,
+      "raw_model_answer_sha256": "612a8d63f7ceae06dc2379d05566a88ab0a5a221870a334656a29148b67d4d85",
+      "final_answer_sha256": "5470896611c0ac08c3f46f043365b84acc22cc9e942b1a1461fa5d2b2b509a5d",
+      "citation_audit": {
+        "total": 77,
+        "all_values_match_original_fields": true,
+        "mismatches": []
+      }
+    },
+    {
+      "id": "paraphrase-2",
+      "question": "请分别说明原安排成本、计划成本、新建采购金额和已知差额；增加还是节省？取消费用和税费是否已经包含？",
+      "raw_model": {
+        "verdict": "correct",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "四个金额及制造/采购分项全部正确；160.05 为增加，不是节省。",
+          "取消费用字段为 null，missing 包含 cancellation_fees/tax_treatment，税价口径无税务调整；“无法确认已包含”比把未知填 0 正确。",
+          "问题问取消费用，不要求取消采购动作明细，缺少 P00006 动作列表不构成遗漏。"
+        ],
+        "format_issues": []
+      },
+      "final_response": {
+        "verdict": "correct_text_with_invalid_citation",
+        "factual_errors": [],
+        "omissions": [],
+        "notes": [
+          "最终金额和未知费用解释正确，没有关键子问题漏答。",
+          "追加动作列表、毛利、预算、策略是过度展开，与本问所需无关。"
+        ],
+        "format_issues": []
+      },
+      "mechanical_rejection_review": {
+        "classification": "false_positive",
+        "reason": "原回答已逐项回答四金额、增减和取消费/税费未知；以 model_evidence_mismatch 降级没有事实依据，费用词不应被当成取消动作必答项。"
+      },
+      "observed_response_mode": "deterministic",
+      "observed_fallback_reason": "model_evidence_mismatch",
+      "raw_model_answer_sha256": "46390c9c6bdd8295695c6a44482f7ac361252797deab064c86ab519e2c716906",
+      "final_answer_sha256": "e1bfadfa77114a8ab633d714f50cfc4561170fa42da879ff928ace0c1f89ecc7",
+      "citation_audit": {
+        "total": 25,
+        "all_values_match_original_fields": false,
+        "mismatches": [
+          {
+            "field": "plan.actions",
+            "cited_value": 2,
+            "actual_field_type": "list",
+            "reason": "该引用路径指向原始数组，2 是 len(array) 派生值，不能冒充字段原值；正文条目数正确不代表引用绑定正确。"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paraphrase-3",
+      "question": "客户已经收货了吗？请用记录区分客户交付、51/51任务验收、ERP回读和实际变更的单据。",
+      "raw_model": {
+        "verdict": "correct_core_with_coverage_state_error",
+        "factual_errors": [
+          {
+            "code": "not_recorded_mislabeled_as_unavailable",
+            "quote": "处于“不可用”状态",
+            "reason": "最终 evidence_usage.coverage 的 delivery 状态为 not_recorded；当前案例未记录客户交付证据，与工具失败/暂不可读取的 unavailable 不是同一状态。",
+            "source_fields": [
+              "response.evidence_usage.coverage[delivery]",
+              "execution.readback",
+              "execution.verifier"
+            ],
+            "severity": "coverage_semantics"
+          }
+        ],
+        "omissions": [],
+        "notes": [
+          "“不能断言已收货”结论正确；51/51、100 分、7 个回读步骤、回读/收据哈希存在、UTC 验证时间、两条动作和各 3 Units 均与 fixture 相符。",
+          "产品译作洁净室密封灯具符合 LED 语境。",
+          "本案例字段中没有发运/签收记录，不能扩大理解为全 ERP 或现实世界不存在记录。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "final_response": {
+        "verdict": "correct_core_with_coverage_state_error",
+        "factual_errors": [
+          {
+            "code": "not_recorded_mislabeled_as_unavailable",
+            "quote": "处于“不可用”状态",
+            "reason": "最终 evidence_usage.coverage 的 delivery 状态为 not_recorded；当前案例未记录客户交付证据，与工具失败/暂不可读取的 unavailable 不是同一状态。",
+            "source_fields": [
+              "response.evidence_usage.coverage[delivery]",
+              "execution.readback",
+              "execution.verifier"
+            ],
+            "severity": "coverage_semantics"
+          }
+        ],
+        "omissions": [],
+        "notes": [
+          "“不能断言已收货”结论正确；51/51、100 分、7 个回读步骤、回读/收据哈希存在、UTC 验证时间、两条动作和各 3 Units 均与 fixture 相符。",
+          "产品译作洁净室密封灯具符合 LED 语境。",
+          "本案例字段中没有发运/签收记录，不能扩大理解为全 ERP 或现实世界不存在记录。",
+          "new:purchase.order:0006 保留了原标识，未捏造正式 ERP 单号；面向用户建议明确标注其为计划标识。"
+        ],
+        "format_issues": []
+      },
+      "mechanical_rejection_review": {
+        "classification": "missed_coverage_semantics_error",
+        "reason": "核心交付边界正确，但最终保留了未记录/不可用混用。"
+      },
+      "observed_response_mode": "model",
+      "observed_fallback_reason": null,
+      "raw_model_answer_sha256": "9d1937c5d0524679bfbb0d899c4ce74dc253789507fd3db5b76d061ee12bb4ce",
+      "final_answer_sha256": "6e13224b1e26630439a916d43b35240ba9356069ec2b7bf46655c84c770378c9",
+      "citation_audit": {
+        "total": 21,
+        "all_values_match_original_fields": true,
+        "mismatches": []
+      }
+    }
+  ],
+  "snapshot_audit": {
+    "runtime_public_case": ".runtime/case-qa-validation/runtime-public-case.json",
+    "runtime_public_case_file_sha256": "fdb975ac6c2f01a2d1b6118b645512a1985e0f41112a1e75b7ec18f64b6345ef",
+    "hash_serialization": "UTF-8 json.dumps(case, sort_keys=True, ensure_ascii=False, default=str); default separators (comma-space, colon-space), no trailing newline",
+    "independently_recomputed_snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+    "all_response_snapshot_ids_match": true,
+    "runtime_snapshot_exact_hash_verified": true,
+    "note": "Verified against the full runtime public-case export using the recorded fingerprint serialization, independently of model validation. Compact JSON uses a different byte sequence and is not the fingerprint encoding. Original fixture citation values remain unchanged."
+  }
+}

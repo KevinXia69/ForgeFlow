@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-26",
+  "method": "Actual Chrome UI controlled through CUA, separate from Node SSR tests",
+  "environment": "Isolated local workbench; copied historical synthetic case; no executor or runner",
+  "frontend_html_sha256": "67afb0eca2fdef24dbb181fcaab9e7a3c73b06c9bbb0443d3ce547fe040e3c50",
+  "checks": [
+    {
+      "check": "Three Chinese questions entered in workbench",
+      "result": "passed",
+      "evidence": [
+        "ui.json",
+        "ui-quantity.png",
+        "ui-cost.png",
+        "ui-execution.png"
+      ]
+    },
+    {
+      "check": "Expand a field citation",
+      "result": "passed",
+      "observed": "plan.actions.0.quantity = 3 and matching case snapshot hash",
+      "evidence": [
+        "ui-citation.png"
+      ]
+    },
+    {
+      "check": "Coverage disclosure",
+      "result": "passed",
+      "observed": "Actions 2/2; execution 2/2; customer-delivery evidence not recorded"
+    },
+    {
+      "check": "Related case navigation",
+      "result": "passed",
+      "observed": "Opened the same case evidence view, separately from individual field citations"
+    },
+    {
+      "check": "Reload saved history",
+      "result": "passed",
+      "observed": "Same question, answer, model source and version retained"
+    }
+  ],
+  "not_exercised_in_browser": [
+    "Changing the case content between multiple real browser turns; covered by local version tests",
+    "Public workbench login or business execution"
+  ]
+}

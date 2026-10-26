@@ -320,7 +320,16 @@ export type ProductExecution = {
 export type ProductAskCitation = {
   field?: string | null;
   label?: string | null;
-  value?: string | number | boolean | null;
+  value?: unknown;
+  snapshot_id?: string | null;
+};
+
+export type CaseSourceMode = "model" | "deterministic" | "local";
+export type CaseEvidenceCoverage = { topic?: string; status: string; reason?: string; total?: number; shown?: number };
+export type CaseEvidenceUsage = {
+  snapshot_id?: string;
+  source?: string;
+  coverage?: CaseEvidenceCoverage[];
 };
 
 export type CaseAnswerContext = {
@@ -337,6 +346,11 @@ export type CaseAnswerContext = {
 };
 
 export type ProductAskAnswer = {
+  source_mode?: CaseSourceMode | null;
+  fallback_reason?: "model_unavailable" | "model_evidence_mismatch" | "model_empty" | null;
+  evidence_usage?: CaseEvidenceUsage | null;
+  activity?: ActivityStep[];
+  elapsed_ms?: number;
   case_context?: CaseAnswerContext | null;
   answer?: string | null;
   mode?: "case" | string | null;

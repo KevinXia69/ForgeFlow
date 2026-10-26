@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
+import pytest
 
 from forgeflow.api.dsh_harness import (
     MAX_RESULT_SUMMARY,
@@ -225,3 +232,138 @@ def test_scoped_cli_keeps_legacy_cost_semantics_in_one_existing_prompt(tmp_path)
         assert command[-4:-1] == ["--session-id", "retained-session", "--"]
         assert command[-1].count(PLANNED_COST_CONTEXT) == 1
         assert command[-1].endswith(question)
+
+
+def test_queued_cli_cancel_never_spawns_after_budget_lock_is_released(tmp_path, monkeypatch):
+    from forgeflow.api.evidence_budget import EvidenceTurnBudget
+
+    harness = _harness(tmp_path)
+    harness.evidence_path = tmp_path / "snapshot.json"
+    active = EvidenceTurnBudget(harness.evidence_path, timeout=60)
+    active.start()
+    entered, cancelled = threading.Event(), threading.Event()
+    starts = []
+    original_start = EvidenceTurnBudget.start
+
+    def waiting_start(self, **kwargs):
+        entered.set()
+        return original_start(self, **kwargs)
+
+    def forbidden_spawn(*args, **kwargs):
+        starts.append(args)
+        raise RuntimeError("cancelled CLI turn reached Popen")
+
+    monkeypatch.setattr(EvidenceTurnBudget, "start", waiting_start)
+    monkeypatch.setattr("forgeflow.api.dsh_harness.subprocess.Popen", forbidden_spawn)
+
+    def consume():
+        # Use the same capability check as the API's scoped stream adapter.
+        kwargs = {"cancel_event": cancelled} if getattr(harness, "supports_turn_cancellation", False) else {}
+        try:
+            return list(harness.stream("queued question", "chat", **kwargs))
+        except Exception as error:
+            return error
+
+    with ThreadPoolExecutor() as pool:
+        pending = pool.submit(consume)
+        try:
+            assert entered.wait(1)
+            cancelled.set()
+        finally:
+            active.close()
+        result = pending.result(timeout=2)
+    assert starts == [], "cancelled queued work must never start a CLI/model process"
+    assert isinstance(result, DshUnavailable) and result.code == "turn_cancelled"
+
+
+@pytest.mark.parametrize("output", ["quiet", "trace_and_buffered_final"])
+def test_cli_cancel_terminates_and_reaps_child_without_final_output(tmp_path, monkeypatch, output):
+    harness = _harness(tmp_path)
+    cancelled, spawned, traced = threading.Event(), threading.Event(), threading.Event()
+    children, events = [], []
+    script = "import json,time\n"
+    if output == "trace_and_buffered_final":
+        script += "print(json.dumps({'type':'tool_call','callId':'one','tool':'read','input':{}}),flush=True)\n"
+        script += "print(json.dumps({'type':'final','text':'must not be delivered'}),flush=True)\n"
+    script += "time.sleep(60)\n"
+    original_popen = subprocess.Popen
+
+    def spawn(*args, **kwargs):
+        child = original_popen(*args, **kwargs)
+        children.append(child)
+        spawned.set()
+        return child
+
+    monkeypatch.setattr(harness, "_command", lambda *_: [sys.executable, "-u", "-c", script])
+    monkeypatch.setattr(harness, "_env", lambda: dict(os.environ))
+    monkeypatch.setattr("forgeflow.api.dsh_harness.subprocess.Popen", spawn)
+
+    def consume():
+        try:
+            for event in harness.stream("cancel this", "chat", cancel_event=cancelled):
+                events.append(event)
+                traced.set()
+        except DshUnavailable as error:
+            return error.code
+
+    with ThreadPoolExecutor() as pool:
+        pending = pool.submit(consume)
+        try:
+            assert spawned.wait(1)
+            if output != "quiet":
+                assert traced.wait(1)
+            cancelled.set()
+            assert pending.result(timeout=3) == "turn_cancelled"
+        finally:
+            cancelled.set()
+            for child in children:
+                if child.poll() is None:
+                    child.kill()
+                child.wait(timeout=2)
+    assert children[0].poll() is not None
+    assert children[0].stdout.closed
+    assert all(event["type"] != "final" for event in events)
+
+
+def test_cli_checks_cancellation_again_immediately_before_spawn(tmp_path, monkeypatch):
+    harness = _harness(tmp_path)
+    cancelled = threading.Event()
+
+    def environment():
+        cancelled.set()
+        return dict(os.environ)
+
+    monkeypatch.setattr(harness, "_env", environment)
+    monkeypatch.setattr("forgeflow.api.dsh_harness.subprocess.Popen", lambda *_a, **_k: pytest.fail("late cancellation reached Popen"))
+    with pytest.raises(DshUnavailable, match="turn_cancelled"):
+        list(harness.stream("late cancellation", cancel_event=cancelled))
+
+
+def test_cli_silent_timeout_reaps_child(tmp_path, monkeypatch):
+    harness = _harness(tmp_path)
+    harness.timeout = .15
+    children = []
+    original_popen = subprocess.Popen
+
+    def spawn(*args, **kwargs):
+        child = original_popen(*args, **kwargs)
+        children.append(child)
+        return child
+
+    monkeypatch.setattr(harness, "_command", lambda *_: [sys.executable, "-u", "-c", "import time; time.sleep(60)"])
+    monkeypatch.setattr(harness, "_env", lambda: dict(os.environ))
+    monkeypatch.setattr("forgeflow.api.dsh_harness.subprocess.Popen", spawn)
+    with pytest.raises(DshUnavailable, match="dsh_timeout"):
+        list(harness.stream("timeout"))
+    assert children[0].poll() is not None and children[0].stdout.closed
+
+
+def test_cli_stream_emits_one_final_after_fragmented_unicode_output(tmp_path, monkeypatch):
+    harness = _harness(tmp_path)
+    raw = json.dumps({"type": "final", "text": "中文事实"}, ensure_ascii=False).encode()
+    script = f"import os,time; data={raw!r}; os.write(1,data[:30]); time.sleep(.03); os.write(1,data[30:])"
+    monkeypatch.setattr(harness, "_command", lambda *_: [sys.executable, "-u", "-c", script])
+    monkeypatch.setattr(harness, "_env", lambda: dict(os.environ))
+    events = list(harness.stream("normal"))
+    assert len(events) == 1 and events[0]["type"] == "final"
+    assert events[0]["answer"] == "中文事实"

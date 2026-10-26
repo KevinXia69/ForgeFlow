@@ -88,8 +88,9 @@ def test_case_walkthrough_answer_contract() -> None:
     body = _body("case-walkthrough")
     lower = body.lower()
     assert "operational outcome" in lower
-    assert "at most two numbers" in lower
-    assert "one natural next question" in lower
+    assert "include the numbers and document identifiers" in lower
+    assert "ask a follow-up only when necessary" in lower
+    assert "summary omission, failed read, and absent field" in lower
     assert "final reference block" in lower
     assert "参考/ids" in lower
     assert "never claim that approval, apply, readback, or verification happened" in lower

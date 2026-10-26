@@ -13,13 +13,15 @@ from __future__ import annotations
 import json
 import os
 import re
+import selectors
 import subprocess
-import threading
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from .case_qa import PLANNED_COST_CONTEXT
+from .evidence_budget import turn_budget
 
 MAX_ACTIVITY = 40
 MAX_LABEL = 1600
@@ -300,6 +302,8 @@ def _citations(value: str, workspace: Path) -> list[str]:
 
 
 class DshHarness:
+    supports_turn_cancellation = True
+
     def __init__(
         self,
         *,
@@ -455,7 +459,23 @@ class DshHarness:
             raise DshUnavailable("dsh_unavailable") from None
 
 
-    def stream(self, question: str, conversation_id: str | None = None):
+    def stream(self, question: str, conversation_id: str | None = None, *, cancel_event=None):
+        def check_cancelled():
+            if cancel_event is not None and cancel_event.is_set():
+                raise DshUnavailable("turn_cancelled")
+
+        check_cancelled()
+        try:
+            with turn_budget(getattr(self, "evidence_path", None), timeout=self.timeout,
+                             check_cancelled=check_cancelled):
+                check_cancelled()
+                yield from self._stream_impl(question, conversation_id, check_cancelled=check_cancelled)
+        except TimeoutError:
+            raise DshUnavailable("turn_queue_timeout") from None
+        except (OSError, ValueError):
+            raise DshUnavailable("evidence_budget_unavailable") from None
+
+    def _stream_impl(self, question: str, conversation_id: str | None = None, *, check_cancelled=lambda: None):
         """Yield live trace snapshots and a final envelope from DSH.
 
         The DSH JSON events are written incrementally, so the browser sees
@@ -471,13 +491,16 @@ class DshHarness:
         tools: dict[str, dict[str, Any]] = {}
         final = ""
         reply_session = None
+        output_lines = None
         try:
             command = self._command(question, session_id)
+            environment = self._env()
+            check_cancelled()
             try:
                 process = subprocess.Popen(
                     command,
                     cwd=self.workspace,
-                    env=self._env(),
+                    env=environment,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.DEVNULL,
                     text=True,
@@ -486,10 +509,38 @@ class DshHarness:
             except OSError:
                 raise DshUnavailable("dsh_unavailable") from None
             assert process.stdout is not None
-            watchdog = threading.Timer(self.timeout, process.kill)
-            watchdog.daemon = True
-            watchdog.start()
-            for line in process.stdout:
+            deadline = time.monotonic() + self.timeout
+
+            def check_running():
+                check_cancelled()
+                if time.monotonic() >= deadline:
+                    raise DshUnavailable("dsh_timeout")
+
+            def lines():
+                # Poll in the consuming worker itself: blocking readline cannot
+                # notice cancellation while a CLI process produces no output.
+                # No cancellation watcher or permanent waiting thread is needed.
+                pending = b""
+                with selectors.DefaultSelector() as selector:
+                    selector.register(process.stdout, selectors.EVENT_READ)
+                    while True:
+                        check_running()
+                        if not selector.select(min(.1, max(0, deadline - time.monotonic()))):
+                            continue
+                        chunk = os.read(process.stdout.fileno(), 65536)
+                        if not chunk:
+                            if pending:
+                                check_running()
+                                yield pending.decode("utf-8", errors="replace")
+                            return
+                        pending += chunk
+                        while b"\n" in pending:
+                            line, pending = pending.split(b"\n", 1)
+                            check_running()
+                            yield line.decode("utf-8", errors="replace")
+
+            output_lines = lines()
+            for line in output_lines:
                 try:
                     event = json.loads(line)
                 except ValueError:
@@ -515,8 +566,16 @@ class DshHarness:
                         }
                 elif kind in ("text", "final") and isinstance(event.get("text"), str):
                     final = event["text"]
-            watchdog.cancel()
-            code = process.wait(timeout=5)
+            # A process may close stdout and still be running. Keep checking
+            # cancellation and the same deadline while waiting for its exit.
+            while True:
+                check_running()
+                try:
+                    code = process.wait(timeout=min(.1, max(0, deadline - time.monotonic())))
+                    break
+                except subprocess.TimeoutExpired:
+                    continue
+            check_cancelled()
             if code != 0:
                 raise DshUnavailable("dsh_failed")
             if not final:
@@ -534,6 +593,7 @@ class DshHarness:
             if key and reply_session:
                 self._sessions[key] = reply_session
                 self._save_sessions()
+            check_cancelled()
             yield {
                 "type": "final",
                 "found": True,
@@ -546,16 +606,28 @@ class DshHarness:
                 "session_id": reply_session,
             }
         finally:
-            if "watchdog" in locals():
-                watchdog.cancel()
+            if output_lines is not None:
+                output_lines.close()
             if process is not None and process.poll() is None:
                 process.terminate()
                 try:
                     process.wait(timeout=2)
                 except subprocess.TimeoutExpired:
                     process.kill()
+                    process.wait(timeout=2)
+            if process is not None and process.stdout is not None:
+                process.stdout.close()
 
     def ask(self, question: str, conversation_id: str | None = None) -> DshReply:
+        try:
+            with turn_budget(getattr(self, "evidence_path", None), timeout=self.timeout):
+                return self._ask_impl(question, conversation_id)
+        except TimeoutError:
+            raise DshUnavailable("turn_queue_timeout") from None
+        except (OSError, ValueError):
+            raise DshUnavailable("evidence_budget_unavailable") from None
+
+    def _ask_impl(self, question: str, conversation_id: str | None = None) -> DshReply:
         if not self.configured():
             raise DshUnavailable("dsh_not_configured")
         key = conversation_id or ""

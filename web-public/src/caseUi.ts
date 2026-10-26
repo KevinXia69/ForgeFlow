@@ -930,13 +930,13 @@ export function timelineEvents(
         ? t("case.timeline.detailAwait")
         : t("v9.noApprovalRecorded");
 
-  const executionDetail = caseFile.reason === "product_selection_conflict" && !execution ? t("v9.writeScopeUnknown") : execution?.status === "not_started" ? t("v10.unstartedReceipt") : isExecutionUnknown(caseFile) ? t("v9.writeScopeUnknown") : state === "executing" ? t("v9.executionInProgress") : execution
+  const executionDetail = caseFile.reason === "product_selection_conflict" ? t("v9.writeScopeUnknown") : execution?.status === "not_started" ? t("v10.unstartedReceipt") : isExecutionUnknown(caseFile) ? t("v9.writeScopeUnknown") : state === "executing" ? t("v9.executionInProgress") : execution
     ? t("case.timeline.detailExecuted", { count: execution.writes.length })
     : state === "failed" && approvalRecorded(caseFile)
       ? t("v9.executionUnknown")
       : t("case.noExecution");
 
-  const verifiedDetail = caseFile.reason === "product_selection_conflict" && !execution ? t("v9.verificationUnknown") : execution?.status === "not_started" ? t("case.noExecution") : state === "executing" ? t("v9.executionInProgress") : execution
+  const verifiedDetail = caseFile.reason === "product_selection_conflict" ? t("v9.verificationUnknown") : execution?.status === "not_started" ? t("case.noExecution") : state === "executing" ? t("v9.executionInProgress") : execution
     ? t("case.timeline.detailVerifier", { status: summary.label })
     : t("case.noExecution");
 
@@ -1155,6 +1155,55 @@ export type CaseAnswer = {
   local: boolean;
 };
 
+/** Same saved-case facts used by the local fallback; never infer execution from a plan. */
+function localDocumentFacts(caseFile: CaseFile, t: Translate, preserved: boolean): string[] {
+  const plan = caseFile.plan;
+  if (!plan) return [t("caseChat.answerNoPlan")];
+  const costs = plan.costs?.lines;
+  const quantityText = (value: unknown) => typeof value === "number" && Number.isFinite(value) || typeof value === "string" && /^-?\d+(?:\.\d+)?$/.test(value)
+    ? String(value) : t("caseChat.quantityUnknown");
+  const unitText = (value: { uom_label: string | null; uom_id: number } | null | undefined) => value?.uom_label || (Number.isSafeInteger(value?.uom_id) ? t("cost.unit", { id: value!.uom_id }) : t("caseChat.unitUnknown"));
+  const lines: string[] = [];
+  if (preserved) {
+    if (!Array.isArray(costs)) return [t("caseChat.preservedUnknown")];
+    const kept = costs.filter(row => row.action === "keep");
+    lines.push(t("caseChat.preservedDetails"));
+    for (const row of kept.slice(0, 12)) {
+      const value = row.after ?? row.before;
+      lines.push(`- ${row.document}: ${quantityText(value?.quantity)} ${unitText(value)}; ${row.product_code}`);
+    }
+    if (kept.length === 0) lines.push(t("caseChat.preservedNone"));
+    if (kept.length > 12) lines.push(t("caseChat.documentMore", { shown: 12, total: kept.length }));
+  } else {
+    if (!Array.isArray(plan.actions)) return [t("caseChat.actionsUnknown")];
+    lines.push(t("caseChat.quantityDetails"));
+    for (const action of plan.actions.slice(0, 12)) {
+      const cost = costs?.find(row => row.document === action.document);
+      const values = action.kind.startsWith("cancel") ? action.before : action.after;
+      const quantity = typeof action.quantity === "number" && Number.isFinite(action.quantity) ? action.quantity : values?.quantity;
+      const product = typeof values?.product_code === "string" ? values.product_code : cost?.product_code;
+      lines.push(`- ${action.document}: ${actionKindLabel(action.kind, t)}, ${quantityText(quantity)} ${unitText(action.kind.startsWith("cancel") ? cost?.before : cost?.after ?? cost?.before)}${product ? `; ${product}` : ""}`);
+    }
+    if (plan.actions.length === 0) lines.push(t("caseChat.actionsNone"));
+    if (plan.actions.length > 12) lines.push(t("caseChat.documentMore", { shown: 12, total: plan.actions.length }));
+  }
+  lines.push(t("caseChat.documentScopeNote"));
+  return lines;
+}
+
+function localCostFacts(plan: ProductPlan | null, t: Translate): string[] {
+  const costs = plan?.costs;
+  if (!costs) return [t("cost.unrecorded")];
+  const money = (value: string | null | undefined) => costMoney(value, "en", t("v9.unknown")).replace("$", "USD ");
+  return [t("caseChat.planningCostMeaning"),
+    `${t("cost.baseline")}: ${money(costs.baseline?.total)}`,
+    `${t("decision.newSpend")}: ${money(costs.planned?.total)}`,
+    `${t("cost.delta")}: ${money(costs.known_delta)}`,
+    t("cost.additions", { created: money(costs.new_purchase_value), increased: money(costs.purchase_increase), manufacturing: money(costs.new_manufacturing_standard) }),
+    t(costs.known_delta === null || costs.known_delta === undefined ? "caseChat.costNoBaseline" : "cost.deltaNote"),
+    t("caseChat.costKnownOnly")];
+}
+
 /**
  * Deterministic fallback used when ``POST /api/product/cases/{id}/ask`` is not
  * available (or returns nothing useful). It references concrete case fields
@@ -1175,7 +1224,7 @@ export function localCaseAnswer(
   const demoLine = demo ? ` ${t("caseChat.answerDemo")}` : "";
   const candidateLabel = (candidate: Pick<ProductPlan, "objective">) => t(candidate.objective === "preserve_quantities"
     ? "candidate.quantity" : candidate.objective === "min_planned_cost" ? "candidate.cost" : candidate.objective === "preserve_capacity" ? "candidate.capacity" : "candidate.plan");
-  if (caseFile.reason === "product_selection_conflict" && !execution) {
+  if (caseFile.reason === "product_selection_conflict") {
     return { text: `${t("candidate.conflictBody")}${demoLine}`,
       citations: [t("caseChat.citeCase", { id: shortId(caseFile.case_id) })], local: true };
   }
@@ -1192,7 +1241,7 @@ export function localCaseAnswer(
     if (caseFile.decision?.repreparation_pending) refs.push(t("v10.failedVersion", { version: caseFile.revision?.version ?? 1 }));
     return { text: `${t(pending.body)}${demoLine}`, citations: refs, local: true };
   }
-  const docs = plan ? plan.actions.length : 0;
+  const docs = plan && Array.isArray(plan.actions) ? plan.actions.length : t("runs.notRecorded");
   const spend = planNewSpend(plan);
   const verifier = verifierSummaryText(execution, t, caseFile.result);
   const checks = effectiveChecks(caseFile, t);
@@ -1239,14 +1288,18 @@ export function localCaseAnswer(
     || (/why|reason|为什么|为何|理由/.test(q) && /choose|chosen|selected|candidate|selection|选择|候选|取舍/.test(q));
   const budgetIntent = /budget|预算/.test(q);
   const actionIntent = /changes|changed|cancel|create|变更|取消|新建|改了/.test(q);
+  const quantityIntent = /quantity|quantities|how many|shortfall|缺口|几件|数量/.test(q);
+  const preservedIntent = /retain|preserv|kept|unchanged|保留|不变|原有安排/.test(q);
+  const costIntent = /cost|spend|saving|费用|成本|支出|节省/.test(q);
+  const deliveryIntent = /deliver|receipt|shipment|交付|签收|出货/.test(q);
   const budgetOnly = budgetIntent && !comparisonIntent && !choiceIntent && !actionIntent && !executionIntent
     && !/plan|proposal|policy|spend|cost|margin|price|purchase|date|ready|delivery|capacity|risk|计划|方案|政策|支出|成本|毛利|采购|金额|齐货|交期|交付|产能|风险/.test(q);
-  if (compose && (chainIntent || headroomIntent || choiceIntent || actionIntent || budgetIntent || [comparisonIntent, readinessIntent, planIntent, executionIntent].filter(Boolean).length > 1)) {
+  if (compose && (quantityIntent || preservedIntent || costIntent || deliveryIntent || chainIntent || headroomIntent || choiceIntent || actionIntent || budgetIntent || [comparisonIntent, readinessIntent, planIntent, executionIntent].filter(Boolean).length > 1)) {
     const parts: CaseAnswer[] = [];
     const add = (query: string) => parts.push(localCaseAnswer(caseFile, query, t, false, false));
     if (executionIntent) add("execution");
     if (comparisonIntent) add("compare candidates");
-    else if (planIntent && !budgetOnly) add("plan");
+    else if (planIntent && !budgetOnly && !costIntent) add("plan");
     else if (headroomIntent && !budgetOnly) add("impact");
     if (chainIntent) parts.push({ text: impactAnswer(plan, question, t), citations, local: true });
     if (readinessIntent && !budgetOnly) add("per-order ready date");
@@ -1265,10 +1318,16 @@ export function localCaseAnswer(
       const reason = caseFile.approval?.plan_id === plan?.plan_id ? caseFile.approval?.comment?.trim() : null;
       lines.push(reason ? t("decisionFacts.choice") + ": " + reason : t("decisionFacts.choiceUnknown"));
     }
-    if (actionIntent && plan) {
-      lines.push(t("decisionFacts.actionsNote"));
-      for (const action of plan.actions.slice(0, 12)) lines.push("- " + action.document + ": " + action.summary);
-      if (plan.actions.length > 12) lines.push(t("decisionFacts.moreActions"));
+    if (actionIntent || quantityIntent) lines.push(...localDocumentFacts(caseFile, t, false));
+    if (preservedIntent) lines.push(...localDocumentFacts(caseFile, t, true));
+    if (costIntent) lines.push(...localCostFacts(plan, t));
+    if (deliveryIntent) lines.push(t("caseChat.deliveryBoundary"));
+    if (executionIntent) {
+      lines.push(t("caseChat.writeCountBoundary"));
+      if (execution && Array.isArray(execution.writes)) {
+        for (const row of execution.writes.slice(0, 12)) lines.push(`- ${row.document ?? t("runs.notRecorded")}: ${actionKindLabel(row.kind, t)}, ${typeof row.quantity === "number" && Number.isFinite(row.quantity) ? row.quantity : t("caseChat.quantityUnknown")}`);
+        if (execution.writes.length > 12) lines.push(t("caseChat.documentMore", { shown: 12, total: execution.writes.length }));
+      }
     }
     if (lines.length) parts.push({ text: lines.join("\n\n"), citations, local: true });
     return { text: parts.map(part => part.text).join("\n\n") + demoLine,
@@ -1337,7 +1396,7 @@ export function localCaseAnswer(
     }
     return {
       text: `${t("caseChat.answerExecution", {
-        writes: execution.writes.length,
+        writes: Array.isArray(execution.writes) ? execution.writes.length : t("runs.notRecorded"),
         records: execution.readback?.records?.length ?? t("runs.notRecorded"),
         verifier,
         plan: shortId(plan.plan_id),
@@ -1350,7 +1409,7 @@ export function localCaseAnswer(
   if (planIntent) {
     return {
       text: `${plan.objective ? t("candidate.selectedScope", { name: candidateLabel(plan) }) + " \n\n" : ""}${t("caseChat.answerPlan", {
-        actions: actionCountsLabel(plan.actions, t),
+        actions: Array.isArray(plan.actions) ? actionCountsLabel(plan.actions, t) : t("caseChat.actionsUnknown"),
         spend: formatCurrency(spend),
         margin: formatPercent(plan.margin),
         checks: checksLine,

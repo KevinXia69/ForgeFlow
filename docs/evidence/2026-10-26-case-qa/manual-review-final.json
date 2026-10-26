@@ -1,0 +1,431 @@
+{
+  "schema_version": 1,
+  "round": "final_supplement_5",
+  "created_at": "2026-10-26",
+  "review_method": "Independent semantic review by a review agent against fixed/runtime public case fields, including final actual MCP read activity. This is not a human sign-off. Mechanical checker verdicts were not used as factual evidence.",
+  "reviewed_result_fields": [
+    "id",
+    "question",
+    "raw_model_answer",
+    "response.answer",
+    "response.citations",
+    "response.case_context",
+    "response.evidence_usage",
+    "response.source_mode",
+    "response.fallback_reason",
+    "response.activity",
+    "events.type/activity (only activity-state progression; no reasoning)"
+  ],
+  "not_read": [
+    "model_mechanical_check",
+    "final_mechanical_check",
+    "session logs",
+    "hidden reasoning"
+  ],
+  "source_results": ".runtime/case-qa-validation/results-final.json",
+  "source_results_sha256": "171ecabcb1eeda2310cdaab5f46e8ba76fc7de60096d4fa9ce67ac847e66529d",
+  "source_fixture": "web/e2e/fixtures/approved-case.json",
+  "source_fixture_sha256": "8a4dad17cddc44f51feaa082d2d679f57a4a7f164d501de0195d7a2688e9576d",
+  "ground_truth": {
+    "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+    "state": "succeeded",
+    "outcome": "verified",
+    "orders": {
+      "ref": "SO-1..5",
+      "count_from_ref": 5,
+      "units": 50
+    },
+    "actions": [
+      {
+        "document": "P00006",
+        "kind": "cancel_po",
+        "quantity": 3
+      },
+      {
+        "document": "new:purchase.order:0006",
+        "kind": "create_po",
+        "quantity": 3
+      }
+    ],
+    "retained_documents": [
+      {
+        "document": "WH/MO/00001",
+        "product_code": "P27637E67E7-LED-CRS-009",
+        "quantity": "15",
+        "unit": "Units"
+      },
+      {
+        "document": "WH/MO/00002",
+        "product_code": "P27637E67E7-LED-CRS-009",
+        "quantity": "6",
+        "unit": "Units"
+      },
+      {
+        "document": "WH/MO/00003",
+        "product_code": "P27637E67E7-LED-CRS-009",
+        "quantity": "3",
+        "unit": "Units"
+      },
+      {
+        "document": "WH/MO/00004",
+        "product_code": "P27637E67E7-LED-CRS-009",
+        "quantity": "16",
+        "unit": "Units"
+      },
+      {
+        "document": "P00001",
+        "product_code": "P27637E67E7-LED-DCI-121",
+        "quantity": "15",
+        "unit": "Units"
+      },
+      {
+        "document": "P00002",
+        "product_code": "P27637E67E7-LED-DCI-121",
+        "quantity": "16",
+        "unit": "Units"
+      },
+      {
+        "document": "P00003",
+        "product_code": "P27637E67E7-LED-PDS-116",
+        "quantity": "22",
+        "unit": "Units"
+      },
+      {
+        "document": "P00004",
+        "product_code": "P27637E67E7-LED-SCS-124",
+        "quantity": "29",
+        "unit": "Units"
+      },
+      {
+        "document": "P00005",
+        "product_code": "P27637E67E7-LED-SCS-124",
+        "quantity": "47",
+        "unit": "Units"
+      }
+    ],
+    "costs": {
+      "baseline": {
+        "known_subtotal": "4634.89",
+        "manufacturing": "1330.0",
+        "purchase": "3304.89",
+        "total": "4634.89"
+      },
+      "planned": {
+        "known_subtotal": "4794.94",
+        "manufacturing": "1330.0",
+        "purchase": "3464.94",
+        "total": "4794.94"
+      },
+      "new_purchase_value": "1432.32",
+      "purchase_increase": "0",
+      "known_delta": "160.05",
+      "full_delta": null,
+      "actual_cost": null,
+      "missing": [
+        "tax_treatment",
+        "price_validity_dates",
+        "actual_financials",
+        "cancellation_fees"
+      ]
+    },
+    "execution": {
+      "write_document_count": 2,
+      "verified_steps": 7,
+      "verified_at": "2026-10-24T10:35:47.921721+00:00",
+      "passed_rules": 51,
+      "applicable_rules": 51,
+      "evaluation_scope": "product_original_verifier"
+    },
+    "customer_delivery": "No bound customer-delivery field in this fixture; absence of such evidence does not prove no physical shipment occurred."
+  },
+  "snapshot_audit": {
+    "runtime_public_case": ".runtime/case-qa-validation/runtime-public-case.json",
+    "runtime_public_case_file_sha256": "fdb975ac6c2f01a2d1b6118b645512a1985e0f41112a1e75b7ec18f64b6345ef",
+    "hash_serialization": "UTF-8 json.dumps(case, sort_keys=True, ensure_ascii=False, default=str); default separators (comma-space, colon-space), no trailing newline",
+    "independently_recomputed_snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+    "all_response_snapshot_ids_match": true,
+    "runtime_snapshot_exact_hash_verified": true,
+    "note": "Verified against the full runtime public-case export using the recorded fingerprint serialization, independently of model validation. Compact JSON uses a different byte sequence and is not the fingerprint encoding. Original fixture citation values remain unchanged.",
+    "all_38_response_snapshot_ids_match": true
+  },
+  "summary": {
+    "request_count": 5,
+    "source_modes": {
+      "deterministic": 2,
+      "model": 3
+    },
+    "final_requested_core_factual_errors_found": 0,
+    "final_requested_core_fact_omissions_found": 0,
+    "all_final_citation_values_exact": true,
+    "final_citation_count": 146,
+    "conservative_rejections_of_core_correct_raw_cost_answers": 2,
+    "strict_general_accuracy_claim": false,
+    "limitations": [
+      "retry-cost raw answer does not explicitly explain retained-arrangement scope; final deterministic answer does.",
+      "Both costs are labeled deterministic with model_evidence_mismatch despite semantically correct core facts; false rejection remains a limitation, not a reason to hide raw outputs or retry indefinitely.",
+      "A finite set of correct final required facts does not erase first-round model errors, bad citation bindings or second-round wording/citation-coverage limitations.",
+      "Only recorded activity metadata supports MCP call counting. System-prepared case facts, related-case refs, field citations, and repeated cumulative trace events are not additional tool calls."
+    ]
+  },
+  "mcp_pagination_audit": {
+    "actual_completed_calls": 2,
+    "pages": [
+      {
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "version": 1,
+        "content_revision": "bc1650000f204575933dedb6c1a6b7d79ecd446ec4d5a31aaa7f4d7fb637ff6a",
+        "section": "preserved_documents",
+        "offset": 0,
+        "coverage": "available",
+        "total": 9,
+        "complete": false,
+        "next_offset": 5,
+        "tool": "mcp__forgeflow__get_case",
+        "status": "done",
+        "item_count": 5,
+        "source_fields": [
+          "plan.costs.lines.0",
+          "plan.costs.lines.1",
+          "plan.costs.lines.2",
+          "plan.costs.lines.3",
+          "plan.costs.lines.4"
+        ],
+        "all_values_match_source_fields": true
+      },
+      {
+        "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+        "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+        "version": 1,
+        "content_revision": "bc1650000f204575933dedb6c1a6b7d79ecd446ec4d5a31aaa7f4d7fb637ff6a",
+        "section": "preserved_documents",
+        "offset": 5,
+        "coverage": "available",
+        "total": 9,
+        "complete": true,
+        "next_offset": null,
+        "tool": "mcp__forgeflow__get_case",
+        "status": "done",
+        "item_count": 4,
+        "source_fields": [
+          "plan.costs.lines.5",
+          "plan.costs.lines.6",
+          "plan.costs.lines.7",
+          "plan.costs.lines.8"
+        ],
+        "all_values_match_source_fields": true
+      }
+    ],
+    "total_unique_source_records": 9,
+    "all_records_exact": true,
+    "same_case_plan_version_and_content_revision": true,
+    "coverage_complete": true,
+    "raw_final_nine_document_rows_manually_checked": true,
+    "same_material_totals_checked": {
+      "P27637E67E7-LED-CRS-009": 40,
+      "P27637E67E7-LED-DCI-121": 31,
+      "P27637E67E7-LED-PDS-116": 22,
+      "P27637E67E7-LED-SCS-124": 76
+    },
+    "counting_note": "The final tool activity list has two successful get_case steps. Repeated cumulative trace updates do not add calls. Page offsets 0/5 and sizes 5/4 corroborate limit 5, but the final activity does not separately expose the raw tool argument object.",
+    "hash_note": "MCP content_revision fingerprints the scoped evidence envelope; case evidence_usage.snapshot_id fingerprints the runtime public case. These are different scopes and need not be equal."
+  },
+  "all_batches_accounting": {
+    "real_requests": 38,
+    "breakdown": {
+      "round1": 15,
+      "round2": 15,
+      "ui": 3,
+      "final": 5
+    },
+    "raw_answers_present": 38,
+    "source_modes": {
+      "model": 31,
+      "deterministic": 7
+    },
+    "same_case_snapshot_count": 38,
+    "actual_final_activity_tool_steps": 2,
+    "only_request_with_actual_tool_activity": "tool-pagination",
+    "mode_count_is_not_correctness_rate": true
+  },
+  "entries": [
+    {
+      "id": "retry-cost",
+      "question": "计划成本 4,794.94 美元包含什么？比原安排增加多少，是否代表节省？请用中文三句话回答。",
+      "raw_model": {
+        "verdict": "core_facts_correct; retained-arrangement scope is not explicit",
+        "core_factual_errors": [],
+        "requested_core_fact_omissions": [],
+        "notes": [
+          "采购 3464.94 与制造 1330.0 正确组成规划总额 4794.94；基线 4634.89、增加 160.05、不是节省和实际成本未知均正确。",
+          "原文满足三句话；没有显式说明保留安排仍计入规划成本。这是解释详尽度限制，不是将保留采购称为沉没成本或四金额混淆。"
+        ]
+      },
+      "final_response": {
+        "verdict": "requested_core_facts_correct_and_complete",
+        "core_factual_errors": [],
+        "requested_core_fact_omissions": [],
+        "notes": [
+          "确定性回答明确基线、规划总额、差额、新建采购四种金额；补充保留采购与制造仍计入、仅库存按规划口径作沉没成本。",
+          "实际成本与包含取消费/税费的完整差额未知；正差额不是节省。最终为三句话，覆盖原问题。"
+        ]
+      },
+      "mechanical_rejection_review": "core-correct answer conservatively rejected; no independently established numeric contradiction; original explanation is less explicit about retained scope",
+      "observed_source_mode": "deterministic",
+      "observed_fallback_reason": "model_evidence_mismatch",
+      "raw_answer_sha256": "f43b86323545be4bbe309346da485300be60070bb68559f38cd2d5c3b7bb11c5",
+      "final_answer_sha256": "88fff3af2c69b9f08f115d52694a306b11b6a575ddb867218a620c90cc07a3b9",
+      "citation_audit": {
+        "count": 10,
+        "all_field_paths_resolve": true,
+        "all_values_exactly_match_runtime_public_case": true,
+        "mismatches": []
+      },
+      "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+      "snapshot_matches": true,
+      "case_context_matches": true
+    },
+    {
+      "id": "retry-four-costs",
+      "question": "请分别说明原安排成本、计划成本、新建采购金额和已知差额；增加还是节省？取消费用和税费是否已经包含？",
+      "raw_model": {
+        "verdict": "correct_and_complete_for_requested_facts",
+        "core_factual_errors": [],
+        "requested_core_fact_omissions": [],
+        "notes": [
+          "四金额含义均准确；既有采购单增量 0 明确限定于既有采购，不与新建采购金额 1432.32 混同。",
+          "采购差额 160.05 与制造不变均可由原值核对；未记录费用和实际成本被保留为未知，没有把未记录当作零。"
+        ]
+      },
+      "final_response": {
+        "verdict": "requested_core_facts_correct_and_complete",
+        "core_factual_errors": [],
+        "requested_core_fact_omissions": [],
+        "notes": [
+          "确定性回答四金额、增加而非节省、取消费与税费等完整差额未知全部正确；没有缺失用户要求的子问题。"
+        ]
+      },
+      "mechanical_rejection_review": "semantic false rejection: requested core facts in raw answer are correct; exact internal label/regex cause was not independently inspected",
+      "observed_source_mode": "deterministic",
+      "observed_fallback_reason": "model_evidence_mismatch",
+      "raw_answer_sha256": "2e2f44379f91149c4f5588285e7f2ee7f041cf12a31776f7ec26b75d5ea3a5a8",
+      "final_answer_sha256": "7ffadec28c821497d560901ab68238ce86ef14d35f9e6bd8a02596b52ed42aa5",
+      "citation_audit": {
+        "count": 10,
+        "all_field_paths_resolve": true,
+        "all_values_exactly_match_runtime_public_case": true,
+        "mismatches": []
+      },
+      "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+      "snapshot_matches": true,
+      "case_context_matches": true
+    },
+    {
+      "id": "retry-delivery",
+      "question": "客户已经收货了吗？请用记录区分客户交付、51/51任务验收、ERP回读和实际变更的单据。",
+      "raw_model": {
+        "verdict": "correct_and_complete_for_requested_facts",
+        "core_factual_errors": [],
+        "requested_core_fact_omissions": [],
+        "notes": [
+          "客户交付未绑定不被说成物理上未发生；51/51 原始任务验收、7 个回读步骤及两条单据变更相互区分。",
+          "P00006 取消 3 Units、替代计划标识新建 3 Units 正确，明确计划标识不是正式 ERP 单号；条目数不等于事务数。"
+        ]
+      },
+      "final_response": {
+        "verdict": "requested_core_facts_correct_and_complete",
+        "core_factual_errors": [],
+        "requested_core_fact_omissions": [],
+        "notes": [
+          "最终模型正文与原文仅有案例 ID 展示缩短；必答状态、数量和交付边界均正确，没有第二轮 succeeded/succeed 字面差异或未锚定的“还有 8 天”。"
+        ]
+      },
+      "mechanical_rejection_review": "not_rejected",
+      "observed_source_mode": "model",
+      "observed_fallback_reason": null,
+      "raw_answer_sha256": "289249015bb93ae3ab49068951681eb60bf723b93a9c24570e8eef586128ab96",
+      "final_answer_sha256": "02d7e5e45ef0a77d77a80b58ee7c2fd775ef3a45692b7284978ea10ab8ded546",
+      "citation_audit": {
+        "count": 21,
+        "all_field_paths_resolve": true,
+        "all_values_exactly_match_runtime_public_case": true,
+        "mismatches": []
+      },
+      "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+      "snapshot_matches": true,
+      "case_context_matches": true
+    },
+    {
+      "id": "english-status",
+      "question": "What is the recorded case status? How many sales orders and product units are involved? Distinguish recorded execution from actual customer delivery. Please answer in English.",
+      "raw_model": {
+        "verdict": "correct_and_complete_for_requested_facts",
+        "core_factual_errors": [],
+        "requested_core_fact_omissions": [],
+        "notes": [
+          "按要求使用英文；succeeded/verified、SO-1..5 的 5 张确认销售订单、50 台产品正确。",
+          "历史执行、51 条规则、7 步回读与物理生产/发货/客户收货明确分开，未记录交付不等于已交付。",
+          "额外列出计划标识 new:purchase.order:0006；未明确补充“不是正式 ERP 单号”，但未将它冒称为实际正式编号。"
+        ]
+      },
+      "final_response": {
+        "verdict": "requested_core_facts_correct_and_complete",
+        "core_factual_errors": [],
+        "requested_core_fact_omissions": [],
+        "notes": [
+          "最终模型正文除案例 ID 展示缩短外保持原文；核心状态、订单量和交付边界完整，额外两条单据变更数量各 3 也与字段一致。"
+        ]
+      },
+      "mechanical_rejection_review": "not_rejected",
+      "observed_source_mode": "model",
+      "observed_fallback_reason": null,
+      "raw_answer_sha256": "b8d93f8dfa45f3350a87f460e0abd5d1c726e607957faddb8b36d70dc9a1acc9",
+      "final_answer_sha256": "a55b94a3b68a56a159053c51286b48293a1a1de4b1befa60e8f805cf43e4bfea",
+      "citation_audit": {
+        "count": 28,
+        "all_field_paths_resolve": true,
+        "all_values_exactly_match_runtime_public_case": true,
+        "mismatches": []
+      },
+      "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+      "snapshot_matches": true,
+      "case_context_matches": true
+    },
+    {
+      "id": "tool-pagination",
+      "question": "请使用 get_case 只读工具的 preserved_documents 区域分页核对，每页 limit=5，取得全部保留单据，列出编号与各自数量。再说明取消采购与替代采购各几件。不同物料不要相加。",
+      "raw_model": {
+        "verdict": "correct_and_complete_for_requested_facts",
+        "core_factual_errors": [],
+        "requested_core_fact_omissions": [],
+        "notes": [
+          "真实活动确认两页读取 5+4=9 张保留单据；原文九行编号、物料、数量和 Units 均与原字段一致。",
+          "同物料合计 40、31、22、76 正确，未跨物料相加；取消与替代各 1 张、各 3 Units，明确区分张数和数量以及替代计划标识。",
+          "“9 件保留单据”指单据数量，表格和分组已经消除物料量歧义；更自然的量词是“张”。"
+        ]
+      },
+      "final_response": {
+        "verdict": "requested_core_facts_correct_and_complete",
+        "core_factual_errors": [],
+        "requested_core_fact_omissions": [],
+        "notes": [
+          "最终保留全部九张单据、同物料分组及取消/替代 3 Units；模型没有用系统预加载冒称两次工具调用，实际活动支持分页陈述。"
+        ]
+      },
+      "mechanical_rejection_review": "not_rejected",
+      "observed_source_mode": "model",
+      "observed_fallback_reason": null,
+      "raw_answer_sha256": "0230406a8ac27fa08488606a7ffcc6a6ebdb5ddfee9f9783d189113f77d21527",
+      "final_answer_sha256": "a8c24532b4e286b326935c555ce20a4cd822b36928b0a3dcfd04fb3ab6339a15",
+      "citation_audit": {
+        "count": 77,
+        "all_field_paths_resolve": true,
+        "all_values_exactly_match_runtime_public_case": true,
+        "mismatches": []
+      },
+      "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+      "snapshot_matches": true,
+      "case_context_matches": true
+    }
+  ]
+}
