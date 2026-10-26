@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "evidence_kind": "operator_capture_allowlist_not_independent_attestation",
+  "source_commit": "67bcb95e3253c245dab49478458aab652af8d05a",
+  "operation_id": "89858f106b176f716a1ec39714db3cdb",
+  "phase": "committed",
+  "old_generation": "7926e6b3083343b190f00d25ea6f1d25",
+  "new_generation": "ef0c853c80fa45d4bd461dc361c95663",
+  "last_error": null,
+  "old_image": "forgeflow-odoo:vps3",
+  "new_image": "sha256:df04859629c5fade4094698b5547984d7dcd674eabce5348365fd597fcc891fa",
+  "new_config_allow_initialize": false,
+  "case_root_preserved": true,
+  "source_capture_sha256": "1e855dba1414fab01c0a5d0ec75964324f38c901f2247459347b2cd30920e264"
+}

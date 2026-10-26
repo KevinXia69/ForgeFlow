@@ -1,0 +1,61 @@
+# Build from repository root. Source and base image are pinned; PG remains major 18.
+FROM odoo:19@sha256:076562619a5de059388d9f9d90545cb575799c04869610a5b20839893819b41b
+USER root
+
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates gnupg curl python3-venv \
+    && install -d /usr/share/postgresql-common/pgdg \
+    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+       -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+    && echo 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' \
+       > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update && apt-get install -y --no-install-recommends postgresql-18 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Inherit Odoo's distro packages without modifying/uninstalling apt-owned files.
+# Setup and checks use this python3; /usr/bin/odoo keeps its original interpreter.
+RUN python3 -m venv --system-site-packages /opt/forgeflow/client-venv \
+    && /opt/forgeflow/client-venv/bin/python -m pip install --no-cache-dir \
+       'uv==0.8.22' 'odoo-client-lib==2.0.0'
+COPY deploy/vps/odoo-uv.py /opt/forgeflow/bin/uv
+RUN chmod 755 /opt/forgeflow/bin/uv
+ENV PATH="/opt/forgeflow/bin:/opt/forgeflow/client-venv/bin:${PATH}"
+# Match the verifier's optional upgrade, including its original fallback: 2.0.2
+# is not currently published on PyPI. Never invent that release or alter tests.
+# Restore setup 2.0.0 after confirming the selected Python is the isolated client.
+RUN (uv pip install --system -q 'odoo-client-lib==2.0.2' 2>/dev/null || true) \
+    && python3 -c "import importlib.metadata, sys; assert sys.prefix == '/opt/forgeflow/client-venv'; assert importlib.metadata.version('odoo-client-lib') in {'2.0.0', '2.0.2'}" \
+    && uv pip install --system -q 'odoo-client-lib==2.0.0'
+
+RUN curl -fsSL --retry 3 \
+      https://codeload.github.com/agentic-labs/erp-bench/tar.gz/ceba3880af555129b5278e056a0c20f2fb5a0ba9 \
+      -o /tmp/erp-bench.tar.gz \
+    && echo 'dff7d2c1b6fde0c4cc690110f0edee395cfd434d9d762375b7a609b4d922563d  /tmp/erp-bench.tar.gz' | sha256sum -c - \
+    && mkdir -p /opt/forgeflow/upstream /setup /tests /workspace \
+    && tar -xzf /tmp/erp-bench.tar.gz -C /tmp \
+    && cp /tmp/erp-bench-ceba3880af555129b5278e056a0c20f2fb5a0ba9/tasks/2280_medium_repair_plan_medium/environment/* /opt/forgeflow/upstream/ \
+    && cp /tmp/erp-bench-ceba3880af555129b5278e056a0c20f2fb5a0ba9/tasks/2280_medium_repair_plan_medium/tests/* /tests/ \
+    && cp /opt/forgeflow/upstream/setup_scenario.py /opt/forgeflow/upstream/scenario_data.json /setup/ \
+    && cp /opt/forgeflow/upstream/entrypoint.sh /usr/local/bin/harbor-entrypoint.sh \
+    && cp /etc/postgresql/18/main/postgresql.conf /opt/forgeflow/postgresql.conf \
+    && ln -s /var/lib/forgeflow/logs /logs \
+    && rm -rf /tmp/erp-bench.tar.gz /tmp/erp-bench-ceba3880af555129b5278e056a0c20f2fb5a0ba9
+
+COPY src/forgeflow/__init__.py src/forgeflow/runner.py src/forgeflow/budget.py \
+     src/forgeflow/config.py src/forgeflow/permission_entrypoint.py \
+     src/forgeflow/permission_profile.py src/forgeflow/permissions.py src/forgeflow/runtime.py \
+     /opt/forgeflow/derivation-code/forgeflow/
+COPY deploy/vps/odoo-project.py /opt/forgeflow/odoo-project.py
+RUN /opt/forgeflow/client-venv/bin/python -m pip install --no-cache-dir 'python-dotenv==1.2.4' \
+    && python3 /opt/forgeflow/odoo-project.py
+COPY src/forgeflow/vps_odoo.py /opt/forgeflow/vps_odoo.py
+RUN python3 /opt/forgeflow/vps_odoo.py --patch-entrypoint /usr/local/bin/harbor-entrypoint.sh \
+    && bash -n /usr/local/bin/harbor-entrypoint.sh \
+    && chmod 755 /tests/test.sh
+LABEL org.forgeflow.runtime="persistent-odoo-v1" \
+      org.forgeflow.task="2280_medium_repair_plan_medium" \
+      org.forgeflow.data-profile="planning-metadata-v1" \
+      org.forgeflow.upstream="ceba3880af555129b5278e056a0c20f2fb5a0ba9"
+WORKDIR /workspace
+STOPSIGNAL SIGTERM
+ENTRYPOINT ["python3", "/opt/forgeflow/vps_odoo.py"]
+CMD []

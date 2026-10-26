@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "evidence_kind": "operator_capture_allowlist_not_independent_attestation",
+  "source_commit": "67bcb95e3253c245dab49478458aab652af8d05a",
+  "checked_at": "2026-10-25T17:37:40.342307+00:00",
+  "archive_sha256": "dc9b1a8d19ae57dbc4ef1f2c60edc1bd9ccca920c008e9afc58c439ee16a9282",
+  "archive_size_bytes": 13353018,
+  "new_reward_sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c",
+  "new_reward_score": 100.0,
+  "new_reward_passed": true,
+  "database_restore": {
+    "application_workflow": "not_tested",
+    "binding_verified": true,
+    "business_row_counts": {
+      "mrp_production": 4,
+      "purchase_order": 7,
+      "sale_order": 5,
+      "stock_picking": 12
+    },
+    "database_restored": true,
+    "generation": "7926e6b3083343b190f00d25ea6f1d25",
+    "instance_id": "ff-062044222dce4b59a9358ef6784162b5",
+    "odoo_image_id": "sha256:df04859629c5fade4094698b5547984d7dcd674eabce5348365fd597fcc891fa"
+  },
+  "application_restore": {
+    "api_key_authenticated": true,
+    "application_recovered": true,
+    "attachment_files_verified": 1,
+    "attachment_rows": 1,
+    "container_stopped": true,
+    "evaluation_valid": true,
+    "forgeflow_api_and_approval_service_restarted": false,
+    "original_verifier_passed": true,
+    "public_ports": false,
+    "score": 100.0,
+    "strict_success": true,
+    "verification_attempt": "3303af0617d84779b2495e149ffe94c8",
+    "verifier_status": "passed"
+  },
+  "matching_immutable_state_files": {
+    "api_key": true,
+    "master_password": true,
+    "planning-metadata-v1.diff": true,
+    "repair_seeded_records.json": true,
+    "state.json": true,
+    "task-derivation.json": true
+  },
+  "live_runtime_active_state_during_restore": "inactive",
+  "live_odoo_running_during_restore": "false",
+  "full_public_api_disaster_recovery": "not_tested",
+  "source_capture_sha256": "73e83cb818095fd17514092090edfa918f53df3ebf487a49b2deb892b7df2460"
+}

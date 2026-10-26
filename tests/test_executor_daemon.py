@@ -374,6 +374,28 @@ def test_socket_mode_and_chown_flag(serve) -> None:
         assert server.chown_skipped is True
 
 
+def test_strict_socket_rejects_permission_fallback(workspace, handlers, monkeypatch):
+    monkeypatch.setattr(daemon.os, "geteuid", lambda: 0)
+    monkeypatch.setattr(daemon.os, "chown", lambda *_: (_ for _ in ()).throw(PermissionError()))
+    monkeypatch.setattr(daemon.pwd, "getpwuid", lambda _uid: type("User", (), {"pw_gid": 10001})())
+    server = ExecutorServer(Path("strict.sock"), handlers[0], agent_uid=10001,
+                            strict_ownership=True)
+    with pytest.raises(RuntimeError, match="socket_ownership_required"):
+        server.bind()
+    assert not Path("strict.sock").exists()
+    assert not list(Path(".").glob(".executor.*.sock"))
+
+
+@pytest.mark.parametrize("uid,peer", [(10001, None), (0, allow_peer)])
+def test_strict_socket_requires_root_and_real_peer_gate(workspace, handlers, monkeypatch, uid, peer):
+    monkeypatch.setattr(daemon.os, "geteuid", lambda: uid)
+    server = ExecutorServer(Path("strict.sock"), handlers[0], agent_uid=10001,
+                            strict_ownership=True, peer_check=peer)
+    with pytest.raises(RuntimeError, match="executor_requires_root_peer_gate"):
+        server.bind()
+    assert not Path("strict.sock").exists()
+
+
 def test_bind_creates_parent_directory_0711(serve) -> None:
     server = serve(socket_name="run/s.sock", ready_name="run/r.json")
     assert stat.S_IMODE(os.stat("run").st_mode) == 0o711

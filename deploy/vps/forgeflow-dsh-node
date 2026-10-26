@@ -1,0 +1,3 @@
+#!/bin/sh
+# Only these two values cross sudo. The target reconstructs its environment.
+exec /usr/bin/sudo -n -u forgeflow-dsh --preserve-env=NEBIUS_API_KEY,FORGEFLOW_ASSISTANT_EVIDENCE /opt/forgeflow/.venv/bin/python -I -m forgeflow.dsh_launcher "$@"

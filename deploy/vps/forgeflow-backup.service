@@ -1,0 +1,19 @@
+[Unit]
+Description=ForgeFlow manual maintenance backup (writers must already be stopped)
+After=docker.service
+Requires=docker.service
+ConditionPathExists=/etc/forgeflow/backup.json
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+WorkingDirectory=/opt/forgeflow
+ExecStart=/opt/forgeflow/.venv/bin/python /opt/forgeflow/scripts/vps_backup.py create --config /etc/forgeflow/backup.json
+TimeoutStartSec=2h
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+# This unit deliberately has no Install target and never stops/starts writers.
+# Invoke manually after the documented maintenance stop/drain procedure.

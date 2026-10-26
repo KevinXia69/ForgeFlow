@@ -7,9 +7,11 @@ Error messages name the offending variable but never echo its value, and
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Mapping
+from urllib.parse import urlsplit
 
 DATA_ROOT_KEY = "FORGEFLOW_DATA_ROOT"
 SECRET_KEY = "FORGEFLOW_SESSION_SECRET"
@@ -22,12 +24,30 @@ KNOWLEDGE_KEY = "FORGEFLOW_KNOWLEDGE_ROOT"
 DEPLOYMENT_KEY = "FORGEFLOW_DEPLOYMENT"
 PUBLIC_RUNS_KEY = "FORGEFLOW_PUBLIC_RUNS"
 TRUSTED_HOSTS_KEY = "FORGEFLOW_TRUSTED_HOSTS"
+GENERATION_KEY = "FORGEFLOW_ENVIRONMENT_GENERATION"
 COOKIE_NAME = "ff_session"
 DEFAULT_TTL_SEC = 12 * 60 * 60
 MIN_SECRET_LEN = 32
 MIN_INVITE_LEN = 16
 _TRUE = ("1", "true", "yes", "on")
 _FALSE = ("0", "false", "no", "off")
+
+
+def _host_parts(value: str) -> tuple[str, int | None] | None:
+    """Parse an exact DNS/IP authority, never a URL or wildcard."""
+    if not isinstance(value, str) or not value or any(char.isspace() for char in value):
+        return None
+    try:
+        parsed = urlsplit("//" + value)
+        hostname, port = parsed.hostname, parsed.port
+    except ValueError:
+        return None
+    if (not hostname or parsed.username is not None or parsed.password is not None
+            or parsed.path or parsed.query or parsed.fragment
+            or (port is not None and not 0 < port < 65536)
+            or re.fullmatch(r"[a-zA-Z0-9.:-]+", hostname) is None):
+        return None
+    return hostname.lower(), port
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,6 +66,7 @@ class Settings:
     deployment: str = "local"
     public_runs: tuple[str, ...] = ()
     trusted_hosts: tuple[str, ...] = ()
+    environment_generation: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "data_root", Path(self.data_root).expanduser())
@@ -71,14 +92,41 @@ class Settings:
             raise ValueError(f"{TTL_KEY} must be a positive integer.")
         if not isinstance(self.secure_cookie, bool):
             raise ValueError(f"{SECURE_KEY} must be a boolean.")
-        if self.deployment not in ("local", "review"):
-            raise ValueError(f"{DEPLOYMENT_KEY} must be local or review.")
+        if self.deployment not in ("local", "review", "hosted"):
+            raise ValueError(f"{DEPLOYMENT_KEY} must be local, review, or hosted.")
         if not all(
             isinstance(entry, str) and entry and entry != "**" for entry in self.public_runs
         ):
             raise ValueError(f"{PUBLIC_RUNS_KEY} entries must be run ids or '*'.")
         if not isinstance(self.cookie_name, str) or not self.cookie_name:
             raise ValueError("cookie_name must not be empty.")
+        if self.deployment == "hosted":
+            if (not isinstance(self.environment_generation, str)
+                    or re.fullmatch(r"[0-9a-f]{32}", self.environment_generation) is None):
+                raise ValueError(f"{GENERATION_KEY} must identify the initialized ERP generation.")
+            if not self.secure_cookie:
+                raise ValueError(f"{SECURE_KEY} must be true for hosted deployments.")
+            if not self.trusted_hosts or not all(
+                _host_parts(host) is not None for host in self.trusted_hosts
+            ):
+                raise ValueError(f"{TRUSTED_HOSTS_KEY} must contain exact hostnames or IPs.")
+            if "*" in self.public_runs:
+                raise ValueError(f"{PUBLIC_RUNS_KEY} cannot expose all runs when hosted.")
+            object.__setattr__(self, "trusted_hosts", tuple(
+                host.lower() for host in self.trusted_hosts
+            ))
+
+    def allows_host(self, authority: str) -> bool:
+        """Match a request Host against explicit hosts, including IPv4/IPv6."""
+        candidate = _host_parts(authority)
+        if candidate is None:
+            return False
+        for host in self.trusted_hosts:
+            allowed = _host_parts(host)
+            if allowed is not None and candidate[0] == allowed[0]:
+                if allowed[1] is None or candidate[1] == allowed[1]:
+                    return True
+        return False
 
 
 def create_settings(env: Mapping[str, str] | None = None) -> Settings:
@@ -127,4 +175,5 @@ def create_settings(env: Mapping[str, str] | None = None) -> Settings:
         deployment=source.get(DEPLOYMENT_KEY, "").strip() or "local",
         public_runs=public_runs,
         trusted_hosts=trusted_hosts,
+        environment_generation=source.get(GENERATION_KEY, "").strip() or None,
     )

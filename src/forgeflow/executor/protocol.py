@@ -229,7 +229,7 @@ def validate_envelope(body: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         if not isinstance(body["approval"], dict):
             raise ProtocolError("invalid_field", 400)
     if op == "product" and (not isinstance(body.get("action"), str)
-                            or body.get("action") not in {"prepare", "decide", "authorize", "status", "cancel_unstarted"}
+                            or body.get("action") not in {"prepare", "decide", "authorize", "status", "cancel_unstarted", "artifact"}
                             or not isinstance(body.get("payload"), dict)):
         raise ProtocolError("invalid_field", 400)
     return op, {

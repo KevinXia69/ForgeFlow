@@ -1,0 +1,5 @@
+Defaults:forgeflow-api env_reset
+Defaults:forgeflow-api env_keep += "NEBIUS_API_KEY FORGEFLOW_ASSISTANT_EVIDENCE"
+# Permission is only to enter the assistant UID through a validating launcher.
+# No root Runas target, arbitrary Python invocation or Docker command is allowed.
+forgeflow-api ALL=(forgeflow-dsh) NOPASSWD: /opt/forgeflow/.venv/bin/python -I -m forgeflow.dsh_launcher *

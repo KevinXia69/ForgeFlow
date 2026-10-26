@@ -1,0 +1,144 @@
+{
+  "schema": 1,
+  "evidence_kind": "operator_capture_allowlist_not_independent_attestation",
+  "date": "2026-10-25",
+  "source_commit": "67bcb95e3253c245dab49478458aab652af8d05a",
+  "image_id": "sha256:df04859629c5fade4094698b5547984d7dcd674eabce5348365fd597fcc891fa",
+  "data_profile": "planning-metadata-v1",
+  "data_kind": "synthetic_erp_bench_non_production",
+  "case_synthetic_marker": true,
+  "execution_kind": "live_odoo_sandbox",
+  "scenario": "A",
+  "generation": "7926e6b3083343b190f00d25ea6f1d25",
+  "case_id": "a9d6a8a859cfc24d888ed540a732fece",
+  "plan_id": "b316ecd33b63e3e597e476a570eddc4f701612d6760568cb5ac4f9ee3d9b1aab",
+  "pre_approval": {
+    "recorded_at": "2026-10-25T17:21:10.790161+00:00",
+    "state": "awaiting_approval",
+    "approval": null,
+    "execution": null,
+    "snapshot_sha256": "92ac6402f32fa875e45922ccc4477cc66004b009fea6af7426d52aefd88b2097",
+    "policy_sha256": "8ecf376eb9024e2f8181839d3aa27e03f66d2402ccd3a21869d5bb2823609ce9",
+    "independently_measured_erp_zero_writes": null,
+    "measurement_limit": "No separate ERP before/after snapshot was retained around the preparation-only interval."
+  },
+  "approval": {
+    "issued_at": "2026-10-25T17:21:44.317250+00:00",
+    "expires_at": "2026-10-25T17:36:44.317250+00:00",
+    "plan_id": "b316ecd33b63e3e597e476a570eddc4f701612d6760568cb5ac4f9ee3d9b1aab",
+    "phase": "dispatching"
+  },
+  "execution": {
+    "recorded_at": "2026-10-25T17:26:19.940950+00:00",
+    "state": "succeeded",
+    "status": "succeeded",
+    "writes": [
+      {
+        "document": "P00006",
+        "kind": "cancel_po",
+        "quantity": 3
+      },
+      {
+        "document": "new:purchase.order:0006",
+        "kind": "create_po",
+        "quantity": 3
+      }
+    ],
+    "readback": {
+      "execution_validated": true,
+      "receipt_sha256": "47df872d9ac39640cb1048cf1f5221683bacc1cf3af102f21c2476c1dc09a8ca",
+      "readback_sha256": "cd52391eabfd4eb8065c66995ffe0750f3c8a8b508a68d373e0c13251a48916d",
+      "verified_at": "2026-10-25T17:26:19.909937+00:00",
+      "verified_steps": 7,
+      "records": [
+        {
+          "document": "P00006",
+          "kind": "cancel_po",
+          "quantity": 3,
+          "state": "reflected"
+        },
+        {
+          "document": "new:purchase.order:0006",
+          "kind": "create_po",
+          "quantity": 3,
+          "state": "reflected"
+        }
+      ]
+    },
+    "verifier": {
+      "status": "passed",
+      "evaluation_scope": "product_original_verifier",
+      "evaluation_valid": true,
+      "strict_success": true,
+      "original_passed": true,
+      "verification_attempt": "731fa8cc61084ed1a241d98a29f63884",
+      "reward_sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c",
+      "score": 100.0,
+      "applicable_rule_count": 51,
+      "passed_rule_count": 51,
+      "failed_rule_count": 0
+    },
+    "result": {
+      "execution_status": "succeeded",
+      "readback_status": "passed",
+      "verifier_status": "passed",
+      "strict_success": true,
+      "evaluation_valid": true,
+      "verified": true,
+      "simulation_passed": false,
+      "verification_source": "original_verifier",
+      "outcome": "verified"
+    }
+  },
+  "audit": [
+    {
+      "action": "preparation_requested",
+      "at": "2026-10-25T17:20:49.843449+00:00",
+      "plan_id": null,
+      "status": null
+    },
+    {
+      "action": "prepared",
+      "at": "2026-10-25T17:21:10.790218+00:00",
+      "plan_id": "b316ecd33b63e3e597e476a570eddc4f701612d6760568cb5ac4f9ee3d9b1aab",
+      "status": null
+    },
+    {
+      "action": "approval_requested",
+      "at": "2026-10-25T17:21:44.317317+00:00",
+      "plan_id": "b316ecd33b63e3e597e476a570eddc4f701612d6760568cb5ac4f9ee3d9b1aab",
+      "status": null
+    },
+    {
+      "action": "approved",
+      "at": "2026-10-25T17:21:44.457219+00:00",
+      "plan_id": "b316ecd33b63e3e597e476a570eddc4f701612d6760568cb5ac4f9ee3d9b1aab",
+      "status": null
+    },
+    {
+      "action": "execution_observed",
+      "at": "2026-10-25T17:26:19.941009+00:00",
+      "plan_id": "b316ecd33b63e3e597e476a570eddc4f701612d6760568cb5ac4f9ee3d9b1aab",
+      "status": "succeeded"
+    }
+  ],
+  "duplicate_approval": {
+    "assertions_passed": true,
+    "assertions": [
+      "HTTP 200",
+      "same execution receipt",
+      "same ERP counts before and after duplicate request"
+    ],
+    "counts_before_duplicate": {
+      "purchase_order": 7,
+      "purchase_order_line": 7,
+      "mrp_production": 4,
+      "stock_picking": 12
+    },
+    "separate_after_duplicate_count_snapshot": null,
+    "measurement_limit": "The driver retained the comparison result and pre-duplicate counts, not a second standalone count snapshot."
+  },
+  "owner_isolation_assertions_passed": true,
+  "source_capture_sha256": "92e02ef49c3d5c81f5f87f3784718ff7d07f4cd02397e0cedab37aa39ee60f41",
+  "operator_driver_sha256": "9759560126e54508cae4fffafd6dcb34117180b202600d865c4e51b71100c01e"
+}

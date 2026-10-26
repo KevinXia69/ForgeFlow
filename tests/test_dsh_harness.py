@@ -77,7 +77,7 @@ def test_ask_resumes_saved_session_and_uses_read_only_env(tmp_path: Path, monkey
     monkeypatch.setattr("forgeflow.api.dsh_harness.subprocess.run", fake_run)
     reply = harness.ask("follow up", "conv-1")
     assert reply.answer == "resumed"
-    assert calls[0][-3:] == ["--session-id", "session-abc", "follow up"]
+    assert calls[0][-4:] == ["--session-id", "session-abc", "--", "follow up"]
 
 
 def test_missing_final_is_a_stable_error(tmp_path: Path):
@@ -222,6 +222,6 @@ def test_scoped_cli_keeps_legacy_cost_semantics_in_one_existing_prompt(tmp_path)
         _case_question_prompt({"plan": {"new_spend": 133394.07}}, "Explain this amount."),
     ):
         command = harness._command(question, "retained-session")
-        assert command[-3:-1] == ["--session-id", "retained-session"]
+        assert command[-4:-1] == ["--session-id", "retained-session", "--"]
         assert command[-1].count(PLANNED_COST_CONTEXT) == 1
         assert command[-1].endswith(question)

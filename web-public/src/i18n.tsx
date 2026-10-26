@@ -12,6 +12,14 @@ export type Lang = "en";
 // The public workbench is English-only. Every user-visible string lives in
 // this dictionary so the interface and its tests stay in one language.
 const en = {
+  "environment.busy": "Another reviewer is using the current business environment.",
+  "environment.busyRecovery": "You can view your own case history. Please wait for the administrator to open the next round before creating a case.",
+  "environment.historical": "This case belongs to a previous round and is available for viewing only.",
+  "environment.historicalRecovery": "To continue, return to the case list and create a new case in the next round.",
+  "environment.reset": "The current environment is waiting for the administrator to complete the round change.",
+  "environment.resetRecovery": "You can view your own case history. After the administrator opens the next round, refresh the page to create a case.",
+  "environment.unavailable": "The business service is temporarily unavailable. Cases cannot be created or approved.",
+  "environment.unavailableRecovery": "Refresh the page later. If it remains unavailable, contact the administrator.",
   "impact.nodeNoOrder": "This node has no recorded path to a sales order. Unallocated supply cannot count toward order coverage.",
   "impact.basis": "Planning anchor: {date}. Every quantity belongs to its shown SKU.",
   "impact.source.plan": "Recorded recovery plan",

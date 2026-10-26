@@ -6,6 +6,35 @@ from forgeflow.api import dsh_sdk
 from forgeflow.api.dsh_harness import DshUnavailable
 
 
+@pytest.mark.skipif(__import__("os").name != "posix", reason="requires Unix launcher")
+def test_shared_sdk_wrapper_remains_executable_during_parallel_owner_startup(tmp_path):
+    import subprocess
+    from concurrent.futures import ThreadPoolExecutor
+    from pathlib import Path
+
+    def start(index):
+        harness = dsh_sdk.SdkDshHarness(cli=Path("%s"), patch=tmp_path,
+            home=tmp_path / "home", workspace=tmp_path, node="/usr/bin/printf")
+        result = subprocess.run([str(harness._wrapper()), str(index)],
+                                capture_output=True, text=True, check=True, timeout=5)
+        return result.stdout
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        assert list(pool.map(start, range(32))) == [str(index) for index in range(32)]
+
+
+@pytest.mark.skipif(__import__("os").name != "posix", reason="requires Unix symlink")
+def test_sdk_wrapper_publication_does_not_follow_existing_symlink(tmp_path):
+    unrelated = tmp_path / "unrelated"
+    unrelated.write_text("preserve")
+    (tmp_path / "dsh-sdk-wrapper.sh").symlink_to(unrelated)
+    harness = dsh_sdk.SdkDshHarness(cli=tmp_path, patch=tmp_path,
+                                  home=tmp_path / "home", workspace=tmp_path)
+    result = harness._wrapper()
+    assert not result.is_symlink()
+    assert unrelated.read_text() == "preserve"
+
+
 def test_deterministic_session_id_is_stable_and_key_scoped() -> None:
     first = dsh_sdk._session_id_for("uid-a:conv-1")
     assert first == dsh_sdk._session_id_for("uid-a:conv-1")

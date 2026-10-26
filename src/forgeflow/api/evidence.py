@@ -167,9 +167,12 @@ class ReadOnlyEvidenceProjection:
     def publish(self, uid: str) -> Path:
         """Atomically publish to a host-private path, outside the agent workspace."""
         value = self.snapshot(uid)
-        root = self.settings.approvals_root / "assistant-evidence"
+        shared_root = os.environ.get("FORGEFLOW_ASSISTANT_EVIDENCE_ROOT", "").strip()
+        root = Path(shared_root) if shared_root else self.settings.approvals_root / "assistant-evidence"
+        if shared_root and (not root.is_absolute() or not root.is_dir()):
+            raise ValueError("invalid_evidence_store")
         root.mkdir(mode=0o700, parents=True, exist_ok=True)
-        if root.is_symlink():
+        if root.is_symlink() or root.resolve() != root.absolute():
             raise ValueError("invalid_evidence_store")
         permissions = {
             "cases": sorted(case["case_id"] for case in value["cases"]),
@@ -181,6 +184,10 @@ class ReadOnlyEvidenceProjection:
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as handle:
                 json.dump(value, handle, ensure_ascii=False, allow_nan=False)
+                handle.flush()
+                os.fsync(handle.fileno())
+            if shared_root:
+                os.chmod(temporary, 0o640)
             os.replace(temporary, path)
         finally:
             Path(temporary).unlink(missing_ok=True)

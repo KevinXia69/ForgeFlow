@@ -20,6 +20,7 @@ import { DecisionFacts, ChoiceReason } from "./DecisionFacts";
 import { OrderReadiness } from "./OrderReadiness";
 import { ImpactChain } from "./ImpactChain";
 import { downloadReceipt } from "./receipt";
+import { environmentAccessNotice } from "./environmentAccess";
 import { CandidateComparison, candidateName } from "./CandidateComparison";
 import { canContinuePreparation, preparationFailure, preparationMessage, revisionFloor, suggestedRevisionMargin, validRevisionMargin } from "./casePreparation";
 import {
@@ -819,6 +820,7 @@ function ExecutionReceipt({
 
 function DecisionPanel({
   caseFile,
+  capabilities,
   mode,
   busy,
   approver,
@@ -840,6 +842,7 @@ function DecisionPanel({
   mode: CaseMode;
   busy: "approving" | "preparing" | null;
   approver: string;
+  capabilities: Capabilities | null;
   comment: string;
   canPrepare: boolean;
   canDecide: boolean;
@@ -884,6 +887,7 @@ function DecisionPanel({
     awaiting,
     canDecide,
     approvalCapable,
+    capabilities,
     busy: busy !== null,
     t,
   });
@@ -1252,7 +1256,8 @@ export function CaseDetail({
   const { display_name: approver } = useWorkspace();
   const [confirmedPlan, setConfirmedPlan] = useState<string | null>(null);
   const [caseReadRequired, setCaseReadRequired] = useState(false);
-  const writesBlocked = caseReadRequired || caseReadBlocked;
+  const writesBlocked = caseReadRequired || caseReadBlocked
+    || (mode === "live" && environmentAccessNotice(t, capabilities, caseFile) !== null);
   useEffect(() => { setCaseReadRequired(false); }, [caseFile]);
   const [comment, setComment] = useState("");
   const evidenceRef = useRef<HTMLDivElement | null>(null);
@@ -1313,6 +1318,7 @@ export function CaseDetail({
     awaiting: caseFile.state === "awaiting_approval",
     canDecide: !writesBlocked && capabilities?.case_approve === true,
     approvalCapable: capabilities?.case_approve === true,
+    capabilities,
     busy: busy !== null || decisionBusy,
     t,
   });
@@ -1754,6 +1760,7 @@ export function CaseDetail({
           {tab === "decision" ? (
             <DecisionPanel
               caseFile={caseFile}
+              capabilities={capabilities}
               mode={mode}
               busy={busy}
               decisionPending={decisionBusy}

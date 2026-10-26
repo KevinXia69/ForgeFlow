@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "evidence_kind": "operator_capture_allowlist_not_independent_attestation",
+  "source_commit": "67bcb95e3253c245dab49478458aab652af8d05a",
+  "historical_case_id": "a9d6a8a859cfc24d888ed540a732fece",
+  "before": {
+    "boot_id": "3bf98a64-f6c5-4958-ba61-1780f071f581",
+    "generation": "ef0c853c80fa45d4bd461dc361c95663",
+    "erp_counts": "6|6|4|11",
+    "historical_execution_unchanged": true,
+    "environment_unclaimed": true,
+    "state_file_sha256": {
+      "runtime_configuration": "75d1a73512b1d664f139f245ae59064c184ca1727e0f54466c690d48ca12021b",
+      "environment_lease": "3bbcb93c41ae1f3a4323ee91bad941ad878afa5aa6885e589d7781809e81d58a",
+      "instance_record": "20f844171cd87ba198bb83599dbda0c761e5443749ab8e4d24241cdf08ff1688",
+      "odoo_state": "029183194c60a3f02280a3ac7b8eed253dc17806c6ce9832340460f492bb4f4e"
+    }
+  },
+  "after": {
+    "boot_id": "9f44a986-85dd-4ff1-b461-81f9e8542573",
+    "generation": "ef0c853c80fa45d4bd461dc361c95663",
+    "erp_counts": "6|6|4|11",
+    "historical_execution_unchanged": true,
+    "environment_unclaimed": true,
+    "state_file_sha256": {
+      "runtime_configuration": "75d1a73512b1d664f139f245ae59064c184ca1727e0f54466c690d48ca12021b",
+      "environment_lease": "3bbcb93c41ae1f3a4323ee91bad941ad878afa5aa6885e589d7781809e81d58a",
+      "instance_record": "20f844171cd87ba198bb83599dbda0c761e5443749ab8e4d24241cdf08ff1688",
+      "odoo_state": "029183194c60a3f02280a3ac7b8eed253dc17806c6ce9832340460f492bb4f4e"
+    }
+  },
+  "erp_counts_order": [
+    "purchase_order",
+    "purchase_order_line",
+    "mrp_production",
+    "stock_picking"
+  ],
+  "full_reboot_passed": true,
+  "new_approval_after_reboot": "not_tested",
+  "full_public_api_disaster_recovery": "not_tested",
+  "source_capture_sha256": "9a9bc342acc7938139746ad6b7fd9af4007f82ebb8f5bb5faafd5b0129325263",
+  "operator_driver_sha256": "fe9cb9247a7be7b5b13b57d44895ba464389b246caf5f1c6fe1a29272523ba1d"
+}

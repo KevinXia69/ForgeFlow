@@ -50,6 +50,7 @@ from .model_settings import (
 )
 from .plan_diagnostics import read_traceability
 from .plans import list_plans, read_plan
+from .rate_limit import FixedWindowLimiter
 from .runs import RunService, RunUnavailable
 from .settings import Settings
 from .stream_hub import AssistantStreamHub, StreamCapacityError, TurnJournal
@@ -65,7 +66,7 @@ READ_ERRORS = (OSError, ValueError, TypeError, OverflowError)
 
 
 class SessionRequest(BaseModel):
-    invite_code: str
+    invite_code: str = Field(min_length=1, max_length=512)
 
 
 class CreateRunRequest(BaseModel):
@@ -214,12 +215,17 @@ def create_app(
         openapi_url=None,
     )
     app.state.settings = settings
+    limiter = FixedWindowLimiter()
     approvals = ApprovalService(settings.approvals_root)
     runs = RunService(settings.data_root, settings.approvals_root / "runs.json",
                       spawn=spawn, enabled=settings.runner_enabled)
     model_settings = ModelSettingsStore(settings.approvals_root)
     platform_model = platform_settings()
-    product_cases = ProductCaseService(settings.approvals_root, product_executor)
+    product_cases = ProductCaseService(
+        settings.approvals_root, product_executor,
+        environment_generation=settings.environment_generation
+        if settings.deployment == "hosted" else None,
+    )
     app.state.product_cases = product_cases
     app.state.product_executor = product_executor
     dsh_harness = DshHarness.from_env()
@@ -324,8 +330,12 @@ def create_app(
     def _require_local_model_settings(
         _uid: str = Depends(require_principal),
     ) -> None:
-        if settings.deployment == "review":
+        if settings.deployment != "local":
             raise HTTPException(status_code=403, detail="settings_read_only")
+
+    def _reject_hosted_model_override(model: ModelRequest | None) -> None:
+        if settings.deployment == "hosted" and model is not None:
+            raise HTTPException(status_code=403, detail="model_override_disabled")
 
     def _executor_connection() -> dict[str, Any]:
         configured = product_executor is not None and settings.deployment != "review"
@@ -362,7 +372,7 @@ def create_app(
         return evidence.can_view_run(run_id, uid)
 
     def _model_view() -> dict[str, Any]:
-        stored = model_settings.load() if settings.deployment != "review" else None
+        stored = model_settings.load() if settings.deployment == "local" else None
         if stored is not None:
             view = {**model_settings.masked(), "source": "workspace", "can_override": True}
         elif platform_model is not None:
@@ -373,8 +383,10 @@ def create_app(
                 "has_key": False, "updated_at": None,
                 "source": "none", "can_override": True,
             }
-        if settings.deployment == "review":
+        if settings.deployment != "local":
             view["read_only"] = True
+        if settings.deployment == "hosted":
+            view["can_override"] = False
         return view
 
     def _retrieved_answer(question: str, limit: int) -> dict[str, Any]:
@@ -384,14 +396,44 @@ def create_app(
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
+        headers = dict(SECURITY_HEADERS)
+        if settings.deployment == "hosted":
+            headers["Strict-Transport-Security"] = "max-age=31536000"
+            if not settings.allows_host(request.headers.get("host", "")):
+                return JSONResponse({"detail": "untrusted host"}, status_code=400,
+                                    headers=headers)
         if request.url.path.startswith("/api") and not is_trusted_api_request(request, settings):
-            return JSONResponse({"detail": "untrusted request"}, status_code=403)
+            return JSONResponse({"detail": "untrusted request"}, status_code=403,
+                                headers=headers)
+        if settings.deployment == "hosted" and request.method == "POST":
+            path = request.url.path
+            budgets: list[tuple[str, int]] = []
+            if path == "/api/auth/session":
+                client = request.client.host if request.client else "unknown"
+                budgets = [(f"login:{client}", 10), ("login:global", 100)]
+            else:
+                uid = optional_principal(request)
+                if uid is not None:
+                    model_call = path in {
+                        "/api/assistant/answer", "/api/assistant/stream",
+                        "/api/settings/model/test",
+                    } or (path.startswith("/api/product/cases/") and
+                          path.endswith(("/ask", "/ask/stream")))
+                    if model_call:
+                        budgets = [(f"model:{uid}", 30), ("model:global", 120)]
+                    elif path.startswith("/api/product/cases"):
+                        budgets = [(f"product:{uid}", 20), ("product:global", 60)]
+            for key, limit in budgets:
+                delay = limiter.retry_after(key, limit=limit)
+                if delay:
+                    return JSONResponse({"detail": "rate_limit_exceeded"}, status_code=429,
+                                        headers={**headers, "Retry-After": str(delay)})
         try:
             response = await call_next(request)
         except Exception:  # convert unhandled failures into a headed JSON 500
             logger.exception("unhandled API error")
             response = JSONResponse({"detail": "internal server error"}, status_code=500)
-        response.headers.update(SECURITY_HEADERS)
+        response.headers.update(headers)
         return response
 
 
@@ -401,7 +443,7 @@ def create_app(
         # page; the native-shell credential URL is only for an authenticated
         # owner and never for review deployments.
         dsh_web_url = ""
-        if (settings.deployment != "review" and optional_principal(request) is not None
+        if (settings.deployment == "local" and optional_principal(request) is not None
                 and os.environ.get("FORGEFLOW_DEVELOPER_TOOLS") == "1"):
             dsh_web_url = os.environ.get("FORGEFLOW_DSH_WEB_URL", "").strip()
             if not dsh_web_url:
@@ -432,6 +474,13 @@ def create_app(
         # Global native session caches are not an owner-scoped business API.
         return []
 
+    @app.get("/api/environment")
+    def environment(uid: str = Depends(require_principal)) -> dict[str, Any]:
+        try:
+            return product_cases.environment_status(uid)
+        except ProductCaseError as error:
+            raise _product_error(error) from None
+
     @app.get("/api/health")
     def health() -> dict[str, bool]:
         return {"ok": True}
@@ -440,12 +489,15 @@ def create_app(
     def capabilities(_uid: str = Depends(require_principal)) -> dict[str, Any]:
         review = settings.deployment == "review"
         connection = _executor_connection()
-        product_approval = not review and connection["ready"] is True
-        live = product_approval and bool(getattr(product_executor, "live", False))
+        lease = environment(_uid)
+        product_approval = not review and connection["ready"] is True and lease["available"]
+        live = connection["ready"] is True and bool(getattr(product_executor, "live", False))
         if review:
             reason = "review_read_only"
         elif connection["ready"] is not True:
             reason = "product_execution_unavailable"
+        elif not lease["available"]:
+            reason = lease["reason"]
         else:
             reason = "synthetic_executor" if not live else "product_executor_available"
         return {
@@ -464,6 +516,7 @@ def create_app(
                 for name in product_cases.supported_scenarios()
             ],
             "environment": {"deployment": settings.deployment,
+                "lease": lease,
                 "data_source": "synthetic_erp_bench",
                 "scenario": getattr(product_executor, "scenario", None),
                 "task": getattr(product_executor, "task", None),
@@ -566,6 +619,7 @@ def create_app(
         _uid: str = Depends(require_principal),
     ) -> dict[str, Any]:
         configured = body.model if body is not None else None
+        _reject_hosted_model_override(configured)
         model = None
         if configured is not None:
             try:
@@ -575,7 +629,7 @@ def create_app(
                 )
             except ModelSettingsError as error:
                 raise HTTPException(status_code=400, detail=error.code) from None
-        elif settings.deployment != "review":
+        elif settings.deployment == "local":
             model = model_settings.load()
         if model is None or not model.api_key:
             model = platform_model
@@ -599,6 +653,7 @@ def create_app(
         Browser-supplied model requests stay on the one-shot endpoint; this
         stream is specifically the local harness sidecar.
         """
+        _reject_hosted_model_override(body.model)
         harness = _harness_for(uid)
         if harness is None or body.model is not None:
             raise HTTPException(status_code=503, detail="stream_unavailable")
@@ -621,6 +676,7 @@ def create_app(
     def assistant_answer(
         body: AssistantRequest, uid: str = Depends(require_principal),
     ) -> dict[str, Any]:
+        _reject_hosted_model_override(body.model)
         harness = _harness_for(uid) if body.model is None else None
         if harness is not None:
             started = time.monotonic()
@@ -667,7 +723,7 @@ def create_app(
                 raise HTTPException(
                     status_code=503, detail="knowledge_unavailable"
                 ) from None
-        if settings.deployment != "review":
+        if settings.deployment == "local":
             stored = model_settings.load()
             if stored is not None and stored.api_key:
                 try:

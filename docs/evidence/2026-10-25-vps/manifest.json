@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "source_commit": "67bcb95e3253c245dab49478458aab652af8d05a",
+  "date": "2026-10-25",
+  "integrity_scope": "SHA256 identifies published bytes and private source captures; it is not an independent attestation.",
+  "files": [
+    {
+      "name": "live-acceptance.json",
+      "sha256": "e5a201fda2adc5a04bf195c728fdc3c936f60239bf3f97db31ec24137f710ec1",
+      "bytes": 4949
+    },
+    {
+      "name": "recovery-acceptance.json",
+      "sha256": "4e01fe961f87b125fac6b92bf9d313cd795166959154ec274124a0100ab5c3de",
+      "bytes": 1934
+    },
+    {
+      "name": "reboot-acceptance.json",
+      "sha256": "ed976879757b8c337cb99492d26d4aeec6a6d44ed972e45099e640e536d5dc65",
+      "bytes": 1944
+    },
+    {
+      "name": "rotation-acceptance.json",
+      "sha256": "d6ccf275aec3c91dc6b2aae2a112c991c60e4f7b198447541d932fc747ef3a50",
+      "bytes": 664
+    },
+    {
+      "name": "original-reward.json",
+      "sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c",
+      "bytes": 19134
+    }
+  ],
+  "redaction": [
+    "No credentials, session or invite values, cloud account identifiers, client paths, private model prompts or answers, approval comments, or actor labels are published."
+  ],
+  "original_reward": {
+    "raw_bytes_preserved": true,
+    "live_and_isolated_restore_reward_bytes_match": true,
+    "contains_only_synthetic_benchmark_business_identifiers": true
+  }
+}

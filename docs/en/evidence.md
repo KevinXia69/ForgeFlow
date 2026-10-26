@@ -10,6 +10,21 @@ The project prefers an awkward recorded failure over a clean unsupported claim.
 Missing values stay `null`; they are not filled from the current repository or
 from memory.
 
+## Hosted VPS acceptance, October 25, 2026
+
+The [published VPS record](../evidence/2026-10-25-vps/README.md) is bound to source
+commit `67bcb95e3253c245dab49478458aab652af8d05a`, an immutable Odoo image, and the
+new live case. It includes redacted preparation/approval/write/readback captures,
+the original 51-rule reward bytes, isolated database/Odoo restoration, rotation,
+and complete OS reboot records with an integrity manifest.
+
+This is real sandbox execution on synthetic Scenario A benchmark data using the
+`planning-metadata-v1` visibility profile. The files distinguish isolated Odoo
+recovery from full ForgeFlow public API/approval disaster recovery, which was not
+tested. A new case approval after reboot and an independent zero-write database
+measurement before approval are also not claimed. These are inspectable operator
+captures, not an independent attestation; the older UI fixture is separate.
+
 ## Run directory layout
 
 A run lives under `runs/<run_id>/`. The exact Harbor trial directory is generated

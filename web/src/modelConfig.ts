@@ -104,7 +104,8 @@ function parseStoredConfig(value: unknown): ModelConfig | null {
 }
 
 /** Read the browser-local config; invalid or unavailable storage yields null. */
-export function loadModelConfig(scope = "unscoped"): ModelConfig | null {
+export function loadModelConfig(scope = "unscoped", deployment = "local"): ModelConfig | null {
+  if (deployment === "hosted") return null;
   try {
     const raw = modelStorage()?.getItem(`${MODEL_STORAGE_KEY}.${scope}`);
     if (!raw) return null;
@@ -115,7 +116,8 @@ export function loadModelConfig(scope = "unscoped"): ModelConfig | null {
 }
 
 /** Persist only the four model fields under the single localStorage key. */
-export function saveModelConfig(config: ModelConfig, scope = "unscoped"): boolean {
+export function saveModelConfig(config: ModelConfig, scope = "unscoped", deployment = "local"): boolean {
+  if (deployment === "hosted") return false;
   const profile = isModelProfile(config.profile) ? config.profile : "custom";
   const stored: ModelConfig = {
     profile,

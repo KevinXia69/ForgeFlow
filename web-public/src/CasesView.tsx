@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createProductCase, createProductFromDraft, getCapabilities, getProductCase, getProductCases, previewProductDraft, type ProductDraft } from "./api";
 import { startCaseReadWatch } from "./caseReadWatch";
 import { CaseDetail } from "./CaseDetail";
+import { environmentAccessNotice } from "./environmentAccess";
 import { CaseChatView } from "./CaseChatView";
 import { buildFixtureCase } from "./caseFixture";
 import { caseOutcomeLabel, dueWindow, errorDetail, formatDateTime, exceptionText, formatQuantity, isCaseVerified, matchesSavedView, severityLabel, severityOf, type SavedCaseView } from "./caseUi";
@@ -139,7 +140,8 @@ export function CasesView({ selectedId, chat, evidence, demo, initialView, onSel
   };
 
   const statusKey: MessageKey = identity.deployment === "review" ? "v9.review" : loading ? "v10.connectionChecking" : caps?.environment?.execution === "live_sandbox" && caps.environment.ready === true ? "v9.ready" : caps?.environment?.execution === "synthetic_executor" && caps.environment.ready === true ? "v9.synthetic" : "v9.offline";
-  const environment = <div className="environment-banner" role="status" data-environment="true"><span>{isDemo ? t("v11.demoBanner") : t(statusKey)}{!isDemo && caps?.environment?.execution !== "synthetic_executor" && caps?.environment?.scenario ? ` · ${t(caps.environment.scenario === "B" ? "v9.scenarioB" : "v9.scenarioA")}` : ""}</span><button type="button" className="activity-link" disabled={loading} onClick={() => void refresh()}>{t("v9.reconnect")}</button></div>;
+  const environmentNotice = !isDemo ? environmentAccessNotice(t, caps, selected) : null;
+  const environment = <div className="environment-banner" role="status" data-environment="true" data-environment-restriction={environmentNotice?.cause}><span>{environmentNotice ? `${environmentNotice.reason} ${environmentNotice.recovery}` : isDemo ? t("v11.demoBanner") : t(statusKey)}{!isDemo && !environmentNotice && caps?.environment?.execution !== "synthetic_executor" && caps?.environment?.scenario ? ` · ${t(caps.environment.scenario === "B" ? "v9.scenarioB" : "v9.scenarioA")}` : ""}</span><button type="button" className="activity-link" disabled={loading} onClick={() => void refresh()}>{t("v9.reconnect")}</button></div>;
   // Freshness is exposed as data, not as prose on the page: the human-readable
   // form lives inside the collapsed case details.
   if (selectedId) return <div className={`view cases-detail-view${chat ? " with-case-chat" : ""}`} data-cases-view="true" data-cases-mode={isDemo ? "fixture" : "live"} data-cases-ready="true" data-case-read-at={selectedConfirmedAt ?? undefined}>
@@ -208,7 +210,9 @@ export function CasesView({ selectedId, chat, evidence, demo, initialView, onSel
     <p className="muted" data-create-note={canCreate ? "available" : "unavailable"}>
       {canCreate
         ? t(caps?.environment?.execution === "synthetic_executor" ? "v9.syntheticExampleNote" : "v9.exampleNote", { scenario: selectedScenario?.id ?? "—" })
-        : t("v13.createUnavailableNote")}
+        : environmentNotice ? `${environmentNotice.reason} ${environmentNotice.recovery}`
+          : caps?.deployment === "hosted" ? `${t("environment.unavailable")} ${t("environment.unavailableRecovery")}`
+            : t("v13.createUnavailableNote")}
     </p>
     {isDemo && <div className="cases-demo-banner" data-demo-banner="true">{t("case.fixtureLabel")}</div>}
     {error && <p className="case-error" role="alert">{t("v9.readError")} {error}</p>}

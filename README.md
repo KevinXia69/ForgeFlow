@@ -148,8 +148,10 @@ It runs end to end, from the exception through one approval to execution,
 readback and acceptance. The workbench, the review bundle and the offline suite
 all pass from a clean clone.
 
-Two things are still open: a public deployment (a local review backend is what we
-verified) and a screen-reader audit. Research is a separate track, and it has
+The hosted Scenario A workflow, isolated Odoo/PostgreSQL recovery, and normal OS
+reboot are now recorded in the [October 25 VPS acceptance evidence](./docs/evidence/2026-10-25-vps/README.md).
+Whole-site recovery onto another VPS, a new approval after reboot, and a
+screen-reader audit remain untested. Research is a separate track, and it has
 failed three runs in a row. Those results stay in the repository.
 
 ## Repository layout

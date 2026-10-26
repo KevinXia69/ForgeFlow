@@ -14,7 +14,11 @@ so the rules that protect the write path live here:
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
+import os
+import stat
 import traceback
 from datetime import UTC, datetime
 from pathlib import Path
@@ -36,6 +40,12 @@ APPROVAL_FIELDS = (
     "approver", "issued_at_utc", "expires_at_utc",
 )
 MAX_POLICY_BYTES = 64 * 1024
+ARTIFACT_CHUNK_BYTES = 32 * 1024
+MAX_ARTIFACT_BYTES = 16 * 1024 * 1024
+PRODUCT_ARTIFACT_NAMES = frozenset({
+    "prepared.json", "manifest.json", "change-set.json", "plan.json", "request.json",
+    "snapshot.json", "blueprint.json", "product-constraints.json", "product-costs.json",
+})
 
 
 class RecoveryHandlers:
@@ -91,6 +101,7 @@ class RecoveryHandlers:
             "authorize": {"owner_sha256", "expected_revision", "plan_id", "intent"},
             "status": {"owner_sha256"},
             "cancel_unstarted": {"owner_sha256", "plan_id", "approval"},
+            "artifact": {"owner_sha256", "plan_id", "name", "offset"},
         }
         optional = {"product_objectives"} if action == "prepare" else set()
         if (not isinstance(action, str) or action not in fields or not isinstance(payload, dict)
@@ -106,6 +117,9 @@ class RecoveryHandlers:
             versions = ProductVersions(self.store)
             if action == "status":
                 result = versions.status(run_id, owner)
+            elif action == "artifact":
+                decision = versions.status(run_id, owner)
+                return self._artifact(decision, payload)
             elif action == "decide":
                 result = versions.decide(run_id, owner, **{k: v for k, v in payload.items() if k != "owner_sha256"})
             elif action == "authorize":
@@ -136,6 +150,54 @@ class RecoveryHandlers:
             code = getattr(error, "code", None)
             safe = code if code in CHANGE_SET_REASONS else "details_unavailable"
             raise ProtocolError("plan_rejected", 422, reason=safe) from None
+
+    def _artifact(self, decision: dict, payload: dict) -> dict:
+        """Read a bounded, named artifact of an owner-bound product plan.
+
+        The API receives chunks, never access to the root store or caller-selected
+        paths. Final manifest checks remain in the product projection, while the
+        raw digest makes a changed file detectable across consecutive chunks.
+        """
+        plan_id, name, offset = (payload[key] for key in ("plan_id", "name", "offset"))
+        if (not isinstance(plan_id, str) or not SHA256.fullmatch(plan_id)
+                or not isinstance(name, str) or name not in PRODUCT_ARTIFACT_NAMES
+                or type(offset) is not int or not 0 <= offset <= MAX_ARTIFACT_BYTES):
+            raise ProtocolError("invalid_field", 400)
+        plans = decision.get("plans")
+        if not isinstance(plans, dict) or plan_id not in plans:
+            raise ProtocolError("plan_not_found", 404)
+        store_fd = directory_fd = file_fd = None
+        try:
+            store_fd = os.open(self.store, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            directory_fd = os.open(plan_id, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                   dir_fd=store_fd)
+            file_fd = os.open(name, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW,
+                              dir_fd=directory_fd)
+            info = os.fstat(file_fd)
+            if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+                    or not 0 <= info.st_size <= MAX_ARTIFACT_BYTES):
+                raise ProtocolError("artifact_unavailable", 409)
+            with os.fdopen(file_fd, "rb", closefd=False) as handle:
+                raw = handle.read(MAX_ARTIFACT_BYTES + 1)
+            if len(raw) != info.st_size:
+                raise ProtocolError("artifact_unavailable", 409)
+        except FileNotFoundError:
+            raise ProtocolError("artifact_missing", 404) from None
+        except OSError:
+            raise ProtocolError("artifact_unavailable", 409) from None
+        finally:
+            for descriptor in (file_fd, directory_fd, store_fd):
+                if descriptor is not None:
+                    os.close(descriptor)
+        if offset > len(raw):
+            raise ProtocolError("invalid_field", 400)
+        chunk = raw[offset:offset + ARTIFACT_CHUNK_BYTES]
+        return {"artifact": {
+            "name": name, "offset": offset, "total_bytes": len(raw),
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "data_base64": base64.b64encode(chunk).decode("ascii"),
+            "eof": offset + len(chunk) == len(raw),
+        }}
 
     def _contract(self):
         if not self.policy_file.exists():

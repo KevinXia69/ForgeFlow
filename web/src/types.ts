@@ -102,7 +102,7 @@ export type Capabilities = {
   product_prepare?: boolean;
   product_execute?: boolean;
   product_scenarios?: { id: "A" | "B"; task: string; label: string; can_create: boolean }[];
-  environment?: { scenario?: "A" | "B"; task?: string; deployment: string; data_source: string; execution: string; evidence_time: string | null; connection?: string; ready?: boolean | null; checked_at?: string | null };
+  environment?: { scenario?: "A" | "B"; task?: string; deployment: string; data_source: string; execution: string; evidence_time: string | null; connection?: string; ready?: boolean | null; checked_at?: string | null; lease?: { enforced?: boolean; available?: boolean; owned_by_me?: boolean; requires_admin_reset?: boolean; reason?: string | null } };
 };
 
 export type ProductOrder = {
