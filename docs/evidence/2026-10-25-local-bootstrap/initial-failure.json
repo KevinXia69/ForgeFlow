@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "scope": "isolated local bootstrap; no model calls or ERP approval",
+  "steps": [
+    "stop"
+  ],
+  "image_id": "sha256:773a6ec5ad60e677a48f8544304c0ba07fea4038678ff8a0f4eb160907d7066a",
+  "result": "failed",
+  "error_type": "CalledProcessError",
+  "cleanup": "owned services stopped; evidence and container retained"
+}

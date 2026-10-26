@@ -920,26 +920,34 @@ def create(config: dict) -> dict:
     config = validate_config(config)
     sys.path.insert(0, str(config["project_root"] / "src"))
     from forgeflow import vps_odoo
+    from forgeflow.vps_runtime import configuration, lifecycle_root
+
+    runtime_config_path = config["secret_files"].get("runtime.json")
+    if runtime_config_path is None:
+        raise BackupError("runtime_configuration_required_for_matched_backup")
+    runtime_bytes = secure_file(runtime_config_path)
+    runtime_config = configuration(json.loads(runtime_bytes))
+    if runtime_config["service_unit"] not in config["maintenance_units"]:
+        raise BackupError("runtime_writer_unit_missing_from_backup")
+    lock_root = clean_path(str(lifecycle_root(runtime_config)))
 
     key = read_key(config["encryption_key_file"])
     config["output_root"].mkdir(mode=0o700, parents=True, exist_ok=True)
     if config["output_root"].stat().st_mode & 0o077:
         raise BackupError("backup_output_directory_must_be_private")
     with ExitStack() as stack:
-        for path in (config["project_root"] / ".runtime/lifecycle/workbench.lock",
-                     config["project_root"] / ".runtime/lifecycle/heavy-operation.lock",
+        for path in (lock_root / "workbench.lock",
+                     lock_root / "heavy-operation.lock",
                      config["runtime_root"] / ".provision.lock",
                      config["runtime_root"] / "store/scope.lock",
                      config["odoo_state"] / ".lock"):
             stack.enter_context(lease(path))
+        if secure_file(runtime_config_path) != runtime_bytes:
+            raise BackupError("runtime_configuration_changed_before_backup_lock")
         image = assert_writers_stopped(config)
         saved = json.loads(secure_file(config["odoo_state"] / "state.json"))
         binding = vps_odoo.expected_binding(saved["instance_id"], saved["generation"])
         state, _ = vps_odoo.load_state(config["odoo_state"], binding, False)
-        runtime_config_path = config["secret_files"].get("runtime.json")
-        if runtime_config_path is None:
-            raise BackupError("runtime_configuration_required_for_matched_backup")
-        runtime_config = json.loads(secure_file(runtime_config_path))
         instance = json.loads(secure_file(config["runtime_root"] / "vps-instance.json"))
         check_generation_binding(config, state, image, runtime_config, instance)
         temporary = Path(stack.enter_context(tempfile.TemporaryDirectory(

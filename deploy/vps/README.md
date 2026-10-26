@@ -14,18 +14,23 @@ not the unmodified benchmark-data condition.
 
 ## Operating model
 
-Nginx terminates HTTPS and forwards to one API worker on loopback. The API runs as
-`forgeflow-api`; a fixed launcher runs the model harness as `forgeflow-dsh`. Only
-the API UID can reach the root executor through its Unix socket. Docker, Odoo's
+Nginx terminates HTTPS. The base installation forwards to one API worker on
+loopback; [independent reviewer environments](REVIEWERS.md) add an invitation
+routing gateway and five separate API/executor/ERP instances behind the same
+HTTPS address. The base API runs as `forgeflow-api`, with its assistant as
+`forgeflow-dsh`; reviewer instances use separate pairs of Unix identities. Only
+each instance's API UID can reach its root executor through its Unix socket. Docker, Odoo's
 HTTP listener, PostgreSQL and ERP credentials are private. The assistant has
 scoped read-only evidence tools. A user approves the exact prepared plan before
 the executor performs business writes and invokes the original verifier.
 
-One ERP generation belongs to one reviewer at a time. Ownership persists across
-restarts and completed executions. Other reviewers can sign in and read their
-own history, but cannot claim the occupied ERP. This is intended for 3–5 invited
-reviewers taking turns, not isolated concurrent ERP tenants. The administrator
-rotates to a fresh generation between reviewers, retaining prior evidence.
+One ERP generation belongs to one reviewer. Ownership persists across restarts
+and completed executions. In the five-workspace deployment, each invitation has
+its own generation, so another judge does not wait for an administrator to rotate
+the first judge's environment. A fresh baseline for the same invitation remains
+an explicit operator rotation that preserves prior evidence. The base
+single-instance installation still serves one owner at a time; do not distribute
+multiple reviewer invitations against that one writable ERP.
 
 ## Installation
 
@@ -34,7 +39,7 @@ Use Ubuntu 24.04 x86-64, Docker and Python 3.12. The initial instance is 4 vCPU,
 extras, the API versions in `deploy/vps/requirements.txt` and its built public frontend. Fetch and verify the
 pinned sources with `python scripts/fetch_upstream.py`.
 
-Build `deploy/vps/Dockerfile.odoo` as `forgeflow-odoo:vps1`. Follow
+Build `deploy/vps/Dockerfile.odoo` as `forgeflow-odoo:vps3`. Follow
 [odoo-runtime.md](odoo-runtime.md) for its persistence contract and
 [RUNTIME.md](RUNTIME.md) for Node, the fixed DSH dependencies and Linux identities.
 Keep `runtime.env`, `runtime.json`, backup keys and OAuth credentials outside the

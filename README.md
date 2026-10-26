@@ -14,10 +14,12 @@ acceptance program that ships with the task.
   <img alt="Status" src="https://img.shields.io/badge/status-runnable%2C%20unreleased-orange">
 </p>
 
-Research runs on **Nebius Token Factory** with **NVIDIA Nemotron 3.5 Super VL**,
-model id `nvidia/Nemotron-3.5-Super-VL`. Setup lives in
-[model settings](./docs/en/model-settings.md). Product planning is a CP-SAT
-constraint solve that runs offline.
+The hosted assistant and research runner use **Nebius Token Factory** with
+**NVIDIA Nemotron 3.5 Super VL**, model id `nvidia/Nemotron-3.5-Super-VL`.
+The assistant answers from scoped case/evidence tools; setup lives in
+[model settings](./docs/en/model-settings.md). Product planning is a separate
+CP-SAT constraint solve that runs offline. Approval and ERP execution are
+controlled by ForgeFlow, not by an assistant's generated answer.
 
 [How it differs](#how-it-differs) · [One case, end to end](#one-case-end-to-end) ·
 [Status](#status) · [Product docs](./docs/en/README.md)
@@ -94,31 +96,62 @@ the case says so and waits for a person.
 | An agent edits the ERP directly | Every write goes through one executor process, and it can only touch the documents the plan lists. An unknown outcome is reported and not retried |
 | A planner scores its own output | The acceptance program that ships with the task sets the score |
 
-## Running it in five minutes
+## Hosted demo
 
-You need Python 3.12+, [uv](https://docs.astral.sh/uv/) and Docker (Colima is
-fine). You have to build the UI and pull an image for the sandbox, so this is
-longer than a `pip install`.
+Open [the ForgeFlow workbench](https://168.144.242.231/app/) and use the private
+judge invite supplied with the submission. No model account or payment is
+required from judges. Follow [the judge guide](./docs/en/judge-guide.md) for the
+case, approval and verification workflow. The deployment provides five independent, persistent
+judge workspaces on the same HTTPS entry point, selected by invite code. Each
+workspace has its own API, assistant and ERP; its records survive sign-out and
+restart. A judge's ERP is not automatically reset after execution. All five
+invites passed public HTTPS routing and fresh-workspace checks. Two separate
+disposable workspaces passed concurrent planning, model calls and approved ERP
+execution with original verification. See [the acceptance record](./docs/evidence/2026-10-26-reviewers/README.md)
+and [the VPS guide](./deploy/vps/README.md). The capacity target is five judges
+working mainly at different times, with occasional two-person overlap.
+
+The demo performs real approved writes in a synthetic ERP-Bench sandbox. It is
+not a production customer deployment. The earlier Render review site is
+suspended and is not the current demo URL.
+
+## Run the product locally
+
+Use Linux (Ubuntu 24.04 recommended), or an Ubuntu WSL2 environment with Docker
+integration. The executor uses Unix sockets and file locks; native Windows
+PowerShell is not a supported host. Install Python 3.12, [uv](https://docs.astral.sh/uv/),
+Node.js 24 with npm, and a running Docker engine. Allow at least 4 CPUs, 8 GiB
+of RAM and 20 GiB of free disk. The initial image build needs network access and
+can take considerably longer than five minutes.
 
 ```bash
-# 1. Fetch the pinned upstream sources and install (first run needs network, ~2 min)
+# Run from a fresh checkout in a Linux shell.
 python3 scripts/fetch_upstream.py
-uv sync --frozen
+uv sync --frozen --extra planning --extra dsh-sdk
 
 # 2. Self-check: config, toolchain, Docker. No model calls.
 uv run forgeflow doctor
 
-# 3. Build the workbench front end
+# 3. Build the workbench front end and the local Scenario A image
 cd web && npm ci && npm run build && cd ..
+uv run python scripts/build_local_image.py --scenario A
 
-# 4. Start the local workbench (initialises the sandbox on first run)
+# 4. Configure the assistant. Edit .env locally to set NEBIUS_API_KEY.
+cp .env.example .env
+uv run python scripts/setup_dsh_harness.py
+
+# 5. Start the workbench (initializes the sandbox on first run)
 uv run python scripts/local_workbench.py init
 uv run python scripts/local_workbench.py start   # -> http://127.0.0.1:8000
 ```
 
 Sign in with the fixed local invite code `demo-invite-code-0001` (see
 [`scripts/local_workbench.py`](./scripts/local_workbench.py)). The session key is
-generated separately and kept out of the repository.
+generated separately and kept out of the repository. For lifecycle commands,
+Scenario B, model configuration, and troubleshooting, see
+[the local workbench guide](./docs/LOCAL_WORKBENCH.md). The deterministic
+planning/approval/execution flow can run without a model key; AI answers require
+the configured Nebius key. The local development launcher is not a public server.
 
 If you only want the tests, skip Docker:
 
@@ -126,9 +159,12 @@ If you only want the tests, skip Docker:
 uv run pytest -q
 ```
 
-These steps and the test command were run on a clean clone of this repository.
-The tests that need recorded runs under `runs/` skip themselves, because `runs/`
-stays out of the repository.
+Run the suite in the Linux environment above. Some integration tests need
+recorded runs under `runs/` and skip when those artifacts are absent. A passing
+offline suite is not evidence that a fresh Docker initialization or a live
+model call passed. The [isolated bootstrap record](./docs/evidence/2026-10-25-local-bootstrap/README.md)
+covers fresh Linux dependencies/image/database, Scenario A planning and
+stop/resume; see its explicit limits for model calls and approved ERP writes.
 
 ## Why you can check it
 
@@ -144,9 +180,9 @@ Every claim below points at something you can run.
 
 ## Status
 
-It runs end to end, from the exception through one approval to execution,
-readback and acceptance. The workbench, the review bundle and the offline suite
-all pass from a clean clone.
+The product has recorded end-to-end runs from an exception through approval,
+execution, readback and acceptance. Published evidence describes those specific
+runs; it is not a blanket claim that every platform or fresh checkout was tested.
 
 The hosted Scenario A workflow, isolated Odoo/PostgreSQL recovery, and normal OS
 reboot are now recorded in the [October 25 VPS acceptance evidence](./docs/evidence/2026-10-25-vps/README.md).
@@ -161,8 +197,8 @@ src/forgeflow/        Product: cases, plans, approval, execution, readback, acce
   api/                FastAPI: read-only paths and the approval path
   recovery/           Change set, compiler, readback, scope guard
   planning/           Offline solving (cp-sat); no model calls
-web/                  Private workbench (bilingual, React + Vite)
-web-public/           English review front end (read-only, same story)
+web/                  Bilingual workbench (React + Vite)
+web-public/           English workbench with capability-gated approval/execution
 contracts/            Task policy contracts (budgets, margin, forbidden vendors/workcenters)
 tests/                Test suite plus synthetic fixtures
 docs/                 Product reference material (English), plus the deck and demo

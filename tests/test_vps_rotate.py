@@ -340,3 +340,25 @@ def test_symlink_case_directory_is_rejected_before_provision(env):
     with pytest.raises(rotation.RotationError, match="canonical_absolute_path_required"):
         rotate(env)
     assert not env.provisioner.calls
+
+
+def test_judge_rotation_checks_own_service_and_locks_only_own_instance(env):
+    env.config.update(instance_name="judge1", api_user="forgeflow-api-judge1",
+        dsh_user="forgeflow-dsh-judge1", dsh_root=str(env.path.parent / "assistant"),
+        dsh_patch="/etc/forgeflow/judge1/dsh.patch.json",
+        dsh_launcher="/usr/local/bin/forgeflow-dsh-judge1")
+    rotation.save(env.path, env.config)
+
+    def instance_run(argv):
+        env.backup.commands.append(argv)
+        assert argv == ["systemctl", "show", "forgeflow-runtime@judge1.service",
+                        "--property=ActiveState", "--value"]
+        return "inactive"
+
+    env.backup.run = instance_run
+    rotate(env)
+    own_lock = Path(env.config["repo_root"]) / ".runtime/lifecycle/instances/judge1/workbench.lock"
+    assert env.backup.locks[0] == own_lock
+    assert env.backup.checked[0]["maintenance_units"] == ["forgeflow-runtime@judge1.service"]
+    assert read(env.path)["api_user"] == "forgeflow-api-judge1"
+    assert read(env.path)["dsh_user"] == "forgeflow-dsh-judge1"

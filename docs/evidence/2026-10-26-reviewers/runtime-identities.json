@@ -1,0 +1,199 @@
+{
+  "checked_at": "2026-10-26T03:47:56.068691+00:00",
+  "instances": [
+    {
+      "instance": "judge1",
+      "generation": "0969c133ca7a470cac764bc120f31d94",
+      "image_id": "sha256:df04859629c5fade4094698b5547984d7dcd674eabce5348365fd597fcc891fa",
+      "api_uid": 985,
+      "assistant_uid": 984,
+      "permissions": {
+        "runtime_config": {
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o600"
+        },
+        "environment": {
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o600"
+        },
+        "backup_config": {
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o600"
+        },
+        "case_directory": {
+          "uid": 985,
+          "gid": 980,
+          "mode": "0o700"
+        },
+        "executor_socket": {
+          "uid": 0,
+          "gid": 980,
+          "mode": "0o660"
+        }
+      },
+      "allow_initialize": false,
+      "phase": "ready",
+      "odoo_memory_mb": 1024,
+      "odoo_cpus": 1
+    },
+    {
+      "instance": "judge2",
+      "generation": "a4cd34a3116c476ea10045395a88ca4e",
+      "image_id": "sha256:df04859629c5fade4094698b5547984d7dcd674eabce5348365fd597fcc891fa",
+      "api_uid": 983,
+      "assistant_uid": 982,
+      "permissions": {
+        "runtime_config": {
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o600"
+        },
+        "environment": {
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o600"
+        },
+        "backup_config": {
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o600"
+        },
+        "case_directory": {
+          "uid": 983,
+          "gid": 978,
+          "mode": "0o700"
+        },
+        "executor_socket": {
+          "uid": 0,
+          "gid": 978,
+          "mode": "0o660"
+        }
+      },
+      "allow_initialize": false,
+      "phase": "ready",
+      "odoo_memory_mb": 1024,
+      "odoo_cpus": 1
+    },
+    {
+      "instance": "judge3",
+      "generation": "b63dc85164db4d8cbea28563da9eff43",
+      "image_id": "sha256:df04859629c5fade4094698b5547984d7dcd674eabce5348365fd597fcc891fa",
+      "api_uid": 981,
+      "assistant_uid": 980,
+      "permissions": {
+        "runtime_config": {
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o600"
+        },
+        "environment": {
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o600"
+        },
+        "backup_config": {
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o600"
+        },
+        "case_directory": {
+          "uid": 981,
+          "gid": 976,
+          "mode": "0o700"
+        },
+        "executor_socket": {
+          "uid": 0,
+          "gid": 976,
+          "mode": "0o660"
+        }
+      },
+      "allow_initialize": false,
+      "phase": "ready",
+      "odoo_memory_mb": 1024,
+      "odoo_cpus": 1
+    },
+    {
+      "instance": "judge4",
+      "generation": "6a13a9775bac4716bd6b102e567776a4",
+      "image_id": "sha256:df04859629c5fade4094698b5547984d7dcd674eabce5348365fd597fcc891fa",
+      "api_uid": 979,
+      "assistant_uid": 978,
+      "permissions": {
+        "runtime_config": {
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o600"
+        },
+        "environment": {
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o600"
+        },
+        "backup_config": {
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o600"
+        },
+        "case_directory": {
+          "uid": 979,
+          "gid": 974,
+          "mode": "0o700"
+        },
+        "executor_socket": {
+          "uid": 0,
+          "gid": 974,
+          "mode": "0o660"
+        }
+      },
+      "allow_initialize": false,
+      "phase": "ready",
+      "odoo_memory_mb": 1024,
+      "odoo_cpus": 1
+    },
+    {
+      "instance": "judge5",
+      "generation": "8386383ffe2141c5bf79962b57710f61",
+      "image_id": "sha256:df04859629c5fade4094698b5547984d7dcd674eabce5348365fd597fcc891fa",
+      "api_uid": 977,
+      "assistant_uid": 976,
+      "permissions": {
+        "runtime_config": {
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o600"
+        },
+        "environment": {
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o600"
+        },
+        "backup_config": {
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o600"
+        },
+        "case_directory": {
+          "uid": 977,
+          "gid": 972,
+          "mode": "0o700"
+        },
+        "executor_socket": {
+          "uid": 0,
+          "gid": 972,
+          "mode": "0o660"
+        }
+      },
+      "allow_initialize": false,
+      "phase": "ready",
+      "odoo_memory_mb": 1024,
+      "odoo_cpus": 1
+    }
+  ],
+  "distinct_unix_identities": true,
+  "private_file_permissions_passed": true,
+  "model_calls": false,
+  "business_writes": false
+}

@@ -88,37 +88,84 @@ brand assets are copied into this public snapshot. The Apache License 2.0 terms
 of those projects continue to apply to those projects.
 
 ================================================================================
-assistant-ui
+DeepSeek Harness (DSH)
 ================================================================================
 
-Package: @assistant-ui/react 0.15.30
-Upstream: https://github.com/assistant-ui/assistant-ui
+Upstream: https://github.com/deepseek-ai/deepseek-harness
+Python SDK: deepseek-harness-sdk 0.2.1rc2
+CLI: @deepseek-ai/dsh 0.2.1-rc.2
+Client packages and ported UI source: 0.2.1-rc.2
 License: MIT
+Copyright (c) 2026 DeepSeek
 
-assistant-ui provides the chat runtime used by the ForgeFlow web client. Its
-package metadata and license are resolved through the dependency lock.
+ForgeFlow uses the DSH Python SDK and CLI for its assistant runtime. Both web
+clients use @deepseek-ai/dsh-client-store, @deepseek-ai/dsh-util-code-language,
+@deepseek-ai/dsh-util-workspace-path, and @deepseek-ai/dsh-client-ui-primitives
+(the latter is installed under the alias @forgeflow/dsh-primitives).
+
+ReasoningRow, DisclosureRow, TextShimmer, and their CSS modules were adapted
+from DSH for ForgeFlow's React state and stream data. Their source provenance
+and complete MIT notices are retained in web/src/dsh/README.md,
+web/src/dsh/LICENSE, web-public/src/dsh/README.md, and
+web-public/src/dsh/LICENSE. Installed SDK/CLI/client packages retain their own
+license files. The current clients no longer depend on @assistant-ui/react.
 
 ================================================================================
 Nebius Token Factory and NVIDIA Nemotron
 ================================================================================
 
-ForgeFlow calls models served by Nebius Token Factory, including
-nvidia/Nemotron-3.5-Super-VL. The model service, model weights, and associated
-names and trademarks belong to their respective owners. No model weights,
-provider credentials, or service endpoints requiring a secret are distributed
-in this public snapshot. Mentioning a model or provider does not imply an
-endorsement or a grant of rights beyond the applicable service terms.
+ForgeFlow calls the hosted Nebius Token Factory API at
+https://api.tokenfactory.nebius.com/v1, using the configured model identifier
+nvidia/Nemotron-3.5-Super-VL by default. This repository contains API integration
+code and configuration examples, not model weights or provider credentials.
+
+Current official service documents (checked 2026-10-25):
+https://docs.nebius.com/legal/agreement
+https://docs.nebius.com/legal/token-factory
+https://docs.nebius.com/legal/aup
+
+The legacy Token Factory terms page states that the updated agreement applies
+from 2026-09-28 except for the specified customers with an active reserve on
+2026-09-15, whose legacy terms last until that reserve expires:
+https://docs.tokenfactory.nebius.com/legal/terms-of-service
+The applicable account agreement and incorporated model terms govern service
+use; this notice does not establish which reserve or order terms an account has.
+
+NVIDIA's official Nemotron-3.5-Super-VL BF16 model card identifies OpenMDW-1.1:
+https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-BF16
+https://openmdw.ai/license/1-1/
+
+Hosted inference and redistribution of model materials are distinct uses. If
+model materials are distributed separately, OpenMDW-1.1 requires retaining
+the agreement and applicable copyright and origin notices. The model card
+does not identify the precise weight revision or precision used by Nebius's
+hosted alias. Provider/model names and trademarks remain their owners'; these
+references do not imply endorsement or relicense third-party material.
 
 ================================================================================
-Odoo and Google OR-Tools
+Odoo, PostgreSQL, and Google OR-Tools
 ================================================================================
 
-Odoo is used as an external container image for the task environment and is not
-redistributed here. Google OR-Tools is an optional dependency used by the
-planning tools and is resolved through the dependency lock. Their upstream
-licenses and notices continue to apply to those projects.
+Odoo 19 Community is used as an external container base for the task
+environment. Its core is licensed under LGPL-3.0; bundled third-party code may
+have separate licenses:
+https://github.com/odoo/odoo/blob/19.0/LICENSE
+
+The VPS task image installs PostgreSQL 18 from the PostgreSQL package
+repository. PostgreSQL is licensed under the PostgreSQL License:
+https://www.postgresql.org/about/licence/
+
+This Git repository contains build instructions, not the Odoo/PostgreSQL
+binaries. Their installed source, package, and image notices remain
+applicable; publishing a built image is a separate distribution to review.
+Google OR-Tools is an optional Apache-2.0 dependency used by the planning tools
+and is resolved through the dependency lock. Their upstream licenses and
+notices continue to apply to those projects.
 
 ================================================================================
 
-For the complete dependency graph, see pyproject.toml and uv.lock. Third-party
-packages remain subject to their own licenses.
+For Python dependencies see pyproject.toml and uv.lock; for JavaScript see
+web/package-lock.json, web-public/package-lock.json, and
+deploy/vps/dsh/package-lock.json. THIRD_PARTY_NOTICES.md records the scope and
+sources of this review. Third-party packages remain subject to their own
+licenses; this notice is not a complete audit of all transitive dependencies.

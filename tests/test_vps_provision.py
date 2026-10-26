@@ -217,3 +217,39 @@ def test_readiness_rejects_a_restart_during_setup(monkeypatch):
     monkeypatch.setattr(provisioner, "run", lambda *args, **_kwargs: subprocess.CompletedProcess(args, 1))
     with pytest.raises(RuntimeError, match="odoo_restarted_during_readiness"):
         provisioner.wait_ready("test", initializing=True)
+
+
+def test_judge_container_creation_applies_fixed_cpu_and_memory_limits(sandbox):
+    sandbox.config.update(odoo_memory_mb=1024, odoo_cpus=1)
+    sandbox.container["HostConfig"].update(Memory=1024 ** 3, MemorySwap=1024 ** 3,
+                                            NanoCpus=1_000_000_000)
+    sandbox.holder["container"] = None
+    invoke(sandbox)
+    create = next(args for args, _kwargs in sandbox.calls if args[:2] == ("docker", "create"))
+    assert create[create.index("--memory") + 1] == str(1024 ** 3)
+    assert create[create.index("--memory-swap") + 1] == str(1024 ** 3)
+    assert create[create.index("--cpus") + 1] == "1"
+
+
+@pytest.mark.parametrize("property", ["Memory", "MemorySwap", "NanoCpus"])
+def test_changed_resource_limits_fail_before_start_without_updating_container(sandbox, property):
+    sandbox.config.update(odoo_memory_mb=1024, odoo_cpus=1)
+    sandbox.container["HostConfig"].update(Memory=1024 ** 3, MemorySwap=1024 ** 3,
+                                            NanoCpus=1_000_000_000)
+    sandbox.container["HostConfig"][property] = 0
+    write_json(sandbox.root / "vps-instance.json", sandbox.record)
+    with pytest.raises(RuntimeError, match="odoo_container_binding_changed"):
+        invoke(sandbox)
+    assert not any(args[:2] in (("docker", "start"), ("docker", "update"))
+                   for args, _kwargs in sandbox.calls)
+
+
+@pytest.mark.parametrize("limits", [
+    {"odoo_memory_mb": True}, {"odoo_memory_mb": -1}, {"odoo_memory_mb": 1},
+    {"odoo_cpus": True}, {"odoo_cpus": float("nan")}, {"odoo_cpus": -1},
+])
+def test_invalid_resource_budgets_are_rejected_before_docker_mutation(sandbox, limits):
+    sandbox.config.update(limits)
+    with pytest.raises(RuntimeError, match="invalid_odoo_"):
+        invoke(sandbox)
+    assert not sandbox.calls

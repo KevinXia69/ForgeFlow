@@ -24,6 +24,8 @@ from pathlib import Path
 
 API_USER = "forgeflow-api"
 DSH_USER = "forgeflow-dsh"
+INSTANCE_NAME = re.compile(r"[a-z][a-z0-9-]{0,31}")
+UNIX_USER = re.compile(r"[a-z_][a-z0-9_-]{0,31}")
 API_ENV_KEYS = frozenset({
     "FORGEFLOW_SESSION_SECRET", "FORGEFLOW_INVITE_CODES", "FORGEFLOW_SESSION_TTL_SEC",
     "FORGEFLOW_TRUSTED_HOSTS", "FORGEFLOW_MODEL_PROFILE", "FORGEFLOW_MODEL_BASE_URL",
@@ -55,6 +57,25 @@ def configuration(value: dict) -> dict:
     if not required <= set(value) or value["scenario"] not in {"A", "B"}:
         raise ValueError("invalid_runtime_configuration")
     result = dict(value)
+    instance = result.setdefault("instance_name", "default")
+    if not isinstance(instance, str) or INSTANCE_NAME.fullmatch(instance) is None:
+        raise ValueError("invalid_runtime_instance")
+    if instance != "default" and not {
+        "api_user", "dsh_user", "dsh_root", "dsh_patch", "dsh_launcher",
+    } <= set(value):
+        raise ValueError("isolated_runtime_identity_and_paths_required")
+    for key, default in (("api_user", API_USER), ("dsh_user", DSH_USER)):
+        user = result.setdefault(key, default)
+        if not isinstance(user, str) or UNIX_USER.fullmatch(user) is None or user == "root":
+            raise ValueError("invalid_runtime_identity")
+    if (result["api_user"] == result["dsh_user"] or
+            (instance != "default" and (result["api_user"] == API_USER or result["dsh_user"] == DSH_USER))):
+        raise ValueError("isolated_runtime_identities_required")
+    result.setdefault("service_unit", "forgeflow-runtime.service" if instance == "default"
+                      else f"forgeflow-runtime@{instance}.service")
+    if (not isinstance(result["service_unit"], str) or
+            re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.@-]*\.service", result["service_unit"]) is None):
+        raise ValueError("invalid_runtime_service_unit")
     for key in ("repo_root", "python", "sandbox_root", "case_root", "data_root", "socket"):
         if not isinstance(value[key], str) or not Path(value[key]).is_absolute():
             raise ValueError("runtime_paths_must_be_absolute")
@@ -66,11 +87,35 @@ def configuration(value: dict) -> dict:
         "dsh_cli": "/opt/forgeflow/dsh/node_modules/@deepseek-ai/dsh/lib/bin.js",
         "dsh_patch": "/etc/forgeflow/dsh.patch.json",
         "dsh_node": "/usr/local/bin/node",
+        "dsh_config": str(assistant_config_path(result["dsh_user"])),
+        "dsh_launcher": "/usr/local/bin/forgeflow-dsh-node",
     }.items():
         result.setdefault(key, default)
         if not isinstance(result[key], str) or not Path(result[key]).is_absolute():
             raise ValueError("runtime_paths_must_be_absolute")
+    if Path(result["dsh_config"]) != assistant_config_path(result["dsh_user"]):
+        raise ValueError("assistant_configuration_identity_mismatch")
+    if "lifecycle_root" in result and (not isinstance(result["lifecycle_root"], str)
+                                       or not Path(result["lifecycle_root"]).is_absolute()):
+        raise ValueError("runtime_paths_must_be_absolute")
     return result
+
+
+def assistant_config_path(user: str) -> Path:
+    """Map the effective assistant UID to one fixed, root-controlled config."""
+    if user == DSH_USER:
+        return Path("/etc/forgeflow/dsh.json")
+    if re.fullmatch(r"forgeflow-dsh-[a-z0-9][a-z0-9-]{0,17}", user) is None:
+        raise ValueError("invalid_assistant_identity")
+    return Path("/etc/forgeflow/assistants") / (user + ".json")
+
+
+def lifecycle_root(config: dict) -> Path:
+    if config.get("lifecycle_root"):
+        return Path(config["lifecycle_root"])
+    root = Path(config["repo_root"]) / ".runtime/lifecycle"
+    instance = config.get("instance_name", "default")
+    return root if instance == "default" else root / "instances" / instance
 
 
 def owned_directory(path: Path, uid: int, gid: int, mode: int) -> None:
@@ -130,10 +175,14 @@ def dsh_patch(config: dict, model: str, base_url: str) -> list:
 
 
 def prepare_layout(config: dict) -> tuple[dict, dict]:
-    api, dsh = pwd.getpwnam(API_USER), pwd.getpwnam(DSH_USER)
+    api, dsh = pwd.getpwnam(config["api_user"]), pwd.getpwnam(config["dsh_user"])
+    if (api.pw_uid == 0 or dsh.pw_uid == 0 or api.pw_uid == dsh.pw_uid
+            or api.pw_gid == 0 or dsh.pw_gid == 0 or api.pw_gid == dsh.pw_gid):
+        raise ValueError("isolated_runtime_identities_required")
     # Only generated public compositions are readable here. Secret inputs keep
     # their individual 0600/0400 modes while DSH can traverse this directory.
     owned_directory(Path("/etc/forgeflow"), 0, 0, 0o755)
+    owned_directory(Path(config["dsh_config"]).parent, 0, 0, 0o755)
     sandbox = Path(config["sandbox_root"])
     owned_directory(sandbox, 0, 0, 0o700)
     for name in ("store", "approvals"):
@@ -169,12 +218,12 @@ def prepare_layout(config: dict) -> tuple[dict, dict]:
     if not model or not base_url.startswith("https://"):
         raise ValueError("model_endpoint_required")
     write_json(Path(config["dsh_patch"]), dsh_patch(config, model, base_url))
-    write_json(Path("/etc/forgeflow/dsh.json"), {
+    write_json(Path(config["dsh_config"]), {
         "cli": config["dsh_cli"], "node": config["dsh_node"], "home": str(shared / "home"),
         "workspace": str(shared / "workspace"), "evidence_root": str(shared / "evidence"),
-        "patch": config["dsh_patch"],
+        "patch": config["dsh_patch"], "api_user": config["api_user"], "dsh_user": config["dsh_user"],
     })
-    for name in (config["dsh_cli"], config["dsh_node"], "/usr/local/bin/forgeflow-dsh-node"):
+    for name in (config["dsh_cli"], config["dsh_node"], config["dsh_launcher"]):
         if not Path(name).is_file():
             raise ValueError("assistant_runtime_missing")
     return {"uid": api.pw_uid, "gid": api.pw_gid}, environment
@@ -197,7 +246,7 @@ def api_environment(config: dict, source: dict | None = None) -> dict[str, str]:
         "FORGEFLOW_LOCAL_REVISIONS": "1", "FORGEFLOW_LOCAL_CANDIDATES": "0",
         "FORGEFLOW_DSH_ENABLED": "1", "FORGEFLOW_DSH_SDK": "1",
         "FORGEFLOW_DSH_CLI": config["dsh_cli"], "FORGEFLOW_DSH_PATCH": config["dsh_patch"],
-        "FORGEFLOW_DSH_NODE": "/usr/local/bin/forgeflow-dsh-node",
+        "FORGEFLOW_DSH_NODE": config["dsh_launcher"],
         "FORGEFLOW_DSH_HOME": str(shared / "home"), "FORGEFLOW_DSH_WORKSPACE": str(shared / "workspace"),
         "FORGEFLOW_ASSISTANT_EVIDENCE_ROOT": str(shared / "evidence"),
         "FORGEFLOW_DSH_MODEL": source.get("FORGEFLOW_MODEL_NAME", ""),
@@ -210,7 +259,7 @@ def executor_command(config: dict) -> list[str]:
     root = Path(config["sandbox_root"])
     return [config["python"], "-m", "forgeflow.executor.main", "--socket", config["socket"],
             "--store", str(root / "store"), "--bundle", str(root / "planner"),
-            "--key", str(root / "api_key"), "--agent-user", API_USER,
+            "--key", str(root / "api_key"), "--agent-user", config["api_user"],
             "--approval-store", str(root / "approvals"), "--policy-file", str(root / "task-policy.json"),
             "--product-verifier-container", config["container"], "--database", "bench",
             "--host", "127.0.0.1", "--port", str(config["odoo_port"])]
@@ -312,7 +361,7 @@ def run(config_path: Path) -> int:
     if os.geteuid() != 0:
         raise ValueError("supervisor_requires_root")
     config = configuration(trusted_json(config_path))
-    lock_root = Path(config["repo_root"]) / ".runtime/lifecycle"
+    lock_root = lifecycle_root(config)
     owned_directory(lock_root, 0, 0, 0o700)
     descriptor = os.open(lock_root / "workbench.lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
     try:

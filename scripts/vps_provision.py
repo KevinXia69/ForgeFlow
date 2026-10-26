@@ -10,6 +10,7 @@ import argparse
 import fcntl
 import importlib.util
 import json
+import math
 import os
 import re
 import stat
@@ -149,6 +150,18 @@ def load_workbench(repo, config):
     return module
 
 
+def resource_limits(config):
+    """Optional immutable Docker budgets; zero preserves the original runtime."""
+    memory = config.get("odoo_memory_mb", 0)
+    cpus = config.get("odoo_cpus", 0)
+    if type(memory) is not int or memory < 0 or memory > 1024 * 1024 or (memory and memory < 256):
+        raise RuntimeError("invalid_odoo_memory_limit")
+    if (type(cpus) not in (int, float) or not math.isfinite(cpus)
+            or cpus < 0 or cpus > 64 or (cpus and cpus < 0.1)):
+        raise RuntimeError("invalid_odoo_cpu_limit")
+    return {"Memory": memory * 1024 * 1024, "NanoCpus": round(cpus * 1_000_000_000)}
+
+
 def provision(config):
     if os.geteuid() != 0:
         raise RuntimeError("provision_requires_root")
@@ -178,6 +191,7 @@ def provision(config):
 
 
 def _locked_provision(config, repo, sandbox, container, port):
+    limits = resource_limits(config)
     record_path = sandbox / "vps-instance.json"
     image_name = config.get("odoo_image", "forgeflow-odoo:vps1")
     image_id = json.loads(run("docker", "image", "inspect", image_name).stdout)[0]["Id"]
@@ -227,6 +241,10 @@ def _locked_provision(config, repo, sandbox, container, port):
                 "-e", "FORGEFLOW_INSTANCE_ID=" + record["instance_id"],
                 "-e", "FORGEFLOW_GENERATION=" + record["generation"],
                 "-p", f"127.0.0.1:{port}:8069"]
+        if limits["Memory"]:
+            args += ["--memory", str(limits["Memory"]), "--memory-swap", str(limits["Memory"])]
+        if limits["NanoCpus"]:
+            args += ["--cpus", format(limits["NanoCpus"] / 1_000_000_000, ".9g")]
         if record["phase"] == "created":
             args += ["-e", "FORGEFLOW_ALLOW_INITIALIZE=1"]
         run(*args, image_id)
@@ -245,6 +263,9 @@ def _locked_provision(config, repo, sandbox, container, port):
                    for row in info["Mounts"])
             or info["HostConfig"].get("Privileged") is True
             or info["HostConfig"].get("NetworkMode") == "host"
+            or info["HostConfig"].get("Memory", 0) != limits["Memory"]
+            or info["HostConfig"].get("NanoCpus", 0) != limits["NanoCpus"]
+            or (limits["Memory"] and info["HostConfig"].get("MemorySwap") != limits["Memory"])
             or (info["HostConfig"].get("RestartPolicy") or {}).get("Name") != "no"):
         raise RuntimeError("odoo_container_binding_changed")
     if not info["State"]["Running"]:

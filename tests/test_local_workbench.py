@@ -915,6 +915,32 @@ def test_retained_setup_marker_does_not_skip_database_readiness(launcher, monkey
     assert len(attempts) == 2
 
 
+@pytest.mark.parametrize("initialized", [False, True])
+def test_long_first_boot_budget_does_not_extend_resume(launcher, monkeypatch, initialized):
+    from types import SimpleNamespace
+    monkeypatch.setattr(launcher, '_instance', lambda **_: {'ready': initialized})
+    times = iter([0, 181])
+    monkeypatch.setattr(launcher.time, 'monotonic', lambda: next(times))
+    monkeypatch.setattr(launcher, '_docker', lambda *args, **kwargs:
+                        SimpleNamespace(returncode=0, stdout='1\n'))
+    if initialized:
+        with pytest.raises(launcher.lifecycle.LifecycleError, match='sandbox_setup_timeout'):
+            launcher._wait_sandbox()
+    else:
+        launcher._wait_sandbox()
+
+
+def test_stopped_first_boot_fails_without_waiting_for_full_budget(launcher, monkeypatch):
+    from types import SimpleNamespace
+    monkeypatch.setattr(launcher, '_instance', lambda **_: {'ready': False})
+    def docker(*args, **kwargs):
+        return SimpleNamespace(returncode=1 if args[0] == 'exec' else 0, stdout='false\n')
+    monkeypatch.setattr(launcher, '_docker', docker)
+    monkeypatch.setattr(launcher.time, 'sleep', lambda _: pytest.fail('must fail promptly'))
+    with pytest.raises(launcher.lifecycle.LifecycleError, match='sandbox_stopped_before_ready'):
+        launcher._wait_sandbox()
+
+
 def test_erp_readiness_uses_bounded_read_only_probe_without_provider_credentials(launcher, monkeypatch):
     from types import SimpleNamespace
     calls = []

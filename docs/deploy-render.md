@@ -1,5 +1,11 @@
 # Deploy ForgeFlow on Render
 
+**Historical runbook.** The Render review service is suspended. The current
+public product uses the [Linux VPS deployment](en/deployment.md) and
+[isolated judge workspaces](../deploy/vps/REVIEWERS.md). The source repository is
+now public. The configuration and read-only restrictions below describe the
+former review deployment, not the current executable demo.
+
 This is the runbook for a hosted, read-only ForgeFlow review instance: one
 Render web service built from `deploy/Dockerfile.api`, serving the React
 workbench and the curated `demo-runs/` subset. The service has no model key and

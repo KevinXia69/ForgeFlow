@@ -5,7 +5,24 @@ Harness checks are reproducible from the pinned commit. Hosted observations are
 identified separately as retained operator captures, with their source/image
 binding and unmeasured boundaries.
 
-## Current hosted acceptance
+## Independent reviewers and local installation
+
+The [October 25 Pacific / October 26 UTC reviewer record](evidence/2026-10-26-reviewers/README.md)
+tests two independent disposable environments with concurrent preparation,
+real model answers, approved ERP execution, original acceptance, duplicate
+approval and cross-instance isolation. It measures unchanged row counts and
+ordered row-content hashes in twelve named business tables before and after
+preparation and repeated approval; it does not claim to hash every Odoo table.
+Public routing and the five untouched official workspaces have separate checks
+in that record. The deployment targets sequential judges with occasional
+two-person overlap, not five simultaneous heavy operations.
+
+The [isolated local installation record](evidence/2026-10-25-local-bootstrap/README.md)
+documents a new image and database, locked dependency installation, real case
+planning and preservation after stop/resume. Its original failures and fixes
+are retained. It did not approve business writes or call a model.
+
+## Initial hosted acceptance
 
 The [2026-10-25 VPS record](evidence/2026-10-25-vps/README.md) publishes the new
 case, exact-plan approval, real Odoo writes/readback, original reward, isolated

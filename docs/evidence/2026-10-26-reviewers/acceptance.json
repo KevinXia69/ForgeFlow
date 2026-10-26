@@ -1,0 +1,4962 @@
+{
+  "schema": 1,
+  "date_utc": "2026-10-26",
+  "evidence_kind": "operator_capture_allowlist_not_independent_attestation",
+  "execution_kind": "live_odoo_sandbox",
+  "data_kind": "synthetic_erp_bench_non_production",
+  "data_profile": "planning-metadata-v1",
+  "backend_transport": "authenticated_loopback_https_host_origin",
+  "gateway_tls_validation": "separate_acceptance_required",
+  "concurrency": "two_independent_reviewers_per_prepare_model_approve_stage",
+  "official_judge_invitations_used": false,
+  "instances": {
+    "qa1": {
+      "case_id": "079279148c138f11d40704ac6a086208",
+      "plan_id": "b856f379dc9d4829b891bcdf3ebae215debe225e517d7580ca49fdb543189278",
+      "before_approval": {
+        "state": "awaiting_approval",
+        "approval": null,
+        "execution": null,
+        "updated_at": "2026-10-26T02:47:00.673663+00:00"
+      },
+      "business_before_prepare": {
+        "purchase_order": {
+          "count": 6,
+          "rows_md5": "5011146393bf4aab17b212e8f2fda4ae"
+        },
+        "purchase_order_line": {
+          "count": 6,
+          "rows_md5": "58853831da374137c1d940dc168ac479"
+        },
+        "mrp_production": {
+          "count": 4,
+          "rows_md5": "f94715ba54f4c532805614acc5ac5b64"
+        },
+        "stock_picking": {
+          "count": 11,
+          "rows_md5": "83390a25e1ae04e8f4acd2a0d59fb29a"
+        },
+        "stock_move": {
+          "count": 81,
+          "rows_md5": "c35ae3f0381a11df636c086d0de9c03b"
+        },
+        "stock_move_line": {
+          "count": 69,
+          "rows_md5": "f5fdd194103798e42d42e2bd02d40114"
+        },
+        "mrp_workorder": {
+          "count": 4,
+          "rows_md5": "6d519695cf9eae3424ef61e8311d79f5"
+        },
+        "mrp_workcenter": {
+          "count": 2,
+          "rows_md5": "36c4860bca50c9a7eb66942283009945"
+        },
+        "product_product": {
+          "count": 55,
+          "rows_md5": "cc4ce91a01217b622770853eed08b012"
+        },
+        "product_template": {
+          "count": 55,
+          "rows_md5": "f275411401002dd00c1c5e6c2ee65f65"
+        },
+        "stock_quant": {
+          "count": 108,
+          "rows_md5": "63d58c7d94db11afbcb6da21fe40d8a2"
+        },
+        "res_partner": {
+          "count": 122,
+          "rows_md5": "09f07c3edf91f30e37a3f0ea9f592f98"
+        }
+      },
+      "business_after_prepare": {
+        "purchase_order": {
+          "count": 6,
+          "rows_md5": "5011146393bf4aab17b212e8f2fda4ae"
+        },
+        "purchase_order_line": {
+          "count": 6,
+          "rows_md5": "58853831da374137c1d940dc168ac479"
+        },
+        "mrp_production": {
+          "count": 4,
+          "rows_md5": "f94715ba54f4c532805614acc5ac5b64"
+        },
+        "stock_picking": {
+          "count": 11,
+          "rows_md5": "83390a25e1ae04e8f4acd2a0d59fb29a"
+        },
+        "stock_move": {
+          "count": 81,
+          "rows_md5": "c35ae3f0381a11df636c086d0de9c03b"
+        },
+        "stock_move_line": {
+          "count": 69,
+          "rows_md5": "f5fdd194103798e42d42e2bd02d40114"
+        },
+        "mrp_workorder": {
+          "count": 4,
+          "rows_md5": "6d519695cf9eae3424ef61e8311d79f5"
+        },
+        "mrp_workcenter": {
+          "count": 2,
+          "rows_md5": "36c4860bca50c9a7eb66942283009945"
+        },
+        "product_product": {
+          "count": 55,
+          "rows_md5": "cc4ce91a01217b622770853eed08b012"
+        },
+        "product_template": {
+          "count": 55,
+          "rows_md5": "f275411401002dd00c1c5e6c2ee65f65"
+        },
+        "stock_quant": {
+          "count": 108,
+          "rows_md5": "63d58c7d94db11afbcb6da21fe40d8a2"
+        },
+        "res_partner": {
+          "count": 122,
+          "rows_md5": "09f07c3edf91f30e37a3f0ea9f592f98"
+        }
+      },
+      "preparation_measurement_scope": "Exact row counts and ordered row-content hashes for the twelve listed business tables; not every Odoo table.",
+      "execution": {
+        "state": "succeeded",
+        "status": "succeeded",
+        "writes": [
+          {
+            "document": "P00006",
+            "kind": "cancel_po",
+            "quantity": 3
+          },
+          {
+            "document": "new:purchase.order:0006",
+            "kind": "create_po",
+            "quantity": 3
+          }
+        ],
+        "readback": {
+          "execution_validated": true,
+          "receipt_sha256": "3606c8590e68bc9051559681e80ec93b6003164fb789c66cd55012f176afdfa2",
+          "readback_sha256": "fe18a68a0466fe3ae9f267288d40a7b9b32a50723bc60b393516b38b08cfd376",
+          "verified_at": "2026-10-26T02:53:56.017846+00:00",
+          "verified_steps": 7
+        },
+        "verifier": {
+          "status": "passed",
+          "evaluation_scope": "product_original_verifier",
+          "evaluation_valid": true,
+          "strict_success": true,
+          "original_passed": true,
+          "verification_attempt": "3389cc8eeb8744e9a4a9297f24558c1e",
+          "reward_sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c",
+          "score": 100.0,
+          "applicable_rule_count": 51,
+          "passed_rule_count": 51,
+          "failed_rule_count": 0
+        }
+      },
+      "before_duplicate": {
+        "purchase_order": {
+          "count": 7,
+          "rows_md5": "b15d0944578e57c33507b16c29d46f7d"
+        },
+        "purchase_order_line": {
+          "count": 7,
+          "rows_md5": "862680821ef38bbe5c36097059399a5e"
+        },
+        "mrp_production": {
+          "count": 4,
+          "rows_md5": "e6c5b17a6f225b1c7de52d9bfe797127"
+        },
+        "stock_picking": {
+          "count": 12,
+          "rows_md5": "3d77128054a32ef40ba0ede711bd850d"
+        },
+        "stock_move": {
+          "count": 82,
+          "rows_md5": "5b758782de210b40254c9d1729b928b5"
+        },
+        "stock_move_line": {
+          "count": 69,
+          "rows_md5": "d3b6f997fb5610afe8d37bb4e96ec646"
+        },
+        "mrp_workorder": {
+          "count": 4,
+          "rows_md5": "43e6ef569a331975d13a09590b5e4d4b"
+        },
+        "mrp_workcenter": {
+          "count": 2,
+          "rows_md5": "36c4860bca50c9a7eb66942283009945"
+        },
+        "product_product": {
+          "count": 55,
+          "rows_md5": "cc4ce91a01217b622770853eed08b012"
+        },
+        "product_template": {
+          "count": 55,
+          "rows_md5": "f275411401002dd00c1c5e6c2ee65f65"
+        },
+        "stock_quant": {
+          "count": 108,
+          "rows_md5": "63d58c7d94db11afbcb6da21fe40d8a2"
+        },
+        "res_partner": {
+          "count": 122,
+          "rows_md5": "09f07c3edf91f30e37a3f0ea9f592f98"
+        }
+      },
+      "after_duplicate": {
+        "purchase_order": {
+          "count": 7,
+          "rows_md5": "b15d0944578e57c33507b16c29d46f7d"
+        },
+        "purchase_order_line": {
+          "count": 7,
+          "rows_md5": "862680821ef38bbe5c36097059399a5e"
+        },
+        "mrp_production": {
+          "count": 4,
+          "rows_md5": "e6c5b17a6f225b1c7de52d9bfe797127"
+        },
+        "stock_picking": {
+          "count": 12,
+          "rows_md5": "3d77128054a32ef40ba0ede711bd850d"
+        },
+        "stock_move": {
+          "count": 82,
+          "rows_md5": "5b758782de210b40254c9d1729b928b5"
+        },
+        "stock_move_line": {
+          "count": 69,
+          "rows_md5": "d3b6f997fb5610afe8d37bb4e96ec646"
+        },
+        "mrp_workorder": {
+          "count": 4,
+          "rows_md5": "43e6ef569a331975d13a09590b5e4d4b"
+        },
+        "mrp_workcenter": {
+          "count": 2,
+          "rows_md5": "36c4860bca50c9a7eb66942283009945"
+        },
+        "product_product": {
+          "count": 55,
+          "rows_md5": "cc4ce91a01217b622770853eed08b012"
+        },
+        "product_template": {
+          "count": 55,
+          "rows_md5": "f275411401002dd00c1c5e6c2ee65f65"
+        },
+        "stock_quant": {
+          "count": 108,
+          "rows_md5": "63d58c7d94db11afbcb6da21fe40d8a2"
+        },
+        "res_partner": {
+          "count": 122,
+          "rows_md5": "09f07c3edf91f30e37a3f0ea9f592f98"
+        }
+      },
+      "duplicate_idempotent": true,
+      "assistant": {
+        "mode": "harness",
+        "answer_present": true
+      },
+      "timing_seconds": {
+        "prepare_seconds": 23.66355900599956,
+        "model_seconds": 13.334008496000024,
+        "approve_seconds": 327.20224449599846
+      }
+    },
+    "qa2": {
+      "case_id": "247a684a65c7eb994990bbdd3ab2394e",
+      "plan_id": "91fe4d9840fc23df3f94c0376fb484844c8ff526e80637f4e5eda27878c0cbcd",
+      "before_approval": {
+        "state": "awaiting_approval",
+        "approval": null,
+        "execution": null,
+        "updated_at": "2026-10-26T02:47:00.803894+00:00"
+      },
+      "business_before_prepare": {
+        "purchase_order": {
+          "count": 6,
+          "rows_md5": "fbe363c4bc0033a61bf0a59aa4589e5f"
+        },
+        "purchase_order_line": {
+          "count": 6,
+          "rows_md5": "3212223533b7bb9eec084c1e55cfe510"
+        },
+        "mrp_production": {
+          "count": 4,
+          "rows_md5": "d558fb064c119c5a06b6dac2c07cbde6"
+        },
+        "stock_picking": {
+          "count": 11,
+          "rows_md5": "4a96b3bae248f2a7074220fa9cc21c47"
+        },
+        "stock_move": {
+          "count": 81,
+          "rows_md5": "343cd8a340151fb9d5f7b34bab0a9444"
+        },
+        "stock_move_line": {
+          "count": 69,
+          "rows_md5": "00ff706525d51f56578a1f3440551f5b"
+        },
+        "mrp_workorder": {
+          "count": 4,
+          "rows_md5": "5dd2fac880ccbac68700b8165f18c1ab"
+        },
+        "mrp_workcenter": {
+          "count": 2,
+          "rows_md5": "9b67bea85e032fcd38706ed75451c9bf"
+        },
+        "product_product": {
+          "count": 55,
+          "rows_md5": "920e42b2baca370d38ed9f72d3e3ad47"
+        },
+        "product_template": {
+          "count": 55,
+          "rows_md5": "0e5c54fc9868fd75a12d2e43c47f7b73"
+        },
+        "stock_quant": {
+          "count": 108,
+          "rows_md5": "8f78effecbbb707daefa7298fdcebd9c"
+        },
+        "res_partner": {
+          "count": 122,
+          "rows_md5": "8b98b84a9d8cfeaeafe926c4de025d1d"
+        }
+      },
+      "business_after_prepare": {
+        "purchase_order": {
+          "count": 6,
+          "rows_md5": "fbe363c4bc0033a61bf0a59aa4589e5f"
+        },
+        "purchase_order_line": {
+          "count": 6,
+          "rows_md5": "3212223533b7bb9eec084c1e55cfe510"
+        },
+        "mrp_production": {
+          "count": 4,
+          "rows_md5": "d558fb064c119c5a06b6dac2c07cbde6"
+        },
+        "stock_picking": {
+          "count": 11,
+          "rows_md5": "4a96b3bae248f2a7074220fa9cc21c47"
+        },
+        "stock_move": {
+          "count": 81,
+          "rows_md5": "343cd8a340151fb9d5f7b34bab0a9444"
+        },
+        "stock_move_line": {
+          "count": 69,
+          "rows_md5": "00ff706525d51f56578a1f3440551f5b"
+        },
+        "mrp_workorder": {
+          "count": 4,
+          "rows_md5": "5dd2fac880ccbac68700b8165f18c1ab"
+        },
+        "mrp_workcenter": {
+          "count": 2,
+          "rows_md5": "9b67bea85e032fcd38706ed75451c9bf"
+        },
+        "product_product": {
+          "count": 55,
+          "rows_md5": "920e42b2baca370d38ed9f72d3e3ad47"
+        },
+        "product_template": {
+          "count": 55,
+          "rows_md5": "0e5c54fc9868fd75a12d2e43c47f7b73"
+        },
+        "stock_quant": {
+          "count": 108,
+          "rows_md5": "8f78effecbbb707daefa7298fdcebd9c"
+        },
+        "res_partner": {
+          "count": 122,
+          "rows_md5": "8b98b84a9d8cfeaeafe926c4de025d1d"
+        }
+      },
+      "preparation_measurement_scope": "Exact row counts and ordered row-content hashes for the twelve listed business tables; not every Odoo table.",
+      "execution": {
+        "state": "succeeded",
+        "status": "succeeded",
+        "writes": [
+          {
+            "document": "P00006",
+            "kind": "cancel_po",
+            "quantity": 3
+          },
+          {
+            "document": "new:purchase.order:0006",
+            "kind": "create_po",
+            "quantity": 3
+          }
+        ],
+        "readback": {
+          "execution_validated": true,
+          "receipt_sha256": "86076635297f3c7d5e25698286f42c69463a26d5c9bd13a3b6730d5d7e656463",
+          "readback_sha256": "135a69b030da426e8330e804aecae54453c0a2f127db09a63f836f99e7a2911d",
+          "verified_at": "2026-10-26T02:53:55.848976+00:00",
+          "verified_steps": 7
+        },
+        "verifier": {
+          "status": "passed",
+          "evaluation_scope": "product_original_verifier",
+          "evaluation_valid": true,
+          "strict_success": true,
+          "original_passed": true,
+          "verification_attempt": "bc98b8cc0363448cb1859749198ffd38",
+          "reward_sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c",
+          "score": 100.0,
+          "applicable_rule_count": 51,
+          "passed_rule_count": 51,
+          "failed_rule_count": 0
+        }
+      },
+      "before_duplicate": {
+        "purchase_order": {
+          "count": 7,
+          "rows_md5": "e5f67e0c1b9af2c30ee8356c7205b789"
+        },
+        "purchase_order_line": {
+          "count": 7,
+          "rows_md5": "bcd7bc72a4cb7810dc6afece89827a1f"
+        },
+        "mrp_production": {
+          "count": 4,
+          "rows_md5": "b0c99d7fba7b70b05aeaca3d9a23eed6"
+        },
+        "stock_picking": {
+          "count": 12,
+          "rows_md5": "d66968ec06cbb6fcd08a284768eddf8f"
+        },
+        "stock_move": {
+          "count": 82,
+          "rows_md5": "c4f42e4d937024439782d5fd78c47de5"
+        },
+        "stock_move_line": {
+          "count": 69,
+          "rows_md5": "be81e0af98c86a3d4649055d41380e16"
+        },
+        "mrp_workorder": {
+          "count": 4,
+          "rows_md5": "cc8642b518e82e886c2ecd8ee62ae7b5"
+        },
+        "mrp_workcenter": {
+          "count": 2,
+          "rows_md5": "9b67bea85e032fcd38706ed75451c9bf"
+        },
+        "product_product": {
+          "count": 55,
+          "rows_md5": "920e42b2baca370d38ed9f72d3e3ad47"
+        },
+        "product_template": {
+          "count": 55,
+          "rows_md5": "0e5c54fc9868fd75a12d2e43c47f7b73"
+        },
+        "stock_quant": {
+          "count": 108,
+          "rows_md5": "8f78effecbbb707daefa7298fdcebd9c"
+        },
+        "res_partner": {
+          "count": 122,
+          "rows_md5": "8b98b84a9d8cfeaeafe926c4de025d1d"
+        }
+      },
+      "after_duplicate": {
+        "purchase_order": {
+          "count": 7,
+          "rows_md5": "e5f67e0c1b9af2c30ee8356c7205b789"
+        },
+        "purchase_order_line": {
+          "count": 7,
+          "rows_md5": "bcd7bc72a4cb7810dc6afece89827a1f"
+        },
+        "mrp_production": {
+          "count": 4,
+          "rows_md5": "b0c99d7fba7b70b05aeaca3d9a23eed6"
+        },
+        "stock_picking": {
+          "count": 12,
+          "rows_md5": "d66968ec06cbb6fcd08a284768eddf8f"
+        },
+        "stock_move": {
+          "count": 82,
+          "rows_md5": "c4f42e4d937024439782d5fd78c47de5"
+        },
+        "stock_move_line": {
+          "count": 69,
+          "rows_md5": "be81e0af98c86a3d4649055d41380e16"
+        },
+        "mrp_workorder": {
+          "count": 4,
+          "rows_md5": "cc8642b518e82e886c2ecd8ee62ae7b5"
+        },
+        "mrp_workcenter": {
+          "count": 2,
+          "rows_md5": "9b67bea85e032fcd38706ed75451c9bf"
+        },
+        "product_product": {
+          "count": 55,
+          "rows_md5": "920e42b2baca370d38ed9f72d3e3ad47"
+        },
+        "product_template": {
+          "count": 55,
+          "rows_md5": "0e5c54fc9868fd75a12d2e43c47f7b73"
+        },
+        "stock_quant": {
+          "count": 108,
+          "rows_md5": "8f78effecbbb707daefa7298fdcebd9c"
+        },
+        "res_partner": {
+          "count": 122,
+          "rows_md5": "8b98b84a9d8cfeaeafe926c4de025d1d"
+        }
+      },
+      "duplicate_idempotent": true,
+      "assistant": {
+        "mode": "harness",
+        "answer_present": true
+      },
+      "timing_seconds": {
+        "prepare_seconds": 23.684384972999396,
+        "model_seconds": 13.183287916999689,
+        "approve_seconds": 327.0542368560018
+      }
+    }
+  },
+  "source_sha256": {
+    "scripts/vps_reviewer_acceptance.py": "8d6a419ea052c8e6981b6904bb5e3422ea523e2f8514f067299800183fa58c34",
+    "src/forgeflow/vps_runtime.py": "9438d1c8b585ee90a8f150068b3b8aa7568f3e091930cc4c92dc62c4383df3e7",
+    "src/forgeflow/dsh_launcher.py": "8db565f6ce6631b321567081853dead808f0a771903e2ae99ae9008fcc0cdff1",
+    "scripts/vps_provision.py": "374705257a73ba068653f2d13486fc25226c2b62a814f86015af9ad8f97297b2",
+    "scripts/vps_reviewers.py": "22bf5ec341a8f25008dd68ac1aa3b95543698dc1661ebeaebedadc10be03e261"
+  },
+  "private_capture_sha256": "c6f601773235a0fc86597252ca9e25adfb542918c6e2f5e78c61d89e6c38e792",
+  "isolation": {
+    "cross_case_404": true,
+    "cross_session_401": true,
+    "unix_file_isolation": true
+  },
+  "restart": {
+    "before": {
+      "qa1": {
+        "purchase_order": {
+          "count": 7,
+          "rows_md5": "b15d0944578e57c33507b16c29d46f7d"
+        },
+        "purchase_order_line": {
+          "count": 7,
+          "rows_md5": "862680821ef38bbe5c36097059399a5e"
+        },
+        "mrp_production": {
+          "count": 4,
+          "rows_md5": "e6c5b17a6f225b1c7de52d9bfe797127"
+        },
+        "stock_picking": {
+          "count": 12,
+          "rows_md5": "3d77128054a32ef40ba0ede711bd850d"
+        },
+        "stock_move": {
+          "count": 82,
+          "rows_md5": "5b758782de210b40254c9d1729b928b5"
+        },
+        "stock_move_line": {
+          "count": 69,
+          "rows_md5": "d3b6f997fb5610afe8d37bb4e96ec646"
+        },
+        "mrp_workorder": {
+          "count": 4,
+          "rows_md5": "43e6ef569a331975d13a09590b5e4d4b"
+        },
+        "mrp_workcenter": {
+          "count": 2,
+          "rows_md5": "36c4860bca50c9a7eb66942283009945"
+        },
+        "product_product": {
+          "count": 55,
+          "rows_md5": "cc4ce91a01217b622770853eed08b012"
+        },
+        "product_template": {
+          "count": 55,
+          "rows_md5": "f275411401002dd00c1c5e6c2ee65f65"
+        },
+        "stock_quant": {
+          "count": 108,
+          "rows_md5": "63d58c7d94db11afbcb6da21fe40d8a2"
+        },
+        "res_partner": {
+          "count": 122,
+          "rows_md5": "09f07c3edf91f30e37a3f0ea9f592f98"
+        }
+      },
+      "qa2": {
+        "purchase_order": {
+          "count": 7,
+          "rows_md5": "e5f67e0c1b9af2c30ee8356c7205b789"
+        },
+        "purchase_order_line": {
+          "count": 7,
+          "rows_md5": "bcd7bc72a4cb7810dc6afece89827a1f"
+        },
+        "mrp_production": {
+          "count": 4,
+          "rows_md5": "b0c99d7fba7b70b05aeaca3d9a23eed6"
+        },
+        "stock_picking": {
+          "count": 12,
+          "rows_md5": "d66968ec06cbb6fcd08a284768eddf8f"
+        },
+        "stock_move": {
+          "count": 82,
+          "rows_md5": "c4f42e4d937024439782d5fd78c47de5"
+        },
+        "stock_move_line": {
+          "count": 69,
+          "rows_md5": "be81e0af98c86a3d4649055d41380e16"
+        },
+        "mrp_workorder": {
+          "count": 4,
+          "rows_md5": "cc8642b518e82e886c2ecd8ee62ae7b5"
+        },
+        "mrp_workcenter": {
+          "count": 2,
+          "rows_md5": "9b67bea85e032fcd38706ed75451c9bf"
+        },
+        "product_product": {
+          "count": 55,
+          "rows_md5": "920e42b2baca370d38ed9f72d3e3ad47"
+        },
+        "product_template": {
+          "count": 55,
+          "rows_md5": "0e5c54fc9868fd75a12d2e43c47f7b73"
+        },
+        "stock_quant": {
+          "count": 108,
+          "rows_md5": "8f78effecbbb707daefa7298fdcebd9c"
+        },
+        "res_partner": {
+          "count": 122,
+          "rows_md5": "8b98b84a9d8cfeaeafe926c4de025d1d"
+        }
+      }
+    },
+    "after": {
+      "qa1": {
+        "purchase_order": {
+          "count": 7,
+          "rows_md5": "b15d0944578e57c33507b16c29d46f7d"
+        },
+        "purchase_order_line": {
+          "count": 7,
+          "rows_md5": "862680821ef38bbe5c36097059399a5e"
+        },
+        "mrp_production": {
+          "count": 4,
+          "rows_md5": "e6c5b17a6f225b1c7de52d9bfe797127"
+        },
+        "stock_picking": {
+          "count": 12,
+          "rows_md5": "3d77128054a32ef40ba0ede711bd850d"
+        },
+        "stock_move": {
+          "count": 82,
+          "rows_md5": "5b758782de210b40254c9d1729b928b5"
+        },
+        "stock_move_line": {
+          "count": 69,
+          "rows_md5": "d3b6f997fb5610afe8d37bb4e96ec646"
+        },
+        "mrp_workorder": {
+          "count": 4,
+          "rows_md5": "43e6ef569a331975d13a09590b5e4d4b"
+        },
+        "mrp_workcenter": {
+          "count": 2,
+          "rows_md5": "36c4860bca50c9a7eb66942283009945"
+        },
+        "product_product": {
+          "count": 55,
+          "rows_md5": "cc4ce91a01217b622770853eed08b012"
+        },
+        "product_template": {
+          "count": 55,
+          "rows_md5": "f275411401002dd00c1c5e6c2ee65f65"
+        },
+        "stock_quant": {
+          "count": 108,
+          "rows_md5": "63d58c7d94db11afbcb6da21fe40d8a2"
+        },
+        "res_partner": {
+          "count": 122,
+          "rows_md5": "09f07c3edf91f30e37a3f0ea9f592f98"
+        }
+      },
+      "qa2": {
+        "purchase_order": {
+          "count": 7,
+          "rows_md5": "e5f67e0c1b9af2c30ee8356c7205b789"
+        },
+        "purchase_order_line": {
+          "count": 7,
+          "rows_md5": "bcd7bc72a4cb7810dc6afece89827a1f"
+        },
+        "mrp_production": {
+          "count": 4,
+          "rows_md5": "b0c99d7fba7b70b05aeaca3d9a23eed6"
+        },
+        "stock_picking": {
+          "count": 12,
+          "rows_md5": "d66968ec06cbb6fcd08a284768eddf8f"
+        },
+        "stock_move": {
+          "count": 82,
+          "rows_md5": "c4f42e4d937024439782d5fd78c47de5"
+        },
+        "stock_move_line": {
+          "count": 69,
+          "rows_md5": "be81e0af98c86a3d4649055d41380e16"
+        },
+        "mrp_workorder": {
+          "count": 4,
+          "rows_md5": "cc8642b518e82e886c2ecd8ee62ae7b5"
+        },
+        "mrp_workcenter": {
+          "count": 2,
+          "rows_md5": "9b67bea85e032fcd38706ed75451c9bf"
+        },
+        "product_product": {
+          "count": 55,
+          "rows_md5": "920e42b2baca370d38ed9f72d3e3ad47"
+        },
+        "product_template": {
+          "count": 55,
+          "rows_md5": "0e5c54fc9868fd75a12d2e43c47f7b73"
+        },
+        "stock_quant": {
+          "count": 108,
+          "rows_md5": "8f78effecbbb707daefa7298fdcebd9c"
+        },
+        "res_partner": {
+          "count": 122,
+          "rows_md5": "8b98b84a9d8cfeaeafe926c4de025d1d"
+        }
+      }
+    },
+    "case_execution_preserved": true,
+    "leases_preserved": true,
+    "service_restart_passed": true
+  },
+  "resources": {
+    "prepare": {
+      "samples": [
+        {
+          "at_unix": 1792982799.3598006,
+          "memory": {
+            "MemAvailable": 6010531840,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "90816512",
+              "MemoryPeak": "100458496",
+              "CPUUsageNSec": "24994292000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "88010752",
+              "MemoryPeak": "97570816",
+              "CPUUsageNSec": "19755657000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "28.41%",
+              "MemUsage": "358.8MiB / 1GiB",
+              "MemPerc": "35.04%",
+              "PIDs": "27"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "26.12%",
+              "MemUsage": "357.5MiB / 1GiB",
+              "MemPerc": "34.91%",
+              "PIDs": "27"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982803.5814235,
+          "memory": {
+            "MemAvailable": 5949186048,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "111529984",
+              "MemoryPeak": "120602624",
+              "CPUUsageNSec": "27453023000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "108621824",
+              "MemoryPeak": "115142656",
+              "CPUUsageNSec": "22179285000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "33.36%",
+              "MemUsage": "358.8MiB / 1GiB",
+              "MemPerc": "35.04%",
+              "PIDs": "26"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "35.61%",
+              "MemUsage": "357.2MiB / 1GiB",
+              "MemPerc": "34.89%",
+              "PIDs": "26"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982807.7829332,
+          "memory": {
+            "MemAvailable": 5901357056,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "163508224",
+              "MemoryPeak": "163508224",
+              "CPUUsageNSec": "30036803000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "163618816",
+              "MemoryPeak": "163618816",
+              "CPUUsageNSec": "24800384000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "29.18%",
+              "MemUsage": "358.8MiB / 1GiB",
+              "MemPerc": "35.04%",
+              "PIDs": "26"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "7.11%",
+              "MemUsage": "357.3MiB / 1GiB",
+              "MemPerc": "34.89%",
+              "PIDs": "26"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982811.9842274,
+          "memory": {
+            "MemAvailable": 5812117504,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "191160320",
+              "MemoryPeak": "191422464",
+              "CPUUsageNSec": "32952016000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "194904064",
+              "MemoryPeak": "204103680",
+              "CPUUsageNSec": "27693592000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "30.03%",
+              "MemUsage": "359.1MiB / 1GiB",
+              "MemPerc": "35.07%",
+              "PIDs": "27"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "30.01%",
+              "MemUsage": "357.5MiB / 1GiB",
+              "MemPerc": "34.92%",
+              "PIDs": "27"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982816.1702368,
+          "memory": {
+            "MemAvailable": 5839855616,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "193101824",
+              "MemoryPeak": "200499200",
+              "CPUUsageNSec": "35626105000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "196841472",
+              "MemoryPeak": "204103680",
+              "CPUUsageNSec": "30346680000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "29.58%",
+              "MemUsage": "358.9MiB / 1GiB",
+              "MemPerc": "35.04%",
+              "PIDs": "27"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "31.14%",
+              "MemUsage": "357.3MiB / 1GiB",
+              "MemPerc": "34.89%",
+              "PIDs": "27"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982820.3663852,
+          "memory": {
+            "MemAvailable": 5843865600,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "193884160",
+              "MemoryPeak": "200499200",
+              "CPUUsageNSec": "38331195000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "197640192",
+              "MemoryPeak": "204103680",
+              "CPUUsageNSec": "33021725000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "31.03%",
+              "MemUsage": "358.8MiB / 1GiB",
+              "MemPerc": "35.04%",
+              "PIDs": "26"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "24.16%",
+              "MemUsage": "357.3MiB / 1GiB",
+              "MemPerc": "34.89%",
+              "PIDs": "27"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        }
+      ],
+      "sample_errors": 0
+    },
+    "model": {
+      "samples": [
+        {
+          "at_unix": 1792982837.5918245,
+          "memory": {
+            "MemAvailable": 5794689024,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "194605056",
+              "MemoryPeak": "203935744",
+              "CPUUsageNSec": "39965684000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "198356992",
+              "MemoryPeak": "207753216",
+              "CPUUsageNSec": "34683197000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "0.02%",
+              "MemUsage": "358.8MiB / 1GiB",
+              "MemPerc": "35.04%",
+              "PIDs": "26"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "0.23%",
+              "MemUsage": "357.3MiB / 1GiB",
+              "MemPerc": "34.89%",
+              "PIDs": "26"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982841.8078835,
+          "memory": {
+            "MemAvailable": 5775319040,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "250646528",
+              "MemoryPeak": "250724352",
+              "CPUUsageNSec": "42200191000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "250122240",
+              "MemoryPeak": "250363904",
+              "CPUUsageNSec": "36916008000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "0.02%",
+              "MemUsage": "358.8MiB / 1GiB",
+              "MemPerc": "35.04%",
+              "PIDs": "26"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "0.23%",
+              "MemUsage": "357.3MiB / 1GiB",
+              "MemPerc": "34.89%",
+              "PIDs": "26"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982846.0140514,
+          "memory": {
+            "MemAvailable": 5668585472,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "318930944",
+              "MemoryPeak": "319250432",
+              "CPUUsageNSec": "45616174000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "321699840",
+              "MemoryPeak": "321699840",
+              "CPUUsageNSec": "40374482000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "4.85%",
+              "MemUsage": "358.8MiB / 1GiB",
+              "MemPerc": "35.04%",
+              "PIDs": "26"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "0.28%",
+              "MemUsage": "357.4MiB / 1GiB",
+              "MemPerc": "34.90%",
+              "PIDs": "26"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982850.1910503,
+          "memory": {
+            "MemAvailable": 5550735360,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "368017408",
+              "MemoryPeak": "376881152",
+              "CPUUsageNSec": "48174602000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "371122176",
+              "MemoryPeak": "381222912",
+              "CPUUsageNSec": "42937375000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "0.03%",
+              "MemUsage": "358.8MiB / 1GiB",
+              "MemPerc": "35.04%",
+              "PIDs": "26"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "0.26%",
+              "MemUsage": "357.4MiB / 1GiB",
+              "MemPerc": "34.90%",
+              "PIDs": "26"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        }
+      ],
+      "sample_errors": 0
+    },
+    "approve": {
+      "samples": [
+        {
+          "at_unix": 1792982911.9028773,
+          "memory": {
+            "MemAvailable": 5958144000,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "364326912",
+              "MemoryPeak": "378564608",
+              "CPUUsageNSec": "49712252000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "366546944",
+              "MemoryPeak": "382054400",
+              "CPUUsageNSec": "44499323000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "18.79%",
+              "MemUsage": "350.2MiB / 1GiB",
+              "MemPerc": "34.19%",
+              "PIDs": "24"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "32.59%",
+              "MemUsage": "357.7MiB / 1GiB",
+              "MemPerc": "34.93%",
+              "PIDs": "26"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982916.1490593,
+          "memory": {
+            "MemAvailable": 5975977984,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "364457984",
+              "MemoryPeak": "378564608",
+              "CPUUsageNSec": "52299085000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "366673920",
+              "MemoryPeak": "382054400",
+              "CPUUsageNSec": "47112947000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "33.44%",
+              "MemUsage": "350.2MiB / 1GiB",
+              "MemPerc": "34.20%",
+              "PIDs": "24"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "32.60%",
+              "MemUsage": "357.7MiB / 1GiB",
+              "MemPerc": "34.93%",
+              "PIDs": "26"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982920.4060578,
+          "memory": {
+            "MemAvailable": 5983367168,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "367263744",
+              "MemoryPeak": "378564608",
+              "CPUUsageNSec": "54826636000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "369479680",
+              "MemoryPeak": "382054400",
+              "CPUUsageNSec": "49691947000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "46.91%",
+              "MemUsage": "350.2MiB / 1GiB",
+              "MemPerc": "34.20%",
+              "PIDs": "25"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "58.89%",
+              "MemUsage": "357.7MiB / 1GiB",
+              "MemPerc": "34.93%",
+              "PIDs": "26"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982924.5927372,
+          "memory": {
+            "MemAvailable": 5986484224,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "368963584",
+              "MemoryPeak": "378564608",
+              "CPUUsageNSec": "56767095000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "370921472",
+              "MemoryPeak": "382054400",
+              "CPUUsageNSec": "51617754000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "56.84%",
+              "MemUsage": "350.2MiB / 1GiB",
+              "MemPerc": "34.20%",
+              "PIDs": "24"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "56.61%",
+              "MemUsage": "358MiB / 1GiB",
+              "MemPerc": "34.96%",
+              "PIDs": "27"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982928.803968,
+          "memory": {
+            "MemAvailable": 5990989824,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "368713728",
+              "MemoryPeak": "378564608",
+              "CPUUsageNSec": "58791896000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "370933760",
+              "MemoryPeak": "382054400",
+              "CPUUsageNSec": "53647791000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "32.61%",
+              "MemUsage": "350.2MiB / 1GiB",
+              "MemPerc": "34.20%",
+              "PIDs": "24"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "34.56%",
+              "MemUsage": "358MiB / 1GiB",
+              "MemPerc": "34.96%",
+              "PIDs": "27"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982933.0003998,
+          "memory": {
+            "MemAvailable": 5984129024,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "368726016",
+              "MemoryPeak": "378564608",
+              "CPUUsageNSec": "61491016000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "370982912",
+              "MemoryPeak": "382054400",
+              "CPUUsageNSec": "56353859000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "43.77%",
+              "MemUsage": "350.2MiB / 1GiB",
+              "MemPerc": "34.20%",
+              "PIDs": "25"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "41.51%",
+              "MemUsage": "357.8MiB / 1GiB",
+              "MemPerc": "34.94%",
+              "PIDs": "26"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982937.2022562,
+          "memory": {
+            "MemAvailable": 5994876928,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "368750592",
+              "MemoryPeak": "378564608",
+              "CPUUsageNSec": "63995473000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "370958336",
+              "MemoryPeak": "382054400",
+              "CPUUsageNSec": "58800918000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "50.19%",
+              "MemUsage": "350.2MiB / 1GiB",
+              "MemPerc": "34.20%",
+              "PIDs": "24"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "59.01%",
+              "MemUsage": "357.8MiB / 1GiB",
+              "MemPerc": "34.94%",
+              "PIDs": "26"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982941.4467325,
+          "memory": {
+            "MemAvailable": 5996580864,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "368758784",
+              "MemoryPeak": "378564608",
+              "CPUUsageNSec": "66282862000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "370966528",
+              "MemoryPeak": "382054400",
+              "CPUUsageNSec": "61102333000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "60.43%",
+              "MemUsage": "350.5MiB / 1GiB",
+              "MemPerc": "34.23%",
+              "PIDs": "25"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "53.00%",
+              "MemUsage": "357.8MiB / 1GiB",
+              "MemPerc": "34.94%",
+              "PIDs": "27"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982945.708805,
+          "memory": {
+            "MemAvailable": 5977309184,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "369471488",
+              "MemoryPeak": "378904576",
+              "CPUUsageNSec": "68728369000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "371683328",
+              "MemoryPeak": "382054400",
+              "CPUUsageNSec": "63500940000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "39.71%",
+              "MemUsage": "350.2MiB / 1GiB",
+              "MemPerc": "34.20%",
+              "PIDs": "25"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "40.86%",
+              "MemUsage": "357.8MiB / 1GiB",
+              "MemPerc": "34.94%",
+              "PIDs": "26"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982950.0119731,
+          "memory": {
+            "MemAvailable": 5893201920,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "369479680",
+              "MemoryPeak": "378904576",
+              "CPUUsageNSec": "71241195000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "371695616",
+              "MemoryPeak": "382054400",
+              "CPUUsageNSec": "65887715000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "38.94%",
+              "MemUsage": "350.2MiB / 1GiB",
+              "MemPerc": "34.20%",
+              "PIDs": "24"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "45.66%",
+              "MemUsage": "357.9MiB / 1GiB",
+              "MemPerc": "34.95%",
+              "PIDs": "27"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982954.2495391,
+          "memory": {
+            "MemAvailable": 5887213568,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "369508352",
+              "MemoryPeak": "378904576",
+              "CPUUsageNSec": "73769944000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "371707904",
+              "MemoryPeak": "382054400",
+              "CPUUsageNSec": "68375138000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "54.35%",
+              "MemUsage": "350.3MiB / 1GiB",
+              "MemPerc": "34.20%",
+              "PIDs": "25"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "43.49%",
+              "MemUsage": "357.9MiB / 1GiB",
+              "MemPerc": "34.95%",
+              "PIDs": "27"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982958.4350257,
+          "memory": {
+            "MemAvailable": 5829550080,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "369524736",
+              "MemoryPeak": "378904576",
+              "CPUUsageNSec": "75952909000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "371716096",
+              "MemoryPeak": "382054400",
+              "CPUUsageNSec": "70625626000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "49.06%",
+              "MemUsage": "346.7MiB / 1GiB",
+              "MemPerc": "33.86%",
+              "PIDs": "23"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "37.77%",
+              "MemUsage": "358.1MiB / 1GiB",
+              "MemPerc": "34.97%",
+              "PIDs": "27"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982962.6381295,
+          "memory": {
+            "MemAvailable": 5803896832,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "369524736",
+              "MemoryPeak": "378904576",
+              "CPUUsageNSec": "78232352000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "371720192",
+              "MemoryPeak": "382054400",
+              "CPUUsageNSec": "72912475000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "33.61%",
+              "MemUsage": "346.5MiB / 1GiB",
+              "MemPerc": "33.83%",
+              "PIDs": "23"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "47.31%",
+              "MemUsage": "357.8MiB / 1GiB",
+              "MemPerc": "34.95%",
+              "PIDs": "26"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982966.9549594,
+          "memory": {
+            "MemAvailable": 5806559232,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "369537024",
+              "MemoryPeak": "378904576",
+              "CPUUsageNSec": "80823821000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "371732480",
+              "MemoryPeak": "382054400",
+              "CPUUsageNSec": "75346390000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "43.05%",
+              "MemUsage": "346.5MiB / 1GiB",
+              "MemPerc": "33.84%",
+              "PIDs": "23"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "34.87%",
+              "MemUsage": "357.9MiB / 1GiB",
+              "MemPerc": "34.95%",
+              "PIDs": "27"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982971.365613,
+          "memory": {
+            "MemAvailable": 5694599168,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "376225792",
+              "MemoryPeak": "378904576",
+              "CPUUsageNSec": "83198559000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "371740672",
+              "MemoryPeak": "382054400",
+              "CPUUsageNSec": "77779856000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "112.71%",
+              "MemUsage": "348.7MiB / 1GiB",
+              "MemPerc": "34.05%",
+              "PIDs": "27"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "40.13%",
+              "MemUsage": "357.9MiB / 1GiB",
+              "MemPerc": "34.95%",
+              "PIDs": "26"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982975.6119976,
+          "memory": {
+            "MemAvailable": 5629460480,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378339328",
+              "MemoryPeak": "387284992",
+              "CPUUsageNSec": "83329288000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380907520",
+              "MemoryPeak": "390225920",
+              "CPUUsageNSec": "78360176000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "98.55%",
+              "MemUsage": "376MiB / 1GiB",
+              "MemPerc": "36.72%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "104.63%",
+              "MemUsage": "387.4MiB / 1GiB",
+              "MemPerc": "37.83%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982979.9182062,
+          "memory": {
+            "MemAvailable": 5552586752,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378331136",
+              "MemoryPeak": "387284992",
+              "CPUUsageNSec": "83337347000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380899328",
+              "MemoryPeak": "390225920",
+              "CPUUsageNSec": "78369722000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "116.11%",
+              "MemUsage": "379.4MiB / 1GiB",
+              "MemPerc": "37.05%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "111.31%",
+              "MemUsage": "389.6MiB / 1GiB",
+              "MemPerc": "38.05%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 581672960
+          }
+        },
+        {
+          "at_unix": 1792982983.18692,
+          "memory": {
+            "MemAvailable": 5520396288,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378327040",
+              "MemoryPeak": "387284992",
+              "CPUUsageNSec": "83346992000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380895232",
+              "MemoryPeak": "390225920",
+              "CPUUsageNSec": "78440724000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "101.73%",
+              "MemUsage": "384.5MiB / 1GiB",
+              "MemPerc": "37.55%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "105.24%",
+              "MemUsage": "394MiB / 1GiB",
+              "MemPerc": "38.48%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 583757824
+          }
+        },
+        {
+          "at_unix": 1792982987.4126823,
+          "memory": {
+            "MemAvailable": 5485625344,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378322944",
+              "MemoryPeak": "387284992",
+              "CPUUsageNSec": "83443166000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380891136",
+              "MemoryPeak": "390225920",
+              "CPUUsageNSec": "78447395000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "96.52%",
+              "MemUsage": "386.5MiB / 1GiB",
+              "MemPerc": "37.75%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "104.77%",
+              "MemUsage": "397.8MiB / 1GiB",
+              "MemPerc": "38.85%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 587616256
+          }
+        },
+        {
+          "at_unix": 1792982991.6693084,
+          "memory": {
+            "MemAvailable": 5485641728,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378310656",
+              "MemoryPeak": "387284992",
+              "CPUUsageNSec": "83452115000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380882944",
+              "MemoryPeak": "390225920",
+              "CPUUsageNSec": "78456274000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "104.42%",
+              "MemUsage": "387.8MiB / 1GiB",
+              "MemPerc": "37.88%",
+              "PIDs": "30"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "107.22%",
+              "MemUsage": "399MiB / 1GiB",
+              "MemPerc": "38.96%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 590704640
+          }
+        },
+        {
+          "at_unix": 1792982995.9641411,
+          "memory": {
+            "MemAvailable": 5487337472,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378306560",
+              "MemoryPeak": "387284992",
+              "CPUUsageNSec": "83497537000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380874752",
+              "MemoryPeak": "390373376",
+              "CPUUsageNSec": "78535858000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "112.54%",
+              "MemUsage": "388.9MiB / 1GiB",
+              "MemPerc": "37.97%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "111.01%",
+              "MemUsage": "400MiB / 1GiB",
+              "MemPerc": "39.06%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 592633856
+          }
+        },
+        {
+          "at_unix": 1792983000.2549517,
+          "memory": {
+            "MemAvailable": 5513830400,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378294272",
+              "MemoryPeak": "387284992",
+              "CPUUsageNSec": "83506261000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380866560",
+              "MemoryPeak": "390373376",
+              "CPUUsageNSec": "78549239000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "111.26%",
+              "MemUsage": "388.6MiB / 1GiB",
+              "MemPerc": "37.95%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "105.37%",
+              "MemUsage": "399.9MiB / 1GiB",
+              "MemPerc": "39.05%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 592633856
+          }
+        },
+        {
+          "at_unix": 1792983004.6242049,
+          "memory": {
+            "MemAvailable": 5504217088,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378327040",
+              "MemoryPeak": "387284992",
+              "CPUUsageNSec": "83517963000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380858368",
+              "MemoryPeak": "390373376",
+              "CPUUsageNSec": "78602534000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "113.53%",
+              "MemUsage": "388.8MiB / 1GiB",
+              "MemPerc": "37.97%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "114.41%",
+              "MemUsage": "400.2MiB / 1GiB",
+              "MemPerc": "39.08%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 592633856
+          }
+        },
+        {
+          "at_unix": 1792983008.8598928,
+          "memory": {
+            "MemAvailable": 5596626944,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378322944",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "83628430000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380850176",
+              "MemoryPeak": "390373376",
+              "CPUUsageNSec": "78617527000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "106.81%",
+              "MemUsage": "390.7MiB / 1GiB",
+              "MemPerc": "38.15%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "106.68%",
+              "MemUsage": "401.1MiB / 1GiB",
+              "MemPerc": "39.17%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 592633856
+          }
+        },
+        {
+          "at_unix": 1792983013.1372647,
+          "memory": {
+            "MemAvailable": 5601865728,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378314752",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "83639880000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380837888",
+              "MemoryPeak": "390373376",
+              "CPUUsageNSec": "78626416000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "107.74%",
+              "MemUsage": "391.1MiB / 1GiB",
+              "MemPerc": "38.19%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "107.48%",
+              "MemUsage": "402MiB / 1GiB",
+              "MemPerc": "39.26%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 594530304
+          }
+        },
+        {
+          "at_unix": 1792983016.4045558,
+          "memory": {
+            "MemAvailable": 5586513920,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378306560",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "83695042000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380833792",
+              "MemoryPeak": "390373376",
+              "CPUUsageNSec": "78694698000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "108.50%",
+              "MemUsage": "391.1MiB / 1GiB",
+              "MemPerc": "38.19%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "107.69%",
+              "MemUsage": "402.6MiB / 1GiB",
+              "MemPerc": "39.32%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 594530304
+          }
+        },
+        {
+          "at_unix": 1792983020.6266558,
+          "memory": {
+            "MemAvailable": 5578772480,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378298368",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "83702732000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380825600",
+              "MemoryPeak": "390373376",
+              "CPUUsageNSec": "78702255000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "104.22%",
+              "MemUsage": "394.4MiB / 1GiB",
+              "MemPerc": "38.51%",
+              "PIDs": "30"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "100.65%",
+              "MemUsage": "403.4MiB / 1GiB",
+              "MemPerc": "39.40%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 590315520,
+            "qa2": 594530304
+          }
+        },
+        {
+          "at_unix": 1792983024.9156315,
+          "memory": {
+            "MemAvailable": 5582716928,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378290176",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "83714418000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380821504",
+              "MemoryPeak": "390373376",
+              "CPUUsageNSec": "78759638000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "121.62%",
+              "MemUsage": "392.9MiB / 1GiB",
+              "MemPerc": "38.37%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "105.81%",
+              "MemUsage": "404MiB / 1GiB",
+              "MemPerc": "39.45%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 592834560,
+            "qa2": 597790720
+          }
+        },
+        {
+          "at_unix": 1792983029.1748347,
+          "memory": {
+            "MemAvailable": 5785083904,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378281984",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "83771342000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380809216",
+              "MemoryPeak": "390373376",
+              "CPUUsageNSec": "78768932000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "109.02%",
+              "MemUsage": "394.5MiB / 1GiB",
+              "MemPerc": "38.52%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "107.44%",
+              "MemUsage": "405.7MiB / 1GiB",
+              "MemPerc": "39.62%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 592834560,
+            "qa2": 597790720
+          }
+        },
+        {
+          "at_unix": 1792983033.4033768,
+          "memory": {
+            "MemAvailable": 5714083840,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378273792",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "83780582000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380801024",
+              "MemoryPeak": "390373376",
+              "CPUUsageNSec": "78779568000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "105.29%",
+              "MemUsage": "396MiB / 1GiB",
+              "MemPerc": "38.67%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "104.79%",
+              "MemUsage": "407.2MiB / 1GiB",
+              "MemPerc": "39.76%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 593006592,
+            "qa2": 597790720
+          }
+        },
+        {
+          "at_unix": 1792983037.6139135,
+          "memory": {
+            "MemAvailable": 5625024512,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378277888",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "83868596000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380801024",
+              "MemoryPeak": "390373376",
+              "CPUUsageNSec": "78830819000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "104.71%",
+              "MemUsage": "395.8MiB / 1GiB",
+              "MemPerc": "38.65%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "107.51%",
+              "MemUsage": "407.3MiB / 1GiB",
+              "MemPerc": "39.78%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 594296832,
+            "qa2": 599244800
+          }
+        },
+        {
+          "at_unix": 1792983041.8966475,
+          "memory": {
+            "MemAvailable": 5592952832,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378277888",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "83878698000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380801024",
+              "MemoryPeak": "390373376",
+              "CPUUsageNSec": "78839398000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "103.64%",
+              "MemUsage": "396.9MiB / 1GiB",
+              "MemPerc": "38.76%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "107.27%",
+              "MemUsage": "407.5MiB / 1GiB",
+              "MemPerc": "39.79%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 594296832,
+            "qa2": 599244800
+          }
+        },
+        {
+          "at_unix": 1792983046.1429365,
+          "memory": {
+            "MemAvailable": 5627023360,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378277888",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "83933740000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380801024",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "78901967000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "115.63%",
+              "MemUsage": "398.1MiB / 1GiB",
+              "MemPerc": "38.88%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "112.65%",
+              "MemUsage": "408.9MiB / 1GiB",
+              "MemPerc": "39.93%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 594296832,
+            "qa2": 599314432
+          }
+        },
+        {
+          "at_unix": 1792983050.3612144,
+          "memory": {
+            "MemAvailable": 5615915008,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378277888",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "83944008000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380801024",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "78911854000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "105.21%",
+              "MemUsage": "398.9MiB / 1GiB",
+              "MemPerc": "38.95%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "107.72%",
+              "MemUsage": "410.1MiB / 1GiB",
+              "MemPerc": "40.05%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 595181568,
+            "qa2": 600379392
+          }
+        },
+        {
+          "at_unix": 1792983054.5732052,
+          "memory": {
+            "MemAvailable": 5623242752,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378277888",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "83956881000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380805120",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "78965462000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "106.33%",
+              "MemUsage": "398.7MiB / 1GiB",
+              "MemPerc": "38.93%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "105.14%",
+              "MemUsage": "409.9MiB / 1GiB",
+              "MemPerc": "40.03%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 597041152,
+            "qa2": 602247168
+          }
+        },
+        {
+          "at_unix": 1792983057.8010852,
+          "memory": {
+            "MemAvailable": 5631492096,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378277888",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84020657000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380801024",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "78975527000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "104.34%",
+              "MemUsage": "398.7MiB / 1GiB",
+              "MemPerc": "38.93%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "103.82%",
+              "MemUsage": "410.2MiB / 1GiB",
+              "MemPerc": "40.06%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 598548480,
+            "qa2": 604033024
+          }
+        },
+        {
+          "at_unix": 1792983062.0891838,
+          "memory": {
+            "MemAvailable": 5628874752,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378277888",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84027666000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380801024",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "78982540000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "98.81%",
+              "MemUsage": "398.7MiB / 1GiB",
+              "MemPerc": "38.94%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "106.44%",
+              "MemUsage": "410MiB / 1GiB",
+              "MemPerc": "40.04%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 598548480,
+            "qa2": 604033024
+          }
+        },
+        {
+          "at_unix": 1792983066.3321087,
+          "memory": {
+            "MemAvailable": 5811404800,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378277888",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84092254000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380809216",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "79043302000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "109.98%",
+              "MemUsage": "399.7MiB / 1GiB",
+              "MemPerc": "39.03%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "101.84%",
+              "MemUsage": "410.1MiB / 1GiB",
+              "MemPerc": "40.05%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 598548480,
+            "qa2": 604033024
+          }
+        },
+        {
+          "at_unix": 1792983070.6255531,
+          "memory": {
+            "MemAvailable": 5815103488,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378277888",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84101946000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380809216",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "79052980000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "112.95%",
+              "MemUsage": "400MiB / 1GiB",
+              "MemPerc": "39.06%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "105.62%",
+              "MemUsage": "411.2MiB / 1GiB",
+              "MemPerc": "40.15%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 598548480,
+            "qa2": 604131328
+          }
+        },
+        {
+          "at_unix": 1792983074.8339472,
+          "memory": {
+            "MemAvailable": 5839785984,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378277888",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84112015000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380813312",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "79106093000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "106.54%",
+              "MemUsage": "399.8MiB / 1GiB",
+              "MemPerc": "39.04%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "103.53%",
+              "MemUsage": "411MiB / 1GiB",
+              "MemPerc": "40.14%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 598548480,
+            "qa2": 604131328
+          }
+        },
+        {
+          "at_unix": 1792983078.5782046,
+          "memory": {
+            "MemAvailable": 5843013632,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378277888",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84158880000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380813312",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "79114945000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "104.04%",
+              "MemUsage": "399.8MiB / 1GiB",
+              "MemPerc": "39.04%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "105.26%",
+              "MemUsage": "411MiB / 1GiB",
+              "MemPerc": "40.14%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 598548480,
+            "qa2": 604131328
+          }
+        },
+        {
+          "at_unix": 1792983082.7641203,
+          "memory": {
+            "MemAvailable": 5846843392,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378277888",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84166736000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380813312",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "79137014000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "103.07%",
+              "MemUsage": "399.8MiB / 1GiB",
+              "MemPerc": "39.04%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "116.04%",
+              "MemUsage": "411MiB / 1GiB",
+              "MemPerc": "40.14%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 599035904,
+            "qa2": 604131328
+          }
+        },
+        {
+          "at_unix": 1792983086.9979255,
+          "memory": {
+            "MemAvailable": 5849571328,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378310656",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84222054000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380813312",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "79196759000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "107.93%",
+              "MemUsage": "399.9MiB / 1GiB",
+              "MemPerc": "39.06%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "103.00%",
+              "MemUsage": "411MiB / 1GiB",
+              "MemPerc": "40.14%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 600088576,
+            "qa2": 605401088
+          }
+        },
+        {
+          "at_unix": 1792983091.1859603,
+          "memory": {
+            "MemAvailable": 5857579008,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378277888",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84231130000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380813312",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "79206096000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "103.94%",
+              "MemUsage": "399.8MiB / 1GiB",
+              "MemPerc": "39.04%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "100.49%",
+              "MemUsage": "411MiB / 1GiB",
+              "MemPerc": "40.14%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 600088576,
+            "qa2": 605401088
+          }
+        },
+        {
+          "at_unix": 1792983095.4455943,
+          "memory": {
+            "MemAvailable": 5856055296,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378277888",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84240421000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380813312",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "79257638000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "110.58%",
+              "MemUsage": "400MiB / 1GiB",
+              "MemPerc": "39.07%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "109.04%",
+              "MemUsage": "411.3MiB / 1GiB",
+              "MemPerc": "40.16%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 600088576,
+            "qa2": 605401088
+          }
+        },
+        {
+          "at_unix": 1792983099.6710036,
+          "memory": {
+            "MemAvailable": 5840855040,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378277888",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84294911000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380813312",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "79266139000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "104.39%",
+              "MemUsage": "400MiB / 1GiB",
+              "MemPerc": "39.06%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "110.35%",
+              "MemUsage": "411MiB / 1GiB",
+              "MemPerc": "40.14%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 600088576,
+            "qa2": 605401088
+          }
+        },
+        {
+          "at_unix": 1792983103.963649,
+          "memory": {
+            "MemAvailable": 5849407488,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378277888",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84304079000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380813312",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "79275760000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "112.16%",
+              "MemUsage": "399.8MiB / 1GiB",
+              "MemPerc": "39.04%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "107.66%",
+              "MemUsage": "411.2MiB / 1GiB",
+              "MemPerc": "40.16%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 600088576,
+            "qa2": 605401088
+          }
+        },
+        {
+          "at_unix": 1792983108.189996,
+          "memory": {
+            "MemAvailable": 5847736320,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378273792",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84402694000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380809216",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "79356866000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "109.69%",
+              "MemUsage": "399.8MiB / 1GiB",
+              "MemPerc": "39.04%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "105.82%",
+              "MemUsage": "411.3MiB / 1GiB",
+              "MemPerc": "40.16%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 600088576,
+            "qa2": 605401088
+          }
+        },
+        {
+          "at_unix": 1792983111.3672092,
+          "memory": {
+            "MemAvailable": 5861572608,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378273792",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84412404000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380809216",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "79368603000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "104.84%",
+              "MemUsage": "400.2MiB / 1GiB",
+              "MemPerc": "39.08%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "106.47%",
+              "MemUsage": "411.7MiB / 1GiB",
+              "MemPerc": "40.20%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 600088576,
+            "qa2": 605401088
+          }
+        },
+        {
+          "at_unix": 1792983114.5471466,
+          "memory": {
+            "MemAvailable": 5828395008,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378273792",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84420379000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380817408",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "79427992000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "103.80%",
+              "MemUsage": "401MiB / 1GiB",
+              "MemPerc": "39.16%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "103.64%",
+              "MemUsage": "412MiB / 1GiB",
+              "MemPerc": "40.24%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 600088576,
+            "qa2": 605401088
+          }
+        },
+        {
+          "at_unix": 1792983118.7312124,
+          "memory": {
+            "MemAvailable": 5858467840,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378273792",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84463765000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "380817408",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "79435842000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "103.10%",
+              "MemUsage": "400.8MiB / 1GiB",
+              "MemPerc": "39.14%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "105.82%",
+              "MemUsage": "411.5MiB / 1GiB",
+              "MemPerc": "40.19%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983123.099505,
+          "memory": {
+            "MemAvailable": 5863923712,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378707968",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84480447000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381292544",
+              "MemoryPeak": "390488064",
+              "CPUUsageNSec": "79449997000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "115.60%",
+              "MemUsage": "400.8MiB / 1GiB",
+              "MemPerc": "39.14%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "117.88%",
+              "MemUsage": "412MiB / 1GiB",
+              "MemPerc": "40.24%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983127.3708496,
+          "memory": {
+            "MemAvailable": 5853908992,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378712064",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84562956000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381288448",
+              "MemoryPeak": "390791168",
+              "CPUUsageNSec": "79527888000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "111.00%",
+              "MemUsage": "401MiB / 1GiB",
+              "MemPerc": "39.16%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "105.76%",
+              "MemUsage": "411.6MiB / 1GiB",
+              "MemPerc": "40.19%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983131.6010327,
+          "memory": {
+            "MemAvailable": 5826088960,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378712064",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84571911000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381288448",
+              "MemoryPeak": "390791168",
+              "CPUUsageNSec": "79541495000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "112.49%",
+              "MemUsage": "400.8MiB / 1GiB",
+              "MemPerc": "39.14%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "111.51%",
+              "MemUsage": "411.5MiB / 1GiB",
+              "MemPerc": "40.19%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983135.9980078,
+          "memory": {
+            "MemAvailable": 5854273536,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "385363968",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84610641000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381292544",
+              "MemoryPeak": "390791168",
+              "CPUUsageNSec": "79596151000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "114.81%",
+              "MemUsage": "400.8MiB / 1GiB",
+              "MemPerc": "39.14%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "107.75%",
+              "MemUsage": "411.6MiB / 1GiB",
+              "MemPerc": "40.19%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983140.2259374,
+          "memory": {
+            "MemAvailable": 5855633408,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378707968",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84662194000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381292544",
+              "MemoryPeak": "390791168",
+              "CPUUsageNSec": "79606335000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "106.94%",
+              "MemUsage": "399.6MiB / 1GiB",
+              "MemPerc": "39.03%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "103.95%",
+              "MemUsage": "411.8MiB / 1GiB",
+              "MemPerc": "40.22%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983144.4643805,
+          "memory": {
+            "MemAvailable": 5854715904,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378707968",
+              "MemoryPeak": "388280320",
+              "CPUUsageNSec": "84671698000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381345792",
+              "MemoryPeak": "390791168",
+              "CPUUsageNSec": "79676292000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "106.10%",
+              "MemUsage": "399.6MiB / 1GiB",
+              "MemPerc": "39.02%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "106.39%",
+              "MemUsage": "411.8MiB / 1GiB",
+              "MemPerc": "40.21%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983148.685207,
+          "memory": {
+            "MemAvailable": 5856518144,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378716160",
+              "MemoryPeak": "388370432",
+              "CPUUsageNSec": "84721673000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381292544",
+              "MemoryPeak": "390791168",
+              "CPUUsageNSec": "79684898000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "108.16%",
+              "MemUsage": "399.6MiB / 1GiB",
+              "MemPerc": "39.02%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "106.04%",
+              "MemUsage": "411.6MiB / 1GiB",
+              "MemPerc": "40.19%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983152.9764874,
+          "memory": {
+            "MemAvailable": 5854580736,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378716160",
+              "MemoryPeak": "388370432",
+              "CPUUsageNSec": "84731858000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381292544",
+              "MemoryPeak": "390791168",
+              "CPUUsageNSec": "79693117000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "107.38%",
+              "MemUsage": "399.4MiB / 1GiB",
+              "MemPerc": "39.01%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "105.44%",
+              "MemUsage": "411.6MiB / 1GiB",
+              "MemPerc": "40.20%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983157.3126922,
+          "memory": {
+            "MemAvailable": 5844234240,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378712064",
+              "MemoryPeak": "388370432",
+              "CPUUsageNSec": "84793239000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381292544",
+              "MemoryPeak": "390791168",
+              "CPUUsageNSec": "79765461000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "110.99%",
+              "MemUsage": "399.6MiB / 1GiB",
+              "MemPerc": "39.02%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "104.82%",
+              "MemUsage": "410.7MiB / 1GiB",
+              "MemPerc": "40.10%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983161.5477946,
+          "memory": {
+            "MemAvailable": 5849759744,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378712064",
+              "MemoryPeak": "388370432",
+              "CPUUsageNSec": "84808812000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381292544",
+              "MemoryPeak": "390791168",
+              "CPUUsageNSec": "79775638000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "103.65%",
+              "MemUsage": "399.7MiB / 1GiB",
+              "MemPerc": "39.03%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "108.44%",
+              "MemUsage": "410.8MiB / 1GiB",
+              "MemPerc": "40.11%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983165.855374,
+          "memory": {
+            "MemAvailable": 5857030144,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378712064",
+              "MemoryPeak": "388370432",
+              "CPUUsageNSec": "84818681000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381292544",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "79884276000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "107.74%",
+              "MemUsage": "399.4MiB / 1GiB",
+              "MemPerc": "39.01%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "108.05%",
+              "MemUsage": "410.9MiB / 1GiB",
+              "MemPerc": "40.12%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983170.1846836,
+          "memory": {
+            "MemAvailable": 5848547328,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378712064",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "84968292000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381292544",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "79893920000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "110.52%",
+              "MemUsage": "399.8MiB / 1GiB",
+              "MemPerc": "39.04%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "113.64%",
+              "MemUsage": "410.6MiB / 1GiB",
+              "MemPerc": "40.10%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983174.441355,
+          "memory": {
+            "MemAvailable": 5852618752,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378712064",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "84977530000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381292544",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "79902899000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "104.70%",
+              "MemUsage": "399.4MiB / 1GiB",
+              "MemPerc": "39.01%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "108.99%",
+              "MemUsage": "410.6MiB / 1GiB",
+              "MemPerc": "40.10%",
+              "PIDs": "31"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983178.6450748,
+          "memory": {
+            "MemAvailable": 5865304064,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378712064",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "85048523000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381308928",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "79970127000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "100.96%",
+              "MemUsage": "399.4MiB / 1GiB",
+              "MemPerc": "39.01%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "102.11%",
+              "MemUsage": "411.1MiB / 1GiB",
+              "MemPerc": "40.15%",
+              "PIDs": "32"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983183.211121,
+          "memory": {
+            "MemAvailable": 5870628864,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378523648",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "85058755000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381042688",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "79979707000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "56.67%",
+              "MemUsage": "399.9MiB / 1GiB",
+              "MemPerc": "39.05%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "97.97%",
+              "MemUsage": "404.7MiB / 1GiB",
+              "MemPerc": "39.52%",
+              "PIDs": "30"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983187.3780746,
+          "memory": {
+            "MemAvailable": 5867282432,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378519552",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "85120665000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381038592",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "80023720000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "108.31%",
+              "MemUsage": "399.7MiB / 1GiB",
+              "MemPerc": "39.03%",
+              "PIDs": "29"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "100.49%",
+              "MemUsage": "404.7MiB / 1GiB",
+              "MemPerc": "39.52%",
+              "PIDs": "29"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983191.5795972,
+          "memory": {
+            "MemAvailable": 5867495424,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378519552",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "85130840000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381038592",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "80033371000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "102.81%",
+              "MemUsage": "399.7MiB / 1GiB",
+              "MemPerc": "39.03%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "106.58%",
+              "MemUsage": "404.6MiB / 1GiB",
+              "MemPerc": "39.52%",
+              "PIDs": "29"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983195.7987642,
+          "memory": {
+            "MemAvailable": 5863694336,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378519552",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "85139444000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381042688",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "80080785000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "106.08%",
+              "MemUsage": "399.5MiB / 1GiB",
+              "MemPerc": "39.01%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "106.17%",
+              "MemUsage": "404.6MiB / 1GiB",
+              "MemPerc": "39.52%",
+              "PIDs": "29"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983199.985227,
+          "memory": {
+            "MemAvailable": 5850042368,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378519552",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "85221621000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381042688",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "80090078000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "103.84%",
+              "MemUsage": "399.5MiB / 1GiB",
+              "MemPerc": "39.01%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "104.34%",
+              "MemUsage": "404.9MiB / 1GiB",
+              "MemPerc": "39.55%",
+              "PIDs": "30"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983204.2646616,
+          "memory": {
+            "MemAvailable": 5854801920,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378519552",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "85230531000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381042688",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "80100655000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "107.79%",
+              "MemUsage": "399.2MiB / 1GiB",
+              "MemPerc": "38.99%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "102.92%",
+              "MemUsage": "404.4MiB / 1GiB",
+              "MemPerc": "39.49%",
+              "PIDs": "28"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983208.4898403,
+          "memory": {
+            "MemAvailable": 5861380096,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378523648",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "85297783000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381042688",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "80199731000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "103.92%",
+              "MemUsage": "399.5MiB / 1GiB",
+              "MemPerc": "39.01%",
+              "PIDs": "28"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "108.41%",
+              "MemUsage": "404.7MiB / 1GiB",
+              "MemPerc": "39.52%",
+              "PIDs": "29"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983212.7523346,
+          "memory": {
+            "MemAvailable": 5866975232,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "378523648",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "85307168000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "381042688",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "80208131000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "71.42%",
+              "MemUsage": "357.4MiB / 1GiB",
+              "MemPerc": "34.90%",
+              "PIDs": "24"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "106.21%",
+              "MemUsage": "404.4MiB / 1GiB",
+              "MemPerc": "39.49%",
+              "PIDs": "28"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983216.9681947,
+          "memory": {
+            "MemAvailable": 5970894848,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "370585600",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "87036682000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "372838400",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "81835649000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "41.03%",
+              "MemUsage": "357.1MiB / 1GiB",
+              "MemPerc": "34.87%",
+              "PIDs": "23"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "45.57%",
+              "MemUsage": "362.6MiB / 1GiB",
+              "MemPerc": "35.41%",
+              "PIDs": "25"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983221.2556915,
+          "memory": {
+            "MemAvailable": 5957541888,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "370683904",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "89675045000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "372936704",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "84484712000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "63.68%",
+              "MemUsage": "357.4MiB / 1GiB",
+              "MemPerc": "34.90%",
+              "PIDs": "24"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "49.15%",
+              "MemUsage": "362.4MiB / 1GiB",
+              "MemPerc": "35.39%",
+              "PIDs": "25"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983225.4942067,
+          "memory": {
+            "MemAvailable": 5945278464,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "370733056",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "91996963000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "372977664",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "86827530000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "50.58%",
+              "MemUsage": "357.1MiB / 1GiB",
+              "MemPerc": "34.87%",
+              "PIDs": "23"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "56.12%",
+              "MemUsage": "362.3MiB / 1GiB",
+              "MemPerc": "35.38%",
+              "PIDs": "24"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983229.7118793,
+          "memory": {
+            "MemAvailable": 5957640192,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "370745344",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "94315643000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "372994048",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "89103004000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "33.36%",
+              "MemUsage": "357.1MiB / 1GiB",
+              "MemPerc": "34.88%",
+              "PIDs": "24"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "38.09%",
+              "MemUsage": "362.6MiB / 1GiB",
+              "MemPerc": "35.41%",
+              "PIDs": "25"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983233.8813808,
+          "memory": {
+            "MemAvailable": 5975986176,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "370765824",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "97046679000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "373014528",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "91854332000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "34.95%",
+              "MemUsage": "357.1MiB / 1GiB",
+              "MemPerc": "34.87%",
+              "PIDs": "23"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "29.04%",
+              "MemUsage": "362.3MiB / 1GiB",
+              "MemPerc": "35.38%",
+              "PIDs": "24"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983238.0839934,
+          "memory": {
+            "MemAvailable": 5973315584,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "370827264",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "99711130000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "373182464",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "94521171000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "56.79%",
+              "MemUsage": "357.1MiB / 1GiB",
+              "MemPerc": "34.87%",
+              "PIDs": "23"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "0.06%",
+              "MemUsage": "362.3MiB / 1GiB",
+              "MemPerc": "35.38%",
+              "PIDs": "24"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        }
+      ],
+      "sample_errors": 0
+    },
+    "isolation": {
+      "samples": [
+        {
+          "at_unix": 1792983262.2521152,
+          "memory": {
+            "MemAvailable": 5979676672,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "370946048",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "100068675000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "373190656",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "94728368000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "6.64%",
+              "MemUsage": "357MiB / 1GiB",
+              "MemPerc": "34.87%",
+              "PIDs": "23"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "0.07%",
+              "MemUsage": "357.3MiB / 1GiB",
+              "MemPerc": "34.89%",
+              "PIDs": "23"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        }
+      ],
+      "sample_errors": 0
+    },
+    "restart": {
+      "samples": [
+        {
+          "at_unix": 1792983264.3181283,
+          "memory": {
+            "MemAvailable": 5939245056,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "370941952",
+              "MemoryPeak": "388464640",
+              "CPUUsageNSec": "100094342000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "373186560",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "94749625000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "0.05%",
+              "MemUsage": "357MiB / 1GiB",
+              "MemPerc": "34.86%",
+              "PIDs": "23"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "6.45%",
+              "MemUsage": "357.2MiB / 1GiB",
+              "MemPerc": "34.89%",
+              "PIDs": "23"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983268.5508163,
+          "memory": {
+            "MemAvailable": 6229647360,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "57307136",
+              "MemoryPeak": "57307136",
+              "CPUUsageNSec": "1906345000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "373194752",
+              "MemoryPeak": "391004160",
+              "CPUUsageNSec": "94807579000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "0.07%",
+              "MemUsage": "357MiB / 1GiB",
+              "MemPerc": "34.86%",
+              "PIDs": "23"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "0.04%",
+              "MemUsage": "357.2MiB / 1GiB",
+              "MemPerc": "34.89%",
+              "PIDs": "23"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        },
+        {
+          "at_unix": 1792983272.7251503,
+          "memory": {
+            "MemAvailable": 6434111488,
+            "MemTotal": 8326934528,
+            "SwapFree": 0,
+            "SwapTotal": 0
+          },
+          "units": {
+            "qa1": {
+              "MemoryCurrent": "87166976",
+              "MemoryPeak": "87777280",
+              "CPUUsageNSec": "3117515000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            },
+            "qa2": {
+              "MemoryCurrent": "57925632",
+              "MemoryPeak": "57925632",
+              "CPUUsageNSec": "1869897000",
+              "ActiveState": "active",
+              "NRestarts": "0"
+            }
+          },
+          "containers": [
+            {
+              "Name": "forgeflow-odoo-qa1",
+              "CPUPerc": "17.41%",
+              "MemUsage": "357MiB / 1GiB",
+              "MemPerc": "34.86%",
+              "PIDs": "23"
+            },
+            {
+              "Name": "forgeflow-odoo-qa2",
+              "CPUPerc": "0.04%",
+              "MemUsage": "357.2MiB / 1GiB",
+              "MemPerc": "34.89%",
+              "PIDs": "23"
+            }
+          ],
+          "container_memory_peak_bytes": {
+            "qa1": 601231360,
+            "qa2": 606220288
+          }
+        }
+      ],
+      "sample_errors": 0
+    }
+  }
+}

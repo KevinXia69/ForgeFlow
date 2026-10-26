@@ -280,12 +280,18 @@ determinism, and read-only behavior.
 
 ## Product and operational limits
 
-- The platform model key is available to users who hold an invite code. Per-user
-  quotas and rate limiting are not implemented.
-- The public review instance is read-only: it cannot create runs, execute ERP
-  writes, or access a Docker socket.
-- Approval records are kept in a separate store. The review image writes them to
-  a temporary path, so they do not survive an instance rebuild.
+- Invite holders can consume the hosted platform model through authenticated
+  endpoints; the key itself is never returned. Hosted requests have process-local
+  rate limits, but no durable per-user token/spend budget. See
+  [model settings](model-settings.md).
+- The hosted product can execute approved plans in dedicated synthetic
+  ERP-Bench sandboxes. The API and assistant cannot access the Docker socket or
+  ERP write key; a separate executor enforces scope. Autonomous research runs
+  are not exposed through the public product.
+- Hosted case, approval and ERP records persist separately. The legacy review
+  image remains read-only and its temporary storage is not the hosted service's
+  persistence design. Isolated ERP restore and normal reboot evidence do not
+  establish whole-site disaster recovery onto another VPS.
 - The project does not implement automatic rollback, automatic retry of an
   unknown write, or a human approval step inside autonomous benchmark runs.
 

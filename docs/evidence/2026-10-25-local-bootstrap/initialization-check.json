@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "scope": "isolated local bootstrap; no model calls or ERP approval",
+  "steps": [
+    "init",
+    "start",
+    "stop"
+  ],
+  "image_id": "sha256:d23d570b3b2b39234083e786f00b797b1eafe892e5d8661d159343383af9244f",
+  "result": "failed",
+  "error_type": "AssertionError",
+  "cleanup": "owned services stopped; evidence and container retained"
+}

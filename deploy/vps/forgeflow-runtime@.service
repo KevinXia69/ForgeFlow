@@ -1,0 +1,40 @@
+[Unit]
+Description=ForgeFlow independent reviewer %i
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=600
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/forgeflow
+EnvironmentFile=/etc/forgeflow/instances/%i.env
+ExecStart=/opt/forgeflow/.venv/bin/python -m forgeflow.vps_runtime --config /etc/forgeflow/instances/%i.json
+Restart=on-failure
+RestartSec=10
+UMask=0077
+RuntimeDirectory=forgeflow-%i
+RuntimeDirectoryMode=0711
+KillMode=mixed
+TimeoutStopSec=960
+MemoryMax=512M
+MemorySwapMax=0
+CPUQuota=100%
+TasksMax=128
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/etc/forgeflow
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=false
+NoNewPrivileges=false
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+{
+  "checked_at": "2026-10-26T03:44:35.704028+00:00",
+  "base_url": "https://168.144.242.231",
+  "historical_case_id": "a9d6a8a859cfc24d888ed540a732fece",
+  "tls_verification": true,
+  "gateway_cookies": true,
+  "event_count": 1,
+  "error_count": 0,
+  "final_mode": "harness",
+  "answer_nonempty": true,
+  "answer_sha256": "cb2504706d0d40344f3e84c460d9d5a82c3b4c11403a05a6f0d5f3cca6ef23a5",
+  "seconds": 15.325,
+  "execution_unchanged": true,
+  "formal_reviewer_workspaces_used": false,
+  "business_approval_requested": false
+}

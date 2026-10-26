@@ -17,7 +17,7 @@ from contextlib import ExitStack
 from pathlib import Path
 
 from forgeflow.product.lease import EnvironmentLease
-from forgeflow.vps_runtime import configuration, trusted_json
+from forgeflow.vps_runtime import configuration, lifecycle_root, trusted_json
 
 
 class RotationError(RuntimeError):
@@ -94,7 +94,7 @@ def case_directory(config, *, create=False):
 
 
 def assert_stopped(backup, config):
-    unit = "forgeflow-runtime.service"
+    unit = config.get("service_unit", "forgeflow-runtime.service")
     if backup.run(["systemctl", "show", unit, "--property=ActiveState", "--value"]) != "inactive":
         raise RotationError("runtime_must_be_inactive")
     # Also verifies MainPID=0, an empty cgroup, no live managed PID, the stopped
@@ -128,7 +128,7 @@ def rotate(config_path, *, journal_path=None, backup=None, provisioner=None):
     provisioner = provisioner or load_script(repo, "vps_provision")
     with ExitStack() as locks:
         for name in ("workbench.lock", "heavy-operation.lock"):
-            locks.enter_context(backup.lease(repo / ".runtime/lifecycle" / name))
+            locks.enter_context(backup.lease(lifecycle_root(current) / name))
         if digest(trusted_json(config_path)) != digest(current_raw):
             raise RotationError("runtime_configuration_changed_before_lock")
         if journal_path is None:

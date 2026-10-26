@@ -1,0 +1,14 @@
+{
+  "containers": {
+    "ff-local-repro-20261025": "exited",
+    "ff-local-repro2-20261025": "exited"
+  },
+  "managed_processes": {
+    "sandbox/api": "not_recorded",
+    "sandbox/executor": "not_recorded",
+    "sandbox2/api": "not_recorded",
+    "sandbox2/executor": "not_recorded"
+  },
+  "remaining_test_processes": [],
+  "safe_for_reboot": true
+}

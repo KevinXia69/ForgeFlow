@@ -1,0 +1,34 @@
+# Local workbench image. Build through scripts/build_local_image.py, which
+# supplies the verified, derived task environment as the build context.
+FROM odoo:19@sha256:076562619a5de059388d9f9d90545cb575799c04869610a5b20839893819b41b
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates gnupg curl python3-venv \
+    && install -d /usr/share/postgresql-common/pgdg \
+    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+       -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+    && echo 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' \
+       > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update && apt-get install -y --no-install-recommends postgresql-18 \
+    && rm -rf /var/lib/apt/lists/*
+# Keep apt-owned Odoo dependencies intact. The verifier's uv wrapper uses this
+# same isolated interpreter; it is shared with the VPS build, not its entrypoint.
+RUN python3 -m venv --system-site-packages /opt/forgeflow/client-venv \
+    && /opt/forgeflow/client-venv/bin/python -m pip install --no-cache-dir \
+       'uv==0.8.22' 'odoo-client-lib==2.0.0'
+COPY odoo-uv.py /opt/forgeflow/bin/uv
+RUN chmod 755 /opt/forgeflow/bin/uv
+ENV PATH="/opt/forgeflow/bin:/opt/forgeflow/client-venv/bin:${PATH}"
+COPY odoo.conf /etc/odoo/odoo.conf
+RUN printf '\nlimit_time_cpu = 1200\nlimit_time_real = 1800\n' >> /etc/odoo/odoo.conf
+# The original setup stays byte-for-byte intact. Only its initialization RPC
+# timeout changes; the original verifier runs in a separate Python process.
+COPY setup_scenario.py /setup/setup_scenario.original.py
+COPY setup-bootstrap.py /setup/setup_scenario.py
+COPY scenario_data.json /setup/scenario_data.json
+COPY entrypoint.sh /usr/local/bin/harbor-entrypoint.sh
+RUN chmod 755 /usr/local/bin/harbor-entrypoint.sh \
+    && mkdir -p /workspace /logs/verifier /logs/agent /setup
+WORKDIR /workspace
+# local_workbench verifies and patches this exact upstream entrypoint before
+# first start. The persistent VPS image has a different lifecycle contract.
+ENTRYPOINT ["/usr/local/bin/harbor-entrypoint.sh"]

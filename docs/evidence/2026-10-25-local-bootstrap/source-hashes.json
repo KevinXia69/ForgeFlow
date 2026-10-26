@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "hash_algorithm": "SHA-256",
+  "raw_scope": "Exact source bytes in the isolated Linux test directory.",
+  "canonical_scope": "CRLF to LF only; comparison aid, not a separate executed test.",
+  "files": {
+    "scripts/build_local_image.py": {
+      "raw_sha256": "e732724a2d458e1904b538bf659cb86247bc71f349e8a49d1bd68af95f511523",
+      "canonical_lf_sha256": "e732724a2d458e1904b538bf659cb86247bc71f349e8a49d1bd68af95f511523",
+      "raw_bytes": 2694,
+      "crlf_pairs": 0
+    },
+    "scripts/setup_dsh_harness.py": {
+      "raw_sha256": "4dafe4d4d505ed0b9f11520e81e737c111b86b906d499974a49cd727bcca04b4",
+      "canonical_lf_sha256": "4dafe4d4d505ed0b9f11520e81e737c111b86b906d499974a49cd727bcca04b4",
+      "raw_bytes": 2874,
+      "crlf_pairs": 0
+    },
+    "scripts/local_workbench.py": {
+      "raw_sha256": "cae726fa5f3bb1fcc6b81844374f9527fd26aec76e1009029f86aeb4a875b749",
+      "canonical_lf_sha256": "cae726fa5f3bb1fcc6b81844374f9527fd26aec76e1009029f86aeb4a875b749",
+      "raw_bytes": 56145,
+      "crlf_pairs": 0
+    },
+    "deploy/local/Dockerfile.odoo": {
+      "raw_sha256": "0150da6c01eb6ab4ff47ed44dbdf1c6d60d8e66dea093cd6ad12ba958e5b8964",
+      "canonical_lf_sha256": "0150da6c01eb6ab4ff47ed44dbdf1c6d60d8e66dea093cd6ad12ba958e5b8964",
+      "raw_bytes": 2172,
+      "crlf_pairs": 0
+    },
+    "deploy/local/setup-bootstrap.py": {
+      "raw_sha256": "b07c8e2502de8959d6b23eb3e16478eb87c3120eecd0c53606c665cce728b80f",
+      "canonical_lf_sha256": "b07c8e2502de8959d6b23eb3e16478eb87c3120eecd0c53606c665cce728b80f",
+      "raw_bytes": 255,
+      "crlf_pairs": 0
+    },
+    "tests/test_local_workbench.py": {
+      "raw_sha256": "48674d51888acc9bf213159fd165554bb79f5789aae240b4b684ff7cdb79f348",
+      "canonical_lf_sha256": "48674d51888acc9bf213159fd165554bb79f5789aae240b4b684ff7cdb79f348",
+      "raw_bytes": 61011,
+      "crlf_pairs": 0
+    },
+    "pyproject.toml": {
+      "raw_sha256": "bf34b9c8a4ba947a477b9cea01be02990d34cbdd8064b39ac690ac51b6b35480",
+      "canonical_lf_sha256": "bf34b9c8a4ba947a477b9cea01be02990d34cbdd8064b39ac690ac51b6b35480",
+      "raw_bytes": 1188,
+      "crlf_pairs": 0
+    },
+    "uv.lock": {
+      "raw_sha256": "c0ef1c897cd312807d9000d63ac956af59757b89451058f59c3a35bc27961ca4",
+      "canonical_lf_sha256": "c0ef1c897cd312807d9000d63ac956af59757b89451058f59c3a35bc27961ca4",
+      "raw_bytes": 505707,
+      "crlf_pairs": 0
+    },
+    "upstream.lock.json": {
+      "raw_sha256": "7024dd8507ad876af02a648a2a2451753405186e3bf3ff160381765ebcca3702",
+      "canonical_lf_sha256": "7024dd8507ad876af02a648a2a2451753405186e3bf3ff160381765ebcca3702",
+      "raw_bytes": 945,
+      "crlf_pairs": 0
+    },
+    "deploy/vps/odoo-uv.py": {
+      "raw_sha256": "a9a3d061800de345fd153a13edd88e7c9ce32472097c5b74613fc273c9ba522b",
+      "canonical_lf_sha256": "a9a3d061800de345fd153a13edd88e7c9ce32472097c5b74613fc273c9ba522b",
+      "raw_bytes": 666,
+      "crlf_pairs": 0
+    },
+    "deploy/vps/dsh/package.json": {
+      "raw_sha256": "e6a79f0852b275882c958811f7ee132b14c776006f55640582fe5f9b063b7891",
+      "canonical_lf_sha256": "e6a79f0852b275882c958811f7ee132b14c776006f55640582fe5f9b063b7891",
+      "raw_bytes": 229,
+      "crlf_pairs": 0
+    },
+    "deploy/vps/dsh/package-lock.json": {
+      "raw_sha256": "e59a7dd8055d630d04dc45ceb244fe21f146a409b45893b3015d059fefb9c65d",
+      "canonical_lf_sha256": "e59a7dd8055d630d04dc45ceb244fe21f146a409b45893b3015d059fefb9c65d",
+      "raw_bytes": 407464,
+      "crlf_pairs": 0
+    },
+    "src/forgeflow/local_entrypoint.py": {
+      "raw_sha256": "b1620fd9618bb8558b9b62d0c9fc5111e320f09d2bd1816951b504cd3749643c",
+      "canonical_lf_sha256": "b1620fd9618bb8558b9b62d0c9fc5111e320f09d2bd1816951b504cd3749643c",
+      "raw_bytes": 3409,
+      "crlf_pairs": 0
+    },
+    "src/forgeflow/runner.py": {
+      "raw_sha256": "4b57521fa127d6b037ed3a2534152815dd965bb47b16c30bb13f0a492118a9c0",
+      "canonical_lf_sha256": "4b57521fa127d6b037ed3a2534152815dd965bb47b16c30bb13f0a492118a9c0",
+      "raw_bytes": 67642,
+      "crlf_pairs": 0
+    },
+    "src/forgeflow/vps_runtime.py": {
+      "raw_sha256": "9438d1c8b585ee90a8f150068b3b8aa7568f3e091930cc4c92dc62c4383df3e7",
+      "canonical_lf_sha256": "9438d1c8b585ee90a8f150068b3b8aa7568f3e091930cc4c92dc62c4383df3e7",
+      "raw_bytes": 19739,
+      "crlf_pairs": 0
+    },
+    "src/forgeflow/api/dsh_permissions.py": {
+      "raw_sha256": "71e0482ecec009b35deca230276355c25c4000db873075b409aae8dc07d141bc",
+      "canonical_lf_sha256": "71e0482ecec009b35deca230276355c25c4000db873075b409aae8dc07d141bc",
+      "raw_bytes": 3258,
+      "crlf_pairs": 0
+    }
+  }
+}

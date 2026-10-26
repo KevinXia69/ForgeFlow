@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "source_sha256": {
+    "scripts/vps_reviewer_acceptance.py": "8d6a419ea052c8e6981b6904bb5e3422ea523e2f8514f067299800183fa58c34",
+    "src/forgeflow/vps_runtime.py": "9438d1c8b585ee90a8f150068b3b8aa7568f3e091930cc4c92dc62c4383df3e7",
+    "src/forgeflow/dsh_launcher.py": "8db565f6ce6631b321567081853dead808f0a771903e2ae99ae9008fcc0cdff1",
+    "scripts/vps_provision.py": "374705257a73ba068653f2d13486fc25226c2b62a814f86015af9ad8f97297b2",
+    "scripts/vps_reviewers.py": "22bf5ec341a8f25008dd68ac1aa3b95543698dc1661ebeaebedadc10be03e261"
+  },
+  "integrity_scope": "Hashes identify source and evidence bytes; operator captures are not independent attestation.",
+  "files": [
+    {
+      "name": "acceptance.json",
+      "bytes": 145620,
+      "sha256": "6c37ad756f3e1221341d4f77ad9561ae3ffdf88a9fa9b44a50a47cb4fef9a618"
+    },
+    {
+      "name": "qa1-original-reward.json",
+      "bytes": 19134,
+      "sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c"
+    },
+    {
+      "name": "qa2-original-reward.json",
+      "bytes": 19134,
+      "sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c"
+    }
+  ],
+  "redaction": "No invitations, session cookies/secrets, model credentials, model prompts/answers, actor identifiers or private host paths."
+}

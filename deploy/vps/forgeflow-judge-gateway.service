@@ -1,0 +1,29 @@
+[Unit]
+Description=ForgeFlow reviewer routing gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=forgeflow-gateway
+Group=forgeflow-gateway
+WorkingDirectory=/opt/forgeflow
+ExecStart=/opt/forgeflow/.venv/bin/python -m forgeflow.judge_gateway --config /etc/forgeflow/gateway.json --port 8090
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=256M
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

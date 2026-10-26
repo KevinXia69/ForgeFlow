@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "scope": "isolated local bootstrap; no model calls or ERP approval",
+  "steps": [
+    "resume",
+    "stop",
+    "resume",
+    "stop"
+  ],
+  "image_id": "sha256:d23d570b3b2b39234083e786f00b797b1eafe892e5d8661d159343383af9244f",
+  "api_health_login_and_frontend": "passed",
+  "case_id": "029d62ca327e46709a77294c588b268b",
+  "case_state": "awaiting_approval",
+  "case_keys": [
+    "approval",
+    "audit",
+    "case_id",
+    "created_at",
+    "decision",
+    "disruption",
+    "execution",
+    "history",
+    "order",
+    "plan",
+    "reason",
+    "result",
+    "revision",
+    "revision_limits",
+    "scenario",
+    "state",
+    "synthetic",
+    "updated_at"
+  ],
+  "case_creation_and_planning": "passed",
+  "same_session_case_after_resume": "passed",
+  "result": "passed",
+  "cleanup": "owned services stopped; evidence and container retained"
+}

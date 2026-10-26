@@ -380,13 +380,17 @@ def _require_image() -> None:
     found = _docker("image", "inspect", IMAGE, check=False, capture=True)
     if found.returncode != 0:
         raise SystemExit(
-            f"Missing image {IMAGE}. Build it once with the task Dockerfile "
-            "(see docs/LOCAL_WORKBENCH.md) or set FORGEFLOW_LOCAL_IMAGE."
+            f"Missing image {IMAGE}. Run: uv run python scripts/build_local_image.py "
+            f"--scenario {SCENARIO} --tag {IMAGE} (see docs/LOCAL_WORKBENCH.md)."
         )
 
 
 def _wait_sandbox() -> None:
-    deadline = time.monotonic() + 180
+    # Installing Odoo's modules on a fresh host can exceed the normal resume
+    # budget. This bounds initialization without treating an old seed marker as
+    # proof that this boot is ready.
+    initializing = not (_instance(required=False) or {}).get("ready", False)
+    deadline = time.monotonic() + (1800 if initializing else 180)
     while time.monotonic() < deadline:
         probe = _docker("exec", CONTAINER, "sh", "-c", local_entrypoint.READY_CHECK,
                         check=False, capture=True)
@@ -395,6 +399,9 @@ def _wait_sandbox() -> None:
                                "-At", "-c", "SELECT 1;", check=False, capture=True)
             if database.returncode == 0 and database.stdout.strip() == "1":
                 return
+        elif _docker("inspect", "--format", "{{.State.Running}}", CONTAINER,
+                     check=False, capture=True).stdout.strip() == "false":
+            raise lifecycle.LifecycleError("sandbox_stopped_before_ready_preserved")
         time.sleep(2)
     raise lifecycle.LifecycleError("sandbox_setup_timeout_preserved")
 
@@ -775,10 +782,7 @@ def _prepare_dsh(env: dict[str, str]) -> None:
         return
     env_file = ROOT / ".runtime" / "dsh.env"
     if not env_file.is_file():
-        setup = ROOT / "scripts" / "setup_dsh_harness.py"
-        if setup.is_file():
-            subprocess.run([sys.executable, str(setup)], cwd=ROOT, text=True,
-                           stdout=subprocess.DEVNULL, check=False)
+        print("DSH is not configured. Run: uv run python scripts/setup_dsh_harness.py")
     try:
         for line in env_file.read_text(encoding="utf-8").splitlines():
             line = line.strip()

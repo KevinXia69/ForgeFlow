@@ -20,9 +20,9 @@ private bilingual locale data. There is no language switcher in this copy.
   a receipt after execution.
 - **Evidence** view for historical runs, plans, approvals, and verifier
   metadata.
-- **Settings** for the platform default model, an optional browser-local
-  OpenAI-compatible endpoint, and connection testing. Keys stay in this
-  browser.
+- **Settings** for the platform model and connection testing. Hosted mode locks
+  model overrides. Local/review mode may accept an optional browser-local
+  OpenAI-compatible configuration; the platform key is never sent to a browser.
 - **Login** with the invitation-code flow used by the local API.
 
 When product execution is unavailable, the Cases view shows a clearly labelled
@@ -37,20 +37,20 @@ read-only demo case. The demo case never writes to an ERP.
 ## Build
 
 ```bash
-cd web
+cd web-public
 npm ci
 npm run typecheck
 npm run build
 ```
 
-`npm run build` writes the static bundle to `web/dist`. The Vite base path is
+`npm run build` writes the static bundle to `web-public/dist`. The Vite base path is
 `/app/`, so serve `dist` at that path behind the ForgeFlow API. The frontend
 uses same-origin requests under `/api/`.
 
 ## Local preview
 
 ```bash
-cd web
+cd web-public
 npm run preview
 ```
 
@@ -65,7 +65,7 @@ checks Decision, Inbox, Activity, Ask this case, Evidence, Settings, and
 asserts that no Chinese characters appear in the rendered page.
 
 ```bash
-cd web
+cd web-public
 npm run build
 npm run smoke
 ```
@@ -79,7 +79,7 @@ download a browser or call a model or ERP.
 ## Source layout
 
 ```text
-web/
+web-public/
   index.html
   package.json
   package-lock.json

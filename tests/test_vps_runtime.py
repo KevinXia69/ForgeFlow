@@ -7,8 +7,10 @@ import pytest
 pytest.importorskip("pwd")
 
 from forgeflow import vps_runtime  # noqa: E402
-from forgeflow.dsh_launcher import launch_arguments  # noqa: E402
-from forgeflow.vps_runtime import api_environment, configuration, executor_command  # noqa: E402
+from forgeflow.dsh_launcher import launch_arguments, scoped_file  # noqa: E402
+from forgeflow.vps_runtime import (  # noqa: E402
+    api_environment, assistant_config_path, configuration, executor_command, lifecycle_root,
+)
 
 
 def config():
@@ -120,3 +122,76 @@ def test_container_monitor_rejects_docker_timeout(monkeypatch):
     monkeypatch.setattr(vps_runtime.subprocess, "run", inspect)
     with pytest.raises(ValueError, match="runtime_container_unavailable"):
         vps_runtime.container_boot("odoo")
+
+
+def isolated_config(name):
+    return configuration({**config(), "instance_name": name,
+        "api_user": "forgeflow-api-" + name, "dsh_user": "forgeflow-dsh-" + name,
+        "dsh_root": "/var/lib/forgeflow/" + name + "/assistant",
+        "dsh_patch": "/etc/forgeflow/" + name + "/dsh.patch.json",
+        "dsh_config": "/etc/forgeflow/assistants/forgeflow-dsh-" + name + ".json",
+        "dsh_launcher": "/usr/local/bin/forgeflow-dsh-" + name,
+        "service_unit": "forgeflow-runtime@" + name + ".service"})
+
+
+def test_judge_instances_keep_runtime_locks_and_privileged_peer_identities_distinct():
+    first, second = isolated_config("judge1"), isolated_config("judge2")
+    assert lifecycle_root(first) != lifecycle_root(second)
+    assert lifecycle_root(first).as_posix().endswith("/instances/judge1")
+    assert lifecycle_root(config()).as_posix().endswith("/.runtime/lifecycle")
+    for value in (first, second):
+        command = executor_command(value)
+        assert command[command.index("--agent-user") + 1] == value["api_user"]
+        assert api_environment(value, {})["FORGEFLOW_DSH_NODE"] == value["dsh_launcher"]
+
+
+def test_new_instances_cannot_silently_share_legacy_assistant_identity_or_config():
+    incomplete = {**config(), "instance_name": "judge1"}
+    with pytest.raises(ValueError, match="isolated_runtime_identities_required"):
+        configuration(incomplete)
+    wrong = isolated_config("judge1") | {"dsh_config": "/etc/forgeflow/dsh.json"}
+    with pytest.raises(ValueError, match="assistant_configuration_identity_mismatch"):
+        configuration(wrong)
+    same_user = isolated_config("judge1") | {"api_user": "forgeflow-dsh-judge1"}
+    with pytest.raises(ValueError, match="isolated_runtime_identities_required"):
+        configuration(same_user)
+
+
+@pytest.mark.parametrize("name", ["../judge1", "judge1/../../default", "-x", "", "judge 1"])
+def test_instance_names_cannot_escape_lock_namespace(name):
+    with pytest.raises(ValueError, match="invalid_runtime_instance"):
+        configuration({**config(), "instance_name": name})
+
+
+def test_assistant_config_is_selected_only_from_effective_unix_identity():
+    assert str(assistant_config_path("forgeflow-dsh")) == "/etc/forgeflow/dsh.json"
+    assert str(assistant_config_path("forgeflow-dsh-judge2")) == "/etc/forgeflow/assistants/forgeflow-dsh-judge2.json"
+    for name in ("root", "forgeflow-api-judge1", "forgeflow-dsh-../judge2"):
+        with pytest.raises(ValueError, match="invalid_assistant_identity"):
+            assistant_config_path(name)
+
+
+def test_assistant_rejects_evidence_owned_by_a_different_api_identity(assistant_scope):
+    settings, evidence = assistant_scope
+    with pytest.raises(ValueError, match="invalid_assistant_scope"):
+        scoped_file(evidence, evidence.parent, owner_uid=evidence.stat().st_uid + 1)
+
+
+def test_another_judge_runtime_is_not_blocked_by_first_judge_maintenance(tmp_path, monkeypatch):
+    import fcntl
+    from types import SimpleNamespace
+
+    first, second = isolated_config("judge1"), isolated_config("judge2")
+    first["repo_root"] = second["repo_root"] = str(tmp_path)
+    first_lock = lifecycle_root(first) / "workbench.lock"
+    first_lock.parent.mkdir(parents=True)
+    monkeypatch.setattr(vps_runtime, "trusted_json", lambda _path: second)
+    monkeypatch.setattr(os, "geteuid", lambda: 0)
+    monkeypatch.setattr(os, "chown", lambda *_args: None)
+    actual_fstat = os.fstat
+    monkeypatch.setattr(os, "fstat", lambda fd: SimpleNamespace(st_mode=actual_fstat(fd).st_mode, st_uid=0))
+    monkeypatch.setattr(vps_runtime, "_run_locked", lambda *_args: 17)
+    with first_lock.open("w") as lock:
+        first_lock.chmod(0o600)
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        assert vps_runtime.run(tmp_path / "unused-config.json") == 17

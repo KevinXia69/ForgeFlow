@@ -1,0 +1,218 @@
+{
+  "before": {
+    "checked_at": "2026-10-26T03:45:00.357916+00:00",
+    "boot_id": "9f44a986-85dd-4ff1-b461-81f9e8542573",
+    "fingerprint_scope": {
+      "version": 1,
+      "case_fields": [
+        "case_id",
+        "scenario",
+        "state",
+        "synthetic",
+        "order",
+        "disruption",
+        "plan",
+        "approval",
+        "execution",
+        "created_at",
+        "updated_at",
+        "reason",
+        "revision",
+        "history",
+        "audit"
+      ]
+    },
+    "instances": [
+      {
+        "instance": "legacy",
+        "generation": "ef0c853c80fa45d4bd461dc361c95663",
+        "case_count": 3,
+        "case_list_sha256": "960b99e25c1e9e555d6a09ba0d9abdb729f698bdfda80b3896b47fb56c3c3c6b",
+        "available": true,
+        "owned_by_me": false,
+        "service_active": true,
+        "service_enabled": true,
+        "allow_initialize": false
+      },
+      {
+        "instance": "judge1",
+        "generation": "0969c133ca7a470cac764bc120f31d94",
+        "case_count": 0,
+        "case_list_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "available": true,
+        "owned_by_me": false,
+        "service_active": true,
+        "service_enabled": true,
+        "allow_initialize": false
+      },
+      {
+        "instance": "judge2",
+        "generation": "a4cd34a3116c476ea10045395a88ca4e",
+        "case_count": 0,
+        "case_list_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "available": true,
+        "owned_by_me": false,
+        "service_active": true,
+        "service_enabled": true,
+        "allow_initialize": false
+      },
+      {
+        "instance": "judge3",
+        "generation": "b63dc85164db4d8cbea28563da9eff43",
+        "case_count": 0,
+        "case_list_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "available": true,
+        "owned_by_me": false,
+        "service_active": true,
+        "service_enabled": true,
+        "allow_initialize": false
+      },
+      {
+        "instance": "judge4",
+        "generation": "6a13a9775bac4716bd6b102e567776a4",
+        "case_count": 0,
+        "case_list_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "available": true,
+        "owned_by_me": false,
+        "service_active": true,
+        "service_enabled": true,
+        "allow_initialize": false
+      },
+      {
+        "instance": "judge5",
+        "generation": "8386383ffe2141c5bf79962b57710f61",
+        "case_count": 0,
+        "case_list_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "available": true,
+        "owned_by_me": false,
+        "service_active": true,
+        "service_enabled": true,
+        "allow_initialize": false
+      }
+    ],
+    "services": {
+      "nginx.service": "active",
+      "forgeflow-judge-gateway.service": "active",
+      "forgeflow-cert-renew.timer": "active"
+    },
+    "memory_kib": {
+      "MemTotal": 8131772,
+      "MemAvailable": 5039096,
+      "SwapTotal": 0,
+      "SwapFree": 0
+    },
+    "public_tenant": "judge1",
+    "business_writes": false,
+    "model_calls": false
+  },
+  "after": {
+    "checked_at": "2026-10-26T03:46:39.040600+00:00",
+    "boot_id": "ccae45f9-0550-42fd-b92f-a2726c3c293d",
+    "fingerprint_scope": {
+      "version": 1,
+      "case_fields": [
+        "case_id",
+        "scenario",
+        "state",
+        "synthetic",
+        "order",
+        "disruption",
+        "plan",
+        "approval",
+        "execution",
+        "created_at",
+        "updated_at",
+        "reason",
+        "revision",
+        "history",
+        "audit"
+      ]
+    },
+    "instances": [
+      {
+        "instance": "legacy",
+        "generation": "ef0c853c80fa45d4bd461dc361c95663",
+        "case_count": 3,
+        "case_list_sha256": "960b99e25c1e9e555d6a09ba0d9abdb729f698bdfda80b3896b47fb56c3c3c6b",
+        "available": true,
+        "owned_by_me": false,
+        "service_active": true,
+        "service_enabled": true,
+        "allow_initialize": false
+      },
+      {
+        "instance": "judge1",
+        "generation": "0969c133ca7a470cac764bc120f31d94",
+        "case_count": 0,
+        "case_list_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "available": true,
+        "owned_by_me": false,
+        "service_active": true,
+        "service_enabled": true,
+        "allow_initialize": false
+      },
+      {
+        "instance": "judge2",
+        "generation": "a4cd34a3116c476ea10045395a88ca4e",
+        "case_count": 0,
+        "case_list_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "available": true,
+        "owned_by_me": false,
+        "service_active": true,
+        "service_enabled": true,
+        "allow_initialize": false
+      },
+      {
+        "instance": "judge3",
+        "generation": "b63dc85164db4d8cbea28563da9eff43",
+        "case_count": 0,
+        "case_list_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "available": true,
+        "owned_by_me": false,
+        "service_active": true,
+        "service_enabled": true,
+        "allow_initialize": false
+      },
+      {
+        "instance": "judge4",
+        "generation": "6a13a9775bac4716bd6b102e567776a4",
+        "case_count": 0,
+        "case_list_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "available": true,
+        "owned_by_me": false,
+        "service_active": true,
+        "service_enabled": true,
+        "allow_initialize": false
+      },
+      {
+        "instance": "judge5",
+        "generation": "8386383ffe2141c5bf79962b57710f61",
+        "case_count": 0,
+        "case_list_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "available": true,
+        "owned_by_me": false,
+        "service_active": true,
+        "service_enabled": true,
+        "allow_initialize": false
+      }
+    ],
+    "services": {
+      "nginx.service": "active",
+      "forgeflow-judge-gateway.service": "active",
+      "forgeflow-cert-renew.timer": "active"
+    },
+    "memory_kib": {
+      "MemTotal": 8131780,
+      "MemAvailable": 5866540,
+      "SwapTotal": 0,
+      "SwapFree": 0
+    },
+    "public_tenant": "judge1",
+    "business_writes": false,
+    "model_calls": false
+  },
+  "whole_os_reboot_confirmed": true,
+  "generations_cases_and_ownership_preserved": true,
+  "all_services_started_automatically": true,
+  "new_case_approval_after_reboot_tested": false
+}

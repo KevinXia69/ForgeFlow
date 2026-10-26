@@ -10,7 +10,22 @@ The project prefers an awkward recorded failure over a clean unsupported claim.
 Missing values stay `null`; they are not filled from the current repository or
 from memory.
 
-## Hosted VPS acceptance, October 25, 2026
+## Independent reviewer acceptance
+
+The [new reviewer record](../evidence/2026-10-26-reviewers/README.md) separates
+two disposable environments used for real concurrent preparation, model calls,
+approval and original verification from the five official judge environments.
+It records duplicate approval, cross-instance isolation and service restarts.
+Preparation-only and repeated-approval measurements compare all row contents
+in twelve listed business tables, not the entire Odoo database. Public HTTPS
+routing and host-reboot checks have their own evidence in that record.
+
+The [local bootstrap record](../evidence/2026-10-25-local-bootstrap/README.md)
+documents a separate fresh image/database, case planning and stop/resume. It
+preserves failed attempts and actual executed source hashes; it does not claim
+local model calls, approved writes or Scenario B runtime coverage.
+
+## Initial hosted VPS acceptance, October 25, 2026
 
 The [published VPS record](../evidence/2026-10-25-vps/README.md) is bound to source
 commit `67bcb95e3253c245dab49478458aab652af8d05a`, an immutable Odoo image, and the

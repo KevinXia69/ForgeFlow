@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "evidence_kind": "operator_captures_not_independent_attestation",
+  "source_sha256": {
+    "src/forgeflow/judge_gateway.py": "8450205b96b2ca453d57af8c5a8917621d6aa66b61f385d84adfeae876c69b4d",
+    "scripts/vps_gateway_acceptance.py": "27f538096af214d15be854e2d80b685cf8495236df40d76a13dab7c0b3f1cb20",
+    "scripts/vps_reviewer_release_check.py": "f86b98bcac3b3542afce1e9ec94c7f5e80cb7c1cc16f43772bc49d04ed26a917",
+    "deploy/vps/forgeflow-judge-gateway.service": "b8da191ff34d14d4d2113b1c4f02b710b90457d55e7578f3b5701756deda255f",
+    "deploy/vps/nginx-reviewers.conf": "c96c3cc106d9e47fafe66e029959077d60be6c243de7ac59db7ba375817179dc"
+  },
+  "files": [
+    {
+      "name": "acceptance.json",
+      "bytes": 145620,
+      "sha256": "6c37ad756f3e1221341d4f77ad9561ae3ffdf88a9fa9b44a50a47cb4fef9a618"
+    },
+    {
+      "name": "gateway-loopback.json",
+      "bytes": 1710,
+      "sha256": "4d4288b72ec4ae3dcb2bdeb2bdc13109217a2db7d5dc09913bfa41fcd60ed826"
+    },
+    {
+      "name": "host-reboot.json",
+      "bytes": 6562,
+      "sha256": "2be48cd12344782937e8bc10e4d30ebdb917a57bd3b76dcfe2f01b1b0bed37cf"
+    },
+    {
+      "name": "manifest.json",
+      "bytes": 1311,
+      "sha256": "89b755484f539e280ba105d0b7ca7333d72457b2e6466179b8ad83bf87607aa5"
+    },
+    {
+      "name": "post-reboot-access.json",
+      "bytes": 1712,
+      "sha256": "55d883f68b50c77a7cce1958d291755747f903e6f8fbed8865a2c7f238681eb9"
+    },
+    {
+      "name": "public-access.json",
+      "bytes": 1710,
+      "sha256": "49337af265c51d76f0b805e093955801f63509ca282d99a0de7dcc03f3769880"
+    },
+    {
+      "name": "public-model-stream.json",
+      "bytes": 528,
+      "sha256": "df08b3e371e75580f16c6a3772bf46b5d43e6bde70c72231105582fd2f67ec2e"
+    },
+    {
+      "name": "qa1-original-reward.json",
+      "bytes": 19134,
+      "sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c"
+    },
+    {
+      "name": "qa2-original-reward.json",
+      "bytes": 19134,
+      "sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c"
+    },
+    {
+      "name": "README.md",
+      "bytes": 5921,
+      "sha256": "fe7f34a959a5fc49964126cbc54b21d8a23c7ed668c292e34ee5348ee00e0de1"
+    },
+    {
+      "name": "runtime-identities-driver.py",
+      "bytes": 2250,
+      "sha256": "580001bc0f3ff2c0084e0d75bf5721781b0dcec97c9919ba68fc9ff35d527881"
+    },
+    {
+      "name": "runtime-identities.json",
+      "bytes": 4742,
+      "sha256": "f0bdbf85e3b96ea659aa1ce6f60329218628daa5e5757e67bb330abca5772cec"
+    }
+  ],
+  "scope": "Public gateway, five fresh workspaces, identity permissions and preserving host reboot. No new post-reboot business approval or five-heavy-operation load test."
+}
