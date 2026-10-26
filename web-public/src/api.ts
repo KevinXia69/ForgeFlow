@@ -191,6 +191,7 @@ export type StreamTurn = {
   id: string;
   lastEventId: string;
   resume: boolean;
+  lang?: "zh" | "en";
   onCursor: (id: string) => void;
 };
 
@@ -199,8 +200,24 @@ export const cancelAssistantTurn = (conversationId: string, turnId: string) =>
 export const cancelCaseTurn = (caseId: string, conversationId: string, turnId: string) =>
   api<void>(`/api/product/cases/${encodeURIComponent(caseId)}/ask/cancel`, { method: "POST", body: JSON.stringify({ conversation_id: conversationId, turn_id: turnId }), signal: AbortSignal.timeout(10_000) });
 
-export function streamProductCase(caseId: string, question: string, conversationId: string, onTrace: (activity: ActivityState) => void, signal: AbortSignal | undefined, turn: StreamTurn, lang?: "zh" | "en"): Promise<ProductAskAnswer> {
-  return streamReply(`/api/product/cases/${encodeURIComponent(caseId)}/ask/stream`, { question, conversation_id: conversationId, ...(lang ? { lang } : {}) }, onTrace, signal, turn);
+export async function streamProductCase(caseId: string, question: string, conversationId: string, onTrace: (activity: ActivityState) => void, signal: AbortSignal | undefined, turn: StreamTurn, lang?: "zh" | "en"): Promise<ProductAskAnswer> {
+  const originalLang = turn.lang ?? lang;
+  // Older saved turns omitted their request language. Only a resume that the
+  // server explicitly rejects for payload mismatch may try the historical
+  // language encodings, always subscribing to the same turn instead of starting
+  // another producer. The absent encoding also covers pre-language requests.
+  const languages = turn.resume && turn.lang === undefined
+    ? [...new Set([originalLang, "zh", "en", undefined])]
+    : [originalLang];
+  for (let i = 0; i < languages.length; i++) {
+    signal?.throwIfAborted();
+    try {
+      return await streamReply(`/api/product/cases/${encodeURIComponent(caseId)}/ask/stream`, { question, conversation_id: conversationId, ...(languages[i] ? { lang: languages[i] } : {}) }, onTrace, signal, turn);
+    } catch (error) {
+      if (signal?.aborted || i === languages.length - 1 || !(error instanceof ApiError && error.status === 409 && error.message === "turn_payload_mismatch")) throw error;
+    }
+  }
+  throw new Error("turn_language_unavailable");
 }
 
 export function streamAssistant(question: string, history: AssistantHistoryTurn[] | undefined, conversationId: string, lang: "zh" | "en", onTrace: (activity: ActivityState) => void, signal?: AbortSignal, turn?: StreamTurn): Promise<Answer> {

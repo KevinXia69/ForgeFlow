@@ -96,10 +96,14 @@ def test_unavailable_model_is_labeled_deterministic_for_both_transports(tmp_path
 
 
 def test_language_is_bound_to_case_turn_identity(tmp_path, monkeypatch):
+    calls = []
+
     class Harness:
         def with_evidence(self, path):
-            return SimpleNamespace(stream=lambda *args, **kwargs: iter([{
-                "type": "final", "answer": "Hello.", "citations": [], "mode": "harness"}]))
+            def stream(*args, **kwargs):
+                calls.append(args)
+                yield {"type": "final", "answer": "Hello.", "citations": [], "mode": "harness"}
+            return SimpleNamespace(stream=stream)
 
     monkeypatch.setattr("forgeflow.api.app.DshHarness.from_env", lambda: Harness())
     with api_tests.client_for(tmp_path, FakeProductExecutor()) as (client, _):
@@ -107,5 +111,65 @@ def test_language_is_bound_to_case_turn_identity(tmp_path, monkeypatch):
         case = api_tests.create_case(client)
         route = f"/api/product/cases/{case['case_id']}/ask/stream"
         request = {"question": "Say hello", "lang": "en", "turn_id": "fixed-language"}
-        assert client.post(route, json=request).status_code == 200
-        assert client.post(route, json={**request, "lang": "zh"}).status_code == 409
+        original = client.post(route, json=request)
+        assert original.status_code == 200
+        mismatch = client.post(route, json={**request, "lang": "zh", "resume": True})
+        assert mismatch.status_code == 409
+        assert mismatch.json()["detail"] == "turn_payload_mismatch"
+        restored = client.post(route, json={**request, "resume": True})
+        assert restored.status_code == 200
+        assert restored.text == original.text
+        assert len(calls) == 1
+
+
+@pytest.mark.parametrize("question,lang", [
+    ("不要提成本，请列出保留单据", "zh"),
+    ("请列出保留单据，不要提成本", "zh"),
+    ("Do not use cost; list retained documents", "en"),
+    ("List retained documents; do not use cost", "en"),
+])
+@pytest.mark.parametrize("stream", [False, True])
+@pytest.mark.parametrize("model_configured", [False, True])
+def test_negated_cost_clause_does_not_break_case_answer_routes(
+    tmp_path, monkeypatch, question, lang, stream, model_configured,
+):
+    """Both transports must build a usable fallback before any provider call."""
+    calls = []
+
+    class Harness:
+        def with_evidence(self, path):
+            class Scoped:
+                def ask(self, *args):
+                    calls.append("ask")
+                    raise DshUnavailable("provider_unavailable")
+
+                def stream(self, *args, **kwargs):
+                    calls.append("stream")
+                    raise DshUnavailable("provider_unavailable")
+                    yield
+            return Scoped()
+
+    monkeypatch.setattr("forgeflow.api.app.DshHarness.from_env",
+                        lambda: Harness() if model_configured else None)
+    executor = FakeProductExecutor()
+    with api_tests.client_for(tmp_path.resolve(), executor) as (client, _):
+        api_tests.sign_in(client)
+        case = api_tests.create_case(client)
+        route = f"/api/product/cases/{case['case_id']}/ask" + ("/stream" if stream else "")
+        response = client.post(route, json={"question": question, "lang": lang, "turn_id": "negation"})
+        assert response.status_code == 200
+        if stream:
+            events = [json.loads(line[6:]) for line in response.text.splitlines()
+                      if line.startswith("data: ")]
+            assert not any(event.get("type") == "error" for event in events)
+            body = events[-1]
+            assert body["type"] == "final"
+        else:
+            body = response.json()
+        assert body["answer"].strip()
+        assert body["source_mode"] == "deterministic"
+        assert [row["topic"] for row in body["evidence_usage"]["coverage"]] == ["preserved"]
+        assert calls == (["stream" if stream else "ask"] if model_configured else [])
+        if model_configured:
+            assert body["fallback_reason"] == "model_unavailable"
+        assert executor.apply_calls == 0

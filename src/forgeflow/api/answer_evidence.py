@@ -37,13 +37,20 @@ def language(question: str, lang: str | None = None) -> str:
     return lang or ("zh" if re.search(r"[\u3400-\u9fff]", question) else "en")
 
 
+def _positive_question_text(question: str) -> str:
+    """Keep requested clauses; an exclusion must not erase later requests."""
+    clauses = re.split(r"[，,。.!?！？;；\n]|\bbut\b|而是|但是", question.casefold())
+    exclusion = (r"不要(?:用)?|别(?:提|说|列|用)|无需(?:提|说|列)|\bdo not\b|\bdon['’]t\b"
+                 r"|^\s*without\s+(?:discussing|mentioning|using)\b")
+    return "；".join(re.split(exclusion, clause, maxsplit=1)[0] for clause in clauses)
+
+
 def requested_topics(question: str) -> list[str]:
     """Extend the existing case question vocabulary with required detail slots."""
     from .case_qa import _EXECUTION_WORDS
 
-    text = question.casefold()
-    # A request not to substitute costs for quantities does not request a cost answer.
-    positive = re.split(r"不要|不要用|do not use|don't use", text, maxsplit=1)[0]
+    # A request not to substitute costs for quantities does not request costs.
+    positive = _positive_question_text(question)
     action_text = re.sub(r"取消(?:费用|费)|cancellation (?:fees?|costs?)", "", positive)
     def has(words):
         return any(word in positive for word in words)
@@ -68,8 +75,8 @@ def wants_document_detail(question: str) -> bool:
     from .case_qa import _COMPARISON_WORDS
     from .impact_context import chain_intent
 
-    text = question.casefold()
-    if any(word in text for word in _COMPARISON_WORDS) or chain_intent(question):
+    text = _positive_question_text(question)
+    if any(word in text for word in _COMPARISON_WORDS) or chain_intent(text):
         return False
     return any(word in text for word in (
         "保留", "保持不变", "缺口", "几件", "件数", "数量明细", "哪些单据", "替代采购",
@@ -455,7 +462,7 @@ def _three_sentence_answer(question: str, evidence: dict, lang: str) -> str | No
 
 def grounded_answer(question: str, case: dict[str, Any], lang: str | None = None) -> dict[str, Any]:
     """Render the selected facts without changing or inferring business records."""
-    from .case_qa import _answer_case_impl, _missing_plan
+    from .case_qa import _answer_case_fallback, _missing_plan
 
     lang = language(question, lang)
     evidence = question_evidence(case, question, lang)
@@ -466,7 +473,7 @@ def grounded_answer(question: str, case: dict[str, Any], lang: str | None = None
         elif case.get("reason") == "product_selection_conflict" and case.get("execution"):
             reply = {"answer": "方案选择仍存在版本冲突，旧方案不能作为当前可执行安排；请核对已有执行回执与最新版本。" if zh else "The plan choice still has a version conflict. The earlier plan cannot establish the current executable arrangement; reconcile the existing receipt with the latest version.", "mode": "case", "citations": []}
         else:
-            reply = _answer_case_impl(question, case, lang)
+            reply = _answer_case_fallback(question, case, lang)
         return {**reply, "evidence": evidence, "source_mode": "deterministic"}
     compact = _three_sentence_answer(question, evidence, lang)
     if compact is not None:
@@ -588,15 +595,72 @@ def _binding_text(text: str) -> str:
     return re.sub(r"(?<=\d),(?=\d{3}(?:\D|$))", "", text).replace("**", "").casefold()
 
 
-def _action_claims(text: str) -> list[tuple[str, str]]:
+def _action_claims(text: str, documents: list[str]) -> list[tuple[str, str, list[str]]]:
+    """Bind action clauses to explicit documents before comparing their values."""
     events = sorted((match.start(), match.end(), kind)
                     for kind, pattern in _ACTION_WORDS.items() for match in re.finditer(pattern, text))
+    mentions = sorted((match.start(), match.end(), document)
+                      for document in documents for match in re.finditer(
+                          r"(?<![a-z0-9_:/.-])" + re.escape(document.casefold()) + r"(?![a-z0-9_/-])", text))
+    prefixes = []
+    for index, (start, _end, _kind) in enumerate(events):
+        previous_end = events[index - 1][1] if index else 0
+        clause_start = max(previous_end, max((m.end() for m in re.finditer(r"[。;；\n]", text[:start])), default=0))
+        preceding = [mention for mention in mentions if clause_start <= mention[0] and mention[1] <= start]
+        prefix = preceding[-1] if preceding else None
+        if prefix and index and clause_start == previous_end:
+            # A document following the previous action/quantity still belongs
+            # to that action, unless a new clause starts before the document.
+            separator = re.search(r"[，,]|\band\b|并", text[previous_end:prefix[0]])
+            if not separator:
+                prefix = None
+        # "PO-A: cancel 2" binds backwards; "cancel PO-A 2, cancel 5"
+        # does not inherit PO-A across its already stated quantity.
+        if prefix and re.search(_QUANTITY, text[prefix[1]:start], re.I):
+            prefix = None
+        prefixes.append(prefix)
     claims = []
     for index, (start, end, kind) in enumerate(events):
         stop = events[index + 1][0] if index + 1 < len(events) else len(text)
+        if index + 1 < len(events) and prefixes[index + 1] and prefixes[index + 1][0] >= end:
+            stop = prefixes[index + 1][0]
         fragment = re.split(r"[。;；\n]", text[end:stop], maxsplit=1)[0][:180]
-        claims.append((kind, text[start:end] + fragment))
+        bound = ([prefixes[index][2]] if prefixes[index] else []) + [
+            document for left, right, document in mentions if end <= left and right <= end + len(fragment)]
+        claims.append((kind, text[start:end] + fragment, list(dict.fromkeys(bound))))
     return claims
+
+
+def _action_claim_issues(rows: list[dict], text: str, documents: list[str]) -> list[str]:
+    """Validate each claim once, within its document scope or compatible kind."""
+    claims = _action_claims(text, documents)
+    issues = []
+    for row in rows:
+        kind = str(row.get("kind", "")).split("_")[0]
+        document = row.get("document")
+        if kind in _ACTION_WORDS and not any(action == kind for action, _, _ in claims):
+            if not (document and str(document).casefold() in text):
+                issues.append(f"missing_action:{kind}")
+    for kind, fragment, bound in claims:
+        candidates = ([row for row in rows if row.get("document") in bound] if bound else
+                      [row for row in rows if str(row.get("kind", "")).split("_")[0] == kind])
+        if bound:
+            for row in candidates:
+                if str(row.get("kind", "")).split("_")[0] != kind:
+                    issues.append(f"contradictory_action:{row.get('document')}")
+        quantity = re.search(_QUANTITY, fragment, re.I)
+        # A multi-document clause is checked per document above. Its first
+        # amount cannot stand for every named document or their aggregate.
+        if quantity and candidates and len(bound) <= 1:
+            if not any(_number(quantity.group(1)) == _number(row.get("quantity")) for row in candidates):
+                issues.append(f"contradictory_action_quantity:{kind}")
+        role = re.search(r"成品|组件|零部件|finished(?: goods)?|components?", fragment, re.I)
+        expected_roles = {row.get("supply_role") for row in candidates}
+        if role and expected_roles and expected_roles <= {"finished", "component"}:
+            actual_role = "finished" if re.fullmatch(r"成品|finished(?: goods)?", role.group(), re.I) else "component"
+            if actual_role not in expected_roles:
+                issues.append(f"contradictory_supply_role:{kind}")
+    return issues
 
 
 def _document_quantities(document: str, text: str, documents: list[str]) -> list[str]:
@@ -722,6 +786,7 @@ def validate_model_answer(question: str, case: dict[str, Any], text: str,
             issues.append(f"unreported_coverage:{topic}")
         if topic in {"actions", "preserved"} and state == "available":
             documents = [str(row["document"]) for row in group.get("rows", []) if row.get("document")]
+            action_claims = _action_claims(binding, documents) if topic == "actions" else []
             for row in group.get("rows", []):
                 document = row.get("document")
                 if details_requested and document and not _identifier_present(document, text):
@@ -729,27 +794,20 @@ def validate_model_answer(question: str, case: dict[str, Any], text: str,
                         issues.append(f"missing_document:{document}")
                 if (topic == "actions" or details_requested) and not number_present(row.get("quantity")):
                     issues.append(f"missing_quantity:{document}")
-                if document and str(document) in text and _number(row.get("quantity")) is not None:
-                    for value in _document_quantities(str(document), binding, documents):
+                if document and str(document).casefold() in binding and _number(row.get("quantity")) is not None:
+                    bound_claims = [fragment for _, fragment, bound in action_claims if bound == [document]]
+                    if bound_claims:
+                        # Action quantities may precede their document. Once
+                        # bound, never scan past it into another action's value.
+                        quantities = [match.group(1) for fragment in bound_claims
+                                      if (match := re.search(_QUANTITY, fragment, re.I))]
+                    else:
+                        quantities = _document_quantities(str(document), binding, documents)
+                    for value in quantities:
                         if _number(value) != _number(row["quantity"]):
                             issues.append(f"contradictory_quantity:{document}")
-                if topic == "actions":
-                    kind = str(row.get("kind", "")).split("_")[0]
-                    relevant = [fragment for action, fragment in _action_claims(binding) if action == kind]
-                    if kind in _ACTION_WORDS and not relevant and not (document and str(document).casefold() in binding):
-                        issues.append(f"missing_action:{kind}")
-                    # An action label is strong enough to reject a contradiction
-                    # even when its identifier was reasonably omitted in a summary.
-                    for fragment in relevant:
-                        quantity = re.search(_QUANTITY, fragment, re.I)
-                        if quantity and _number(quantity.group(1)) != _number(row.get("quantity")):
-                            issues.append(f"contradictory_action_quantity:{kind}")
-                        role = re.search(r"成品|组件|零部件|finished(?: goods)?|components?", fragment, re.I)
-                        expected_role = row.get("supply_role")
-                        if role and expected_role in {"finished", "component"}:
-                            actual_role = "finished" if re.fullmatch(r"成品|finished(?: goods)?", role.group(), re.I) else "component"
-                            if actual_role != expected_role:
-                                issues.append(f"contradictory_supply_role:{kind}")
+            if topic == "actions":
+                issues.extend(_action_claim_issues(group.get("rows", []), binding, documents))
             if topic == "preserved" and not details_requested:
                 all_ids = bool(group.get("rows")) and all(_identifier_present(row.get("document", ""), text) for row in group["rows"])
                 if not all_ids:

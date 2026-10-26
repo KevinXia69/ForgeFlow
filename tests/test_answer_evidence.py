@@ -376,3 +376,95 @@ def test_relative_deadline_requires_local_historical_qualifier(case, countdown, 
     assert issue in validate_model_answer(QUESTIONS[4], case, answer + "\n" + countdown + "，但没有收货记录。")["issues"]
     assert issue not in validate_model_answer(QUESTIONS[4], case, answer + "\n" + historical + "。")["issues"]
     assert issue not in validate_model_answer(QUESTIONS[4], case, answer + "\n记录日期为2026-10-24，交期为2026-11-01。")["issues"]
+
+
+def _two_purchase_actions(case, kind):
+    rows = [copy.deepcopy(case["plan"]["actions"][0]) for _ in range(2)]
+    for row, document, quantity, role in zip(rows, ("PO-A", "PO-B"), (2, 5), ("finished", "component")):
+        row.update(document=document, kind=kind, quantity=quantity, supply_role=role)
+    case["plan"]["actions"] = rows
+    return case
+
+
+@pytest.mark.parametrize("kind,zh,en", [
+    ("cancel_po", "取消", "Cancel"),
+    ("create_po", "新建采购", "Create purchase"),
+    ("update_po", "调整采购", "Update purchase"),
+])
+@pytest.mark.parametrize("lang,document_first", [("zh", False), ("zh", True), ("en", False), ("en", True)])
+def test_same_action_documents_keep_their_own_quantities_and_roles(case, kind, zh, en, lang, document_first):
+    _two_purchase_actions(case, kind)
+    question = "请列出哪些单据及数量明细。" if lang == "zh" else "Which documents? List quantities."
+    action = zh if lang == "zh" else en
+    unit = "件" if lang == "zh" else "units"
+    roles = ("成品", "组件") if lang == "zh" else ("finished goods", "components")
+    if document_first:
+        template = "PO-A: {action} 2 {unit} {first}; PO-B: {action} 5 {unit} {second}."
+    else:
+        template = "{action} PO-A 2 {unit} {first}; {action} PO-B 5 {unit} {second}."
+    answer = template.format(action=action, unit=unit, first=roles[0], second=roles[1])
+    checked = validate_model_answer(question, case, answer, lang)
+    assert checked["valid"], checked["issues"]
+    swapped = answer.replace(f"2 {unit}", f"99 {unit}").replace(f"5 {unit}", f"2 {unit}").replace(f"99 {unit}", f"5 {unit}")
+    rejected = validate_model_answer(question, case, swapped, lang)
+    assert not rejected["valid"]
+    assert "contradictory_quantity:PO-A" in rejected["issues"]
+    assert "contradictory_quantity:PO-B" in rejected["issues"]
+
+
+@pytest.mark.parametrize("answer", [
+    "取消 PO-A 2 件，新建采购 PO-B 5 件。",
+    "PO-A：取消 2 件，PO-B：新建采购 5 件。",
+    "Cancel PO-A 2 units, create purchase PO-B 5 units.",
+    "PO-A: cancel 2 units, PO-B: create purchase 5 units.",
+    "取消PO-A 2件；新建采购PO-B 5件。",
+    "PO-A取消2件；PO-B新建采购5件。",
+])
+def test_correct_document_quantity_does_not_mask_the_wrong_action(case, answer):
+    _two_purchase_actions(case, "cancel_po")
+    checked = validate_model_answer("Which documents? List quantities.", case, answer)
+    assert not checked["valid"]
+    assert "contradictory_action:PO-B" in checked["issues"]
+
+
+@pytest.mark.parametrize("answer", [
+    "取消 PO-A 2 件，取消 PO-B 5 件。",
+    "PO-A：取消 2 件，PO-B：取消 5 件。",
+    "Cancel PO-A 2 units, cancel PO-B 5 units.",
+    "PO-A: cancel 2 units, PO-B: cancel 5 units.",
+    "取消PO-A 2件；取消PO-B 5件。",
+    "PO-A取消2件；PO-B取消5件。",
+])
+def test_comma_separated_action_clauses_bind_to_their_own_documents(case, answer):
+    _two_purchase_actions(case, "cancel_po")
+    checked = validate_model_answer("Which documents? List quantities.", case, answer)
+    assert checked["valid"], checked["issues"]
+
+
+@pytest.mark.parametrize("answer", [
+    "取消PO-A 5件；取消PO-B 2件。",
+    "PO-A取消5件；PO-B取消2件。",
+])
+def test_unspaced_chinese_document_quantities_still_reject_swaps(case, answer):
+    _two_purchase_actions(case, "cancel_po")
+    checked = validate_model_answer("请列出哪些单据及数量明细。", case, answer)
+    assert not checked["valid"]
+    assert "contradictory_quantity:PO-A" in checked["issues"]
+    assert "contradictory_quantity:PO-B" in checked["issues"]
+
+
+@pytest.mark.parametrize("answer", [
+    "Cancel 2 units from PO-A and cancel 5 units from PO-B.",
+    "取消 2 件 PO-A，并取消 5 件 PO-B。",
+    "取消2件PO-A；取消5件PO-B。",
+])
+def test_quantities_before_document_bind_to_the_same_action(case, answer):
+    _two_purchase_actions(case, "cancel_po")
+    question = "请列出取消单据明细。"
+    checked = validate_model_answer(question, case, answer)
+    assert checked["valid"], checked["issues"]
+    swapped = answer.replace("2", "99").replace("5", "2").replace("99", "5")
+    rejected = validate_model_answer(question, case, swapped)
+    assert not rejected["valid"]
+    assert "contradictory_quantity:PO-A" in rejected["issues"]
+    assert "contradictory_quantity:PO-B" in rejected["issues"]

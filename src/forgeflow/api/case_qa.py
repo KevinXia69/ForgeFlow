@@ -1123,7 +1123,22 @@ def _readiness_answer(case: dict[str, Any], lang: str) -> dict[str, Any]:
 
 
 def _answer_case_impl(question: str, case: dict[str, Any], lang: str | None = None) -> dict[str, Any]:
-    """Answer one question from a CaseFile view, without any external call."""
+    """Dispatch once; grounded replies can only fall back to a terminal route."""
+    from .answer_evidence import _pending, grounded_answer, language, requested_topics, wants_document_detail
+
+    lang = language(question, lang)
+    scoped_cost = (isinstance(_get(case, "plan.costs"), dict) and requested_topics(question) == ["costs"]
+                   and not any(word in question.casefold() for word in ("预算", "毛利", "利润", "budget", "margin", "profit", *_COMPARISON_WORDS))
+                   and (not isinstance(case.get("comparison"), dict) or any(word in question.casefold() for word in (
+                       "原安排", "基线", "差额", "新建采购", "增加", "节省", "三句", "baseline", "difference", "new purchase", "increase", "saving", "three sentences")))
+                   and not chain_intent(question))
+    if _pending(case) or wants_document_detail(question) or scoped_cost:
+        return grounded_answer(question, case, lang)
+    return _answer_case_fallback(question, case, lang)
+
+
+def _answer_case_fallback(question: str, case: dict[str, Any], lang: str | None = None) -> dict[str, Any]:
+    """Legacy/guarded answers; never redispatch into grounded answer routing."""
     from .answer_evidence import language
     lang = language(question, lang)
     if case.get("reason") == "product_selection_conflict" and not case.get("execution"):
@@ -1175,14 +1190,6 @@ def _answer_case_impl(question: str, case: dict[str, Any], lang: str | None = No
                 "citations": _citations(case, _STATE_CITATIONS + (
                     ("revision.version", "Displayed version", "展示版本"),
                     ("revision_request.version", "Requested version", "请求版本")), lang)}
-    from .answer_evidence import grounded_answer, requested_topics, wants_document_detail
-    scoped_cost = (isinstance(_get(case, "plan.costs"), dict) and requested_topics(question) == ["costs"]
-                   and not any(word in question.casefold() for word in ("预算", "毛利", "利润", "budget", "margin", "profit", *_COMPARISON_WORDS))
-                   and (not isinstance(case.get("comparison"), dict) or any(word in question.casefold() for word in (
-                       "原安排", "基线", "差额", "新建采购", "增加", "节省", "三句", "baseline", "difference", "new purchase", "increase", "saving", "three sentences")))
-                   and not chain_intent(question))
-    if wants_document_detail(question) or scoped_cost:
-        return grounded_answer(question, case, lang)
     mixed = _mixed_answer(question, case, lang)
     if mixed is not None:
         return mixed

@@ -67,8 +67,9 @@ could write a valid request. This is why the result is described as "current
 model completion on B", not "permission split causes failures".
 
 The three-run sample supports the statement "A passed three times under this
-frozen configuration". It does not support a confidence interval, a stable
-success rate, or extrapolation to other repair-plan tasks.
+frozen configuration". A confidence interval can be calculated under suitable
+assumptions, but it is wide; the sample does not establish a stable success rate
+or support extrapolation to other repair-plan tasks.
 
 ### Old held-out batch
 
@@ -155,8 +156,8 @@ to all repair-plan tasks.
   business sample, and that exclusion must be stated.
 - Do not combine different security, data, planner, thinking, or output policies
   into one average.
-- Do not call a single run stable. Do not call three repeats a confidence
-  interval.
+- Do not call a single run stable. State the assumptions and uncertainty of any
+  confidence interval; three repeats do not establish a stable success rate.
 - Do not use development or exposed tasks as new held-out evidence. G0's exposure
   register marks 2280, 2281, 2287, 2288, 2294, 2296, 2299, 2285, 2283, 2292, and
   2290 as exposed; they can be regression tests only.

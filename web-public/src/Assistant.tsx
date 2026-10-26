@@ -283,7 +283,7 @@ export function ChatSurface({
     setLiveActivity({ active: true, startedAt: Date.now(), hideDuration: true, steps: [{ id: "pending", kind: "think", label: t("assistant.analyzing"), status: "active" }] });
     try {
       const reply = await responder(turn.question, curateHistory(prior, turn.question), activity => { if (sequence === requestSequence.current) setLiveActivity(activity); }, request.signal, conversation, {
-        id: turn.id, lastEventId: turn.lastEventId, resume,
+        id: turn.id, lastEventId: turn.lastEventId, lang: turn.lang, resume,
         onCursor: id => { if (sequence === requestSequence.current) setPendingTurn(value => value?.id === turn.id ? { ...value, lastEventId: id } : value); },
       });
       if (sequence !== requestSequence.current) return;
@@ -313,7 +313,7 @@ export function ChatSurface({
     if (!trimmed || busy) return;
     setMessages(value => [...value, { id: newId(), role: "user", text: trimmed }]);
     setInput(""); setFollowing(true);
-    await runTurn({ id: newId(), question: trimmed, lastEventId: "" }, false);
+    await runTurn({ id: newId(), question: trimmed, lastEventId: "", lang }, false);
   }
 
   async function stop() {

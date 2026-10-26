@@ -164,7 +164,8 @@ The three consecutive 2288 strict passes are useful but narrow:
   separate runs, not a randomized comparison.
 - The result cannot be separated into the effect of compact reading, candidate
   feedback, and the allocation fix.
-- Three samples do not give a confidence interval or a stable success rate.
+- A confidence interval can be calculated under suitable assumptions, but with
+  only three samples it is wide and does not establish a stable success rate.
 
 The correct statement is "2288 passed 3/3 strict under this combined configuration
 in a single-arm series". The incorrect statement is "2288 is now solved" or "2288
@@ -208,8 +209,9 @@ not make a small sample representative.
 
 The B development task has a 2/3 result, driven by one context overflow. The A
 task's 3/3 result has zero variance in this sample but only three observations.
-A confidence interval cannot be computed from three samples, and a zero-variance
-sample is not proof of deterministic success.
+A confidence interval can be computed under suitable assumptions, but with only
+three observations it is wide. Zero observed variance does not prove
+deterministic success.
 
 ## Task-shape and planner limits
 

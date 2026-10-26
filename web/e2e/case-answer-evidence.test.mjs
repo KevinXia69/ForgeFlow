@@ -118,3 +118,68 @@ test('case transport carries explicit locale in both JSON and streaming requests
     assert.equal(sent[1].turn_id, 'turn-a');
   } finally { globalThis.fetch = before; }
 });
+
+
+test('case turn recovery pins saved language and only probes legacy payload mismatches', async () => {
+  const before = globalThis.fetch;
+  const saved = { id:'saved-turn', resume:true, lastEventId:'17', onCursor:()=>{}, lang:'zh' };
+  const sent = [];
+  let expected = 'zh', starts = 1;
+  globalThis.fetch = async (_url, init) => {
+    const body = JSON.parse(init.body);
+    sent.push({body, cursor:init.headers['Last-Event-ID']});
+    if (!body.resume) starts++;
+    if (body.lang !== expected) return Response.json({detail:'turn_payload_mismatch'}, {status:409});
+    return new Response('data: {"type":"final","answer":"original answer"}\n\n');
+  };
+  try {
+    assert.equal((await streamProductCase('case-a','same question','conversation-a',()=>{},undefined,saved,'en')).answer,'original answer');
+    assert.equal(sent.length,1);assert.equal(sent[0].body.lang,'zh');
+    const legacy = {...saved};delete legacy.lang;
+    for (expected of ['zh','en',undefined]) {
+      sent.length=0;
+      await streamProductCase('case-a','same question','conversation-a',()=>{},undefined,legacy,'en');
+      assert.equal(sent.at(-1).body.lang,expected);
+      assert.equal(sent.length,expected==='en'?1:expected==='zh'?2:3);
+      for(const request of sent) {
+        assert.equal(request.body.turn_id,'saved-turn');assert.equal(request.body.question,'same question');
+        assert.equal(request.body.conversation_id,'conversation-a');assert.equal(request.body.resume,true);assert.equal(request.cursor,'17');
+      }
+      assert.equal(starts,1,'legacy recovery started another model turn');
+    }
+    expected='en';sent.length=0;
+    await streamProductCase('case-a','new question','conversation-a',()=>{},undefined,{...saved,id:'new-turn',resume:false,lang:'en'},'en');
+    assert.equal(sent.length,1);assert.equal(starts,2);
+  } finally {globalThis.fetch=before;}
+});
+
+test('case locale recovery never retries cancellation, other failures, new turns or an aborted signal', async () => {
+  const before=globalThis.fetch;
+  const legacy={id:'old',resume:true,lastEventId:'1',onCursor:()=>{}};
+  try {
+    for(const [status,detail] of [[409,'turn_cancelled'],[409,'evidence_scope_changed'],[410,'turn_unavailable'],[503,'stream_failed']]) {
+      let calls=0;
+      globalThis.fetch=async()=>{calls++;return Response.json({detail},{status});};
+      await assert.rejects(streamProductCase('c','q','chat',()=>{},undefined,legacy,'en'),e=>e.status===status&&e.message===detail);
+      assert.equal(calls,1);
+    }
+    for(const turn of [{...legacy,resume:false},{...legacy,lang:'zh'}]) {
+      let calls=0;
+      globalThis.fetch=async()=>{calls++;return Response.json({detail:'turn_payload_mismatch'},{status:409});};
+      await assert.rejects(streamProductCase('c','q','chat',()=>{},undefined,turn,'en'),e=>e.status===409);
+      assert.equal(calls,1);
+    }
+    const controller=new AbortController();let calls=0;
+    globalThis.fetch=async()=>{calls++;controller.abort();return Response.json({detail:'turn_payload_mismatch'},{status:409});};
+    await assert.rejects(streamProductCase('c','q','chat',()=>{},controller.signal,legacy,'en'));
+    assert.equal(calls,1);
+    calls=0;
+    await assert.rejects(streamProductCase('c','q','chat',()=>{},controller.signal,legacy,'en'),e=>e.name==='AbortError');
+    assert.equal(calls,0);
+    const network=[];
+    globalThis.fetch=async(_url,init)=>{network.push(JSON.parse(init.body));throw new TypeError('offline');};
+    await assert.rejects(streamProductCase('c','q','chat',()=>{},undefined,legacy,'en'),TypeError);
+    assert.equal(network.length,2,'only the existing same-payload transport retry is allowed');
+    assert.ok(network.every(b=>b.lang==='en'&&b.turn_id==='old'&&b.resume));
+  } finally {globalThis.fetch=before;}
+});

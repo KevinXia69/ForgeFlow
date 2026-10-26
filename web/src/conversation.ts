@@ -1,6 +1,6 @@
 /** Browser-local, owner/environment-scoped UI history. No credential is stored here. */
 export type StoredChatMessage = { id: string; role: "user" | "assistant"; text: string; meta?: unknown };
-export type PendingChatTurn = { id: string; question: string; lastEventId: string };
+export type PendingChatTurn = { id: string; question: string; lastEventId: string; lang?: "zh" | "en" };
 export type SavedConversation = { id: string; title: string; messages: StoredChatMessage[]; pending: boolean; pendingTurn?: PendingChatTurn | null; updated: number };
 export type ConversationStore = { active: string; sessions: SavedConversation[] };
 export function newConversationId(): string { return crypto.randomUUID(); }

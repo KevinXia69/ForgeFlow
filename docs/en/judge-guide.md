@@ -22,8 +22,9 @@ explicit approval of the displayed plan.
 
 ## Try a complete case
 
-1. Open **New case** and select the supported supplier-cancellation scenario.
-   Wait for preparation to finish. Inspect the affected orders, proposed
+1. If a scenario selector is shown, choose the supplier-cancellation scenario.
+   Select **Run supplier-disruption example** and wait for preparation to finish.
+   Inspect the affected orders, proposed
    changes, costs, delivery dates and policy checks.
 2. Ask the assistant: **Which records does this plan change, and has it been
    executed yet?** Its response should refer to this case's evidence. A proposed
