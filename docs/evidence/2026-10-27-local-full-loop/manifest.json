@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "base_revision": "0c40af5f79298656770f9264bae8d01c4d3b2c54",
+  "integrity_scope": "Hashes identify operator-captured source and evidence bytes, not independent attestation.",
+  "files": [
+    {
+      "name": "acceptance.json",
+      "bytes": 13464,
+      "sha256": "f1f6877222f279d628f80601e865107df4e05efad383aeac7a88813076c942e6"
+    },
+    {
+      "name": "original-reward.json",
+      "bytes": 19134,
+      "sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c"
+    },
+    {
+      "name": "provenance.json",
+      "bytes": 34692,
+      "sha256": "3a8c51c0b38214ee5c7ededf3ad33c2131cdcad7bce6963d78e2f056ab37cdca"
+    }
+  ],
+  "redaction": "No invitations, cookies, API/session keys, actor identifiers, private host paths or model hidden reasoning."
+}

@@ -1,0 +1,425 @@
+{
+  "schema": 1,
+  "evidence_kind": "operator_capture_allowlist_not_independent_attestation",
+  "execution_kind": "new_live_local_odoo_sandbox",
+  "data_kind": "synthetic_erp_bench_non_production",
+  "scenario": "A",
+  "data_profile": "planning-metadata-v1",
+  "started_at": "2026-10-27T04:18:50.604847+00:00",
+  "finished_at": "2026-10-27T04:19:35.845037+00:00",
+  "case_id": "62daf2882c5df8ce3e0559daaa8281e1",
+  "plan_id": "12d06e0484c910ab3dde8b1e88111bf075d224c560a4e77e3f66ae99e65adfc0",
+  "plan_version": 1,
+  "source_provenance": "provenance.json",
+  "steps": [
+    {
+      "name": "prepare",
+      "at": "2026-10-27T04:18:54.263551+00:00",
+      "passed": true,
+      "seconds": 3.574,
+      "case_id": "62daf2882c5df8ce3e0559daaa8281e1",
+      "plan_id": "12d06e0484c910ab3dde8b1e88111bf075d224c560a4e77e3f66ae99e65adfc0"
+    },
+    {
+      "name": "real_model_answer",
+      "at": "2026-10-27T04:18:59.501994+00:00",
+      "passed": true,
+      "mode": "harness",
+      "source_mode": "model",
+      "seconds": 5.238
+    },
+    {
+      "name": "approve_execute_readback_verifier",
+      "at": "2026-10-27T04:19:35.723919+00:00",
+      "passed": true,
+      "seconds": 36.154,
+      "case_id": "62daf2882c5df8ce3e0559daaa8281e1",
+      "plan_id": "12d06e0484c910ab3dde8b1e88111bf075d224c560a4e77e3f66ae99e65adfc0"
+    },
+    {
+      "name": "duplicate_approval",
+      "at": "2026-10-27T04:19:35.832419+00:00",
+      "passed": true,
+      "seconds": 0.053
+    }
+  ],
+  "before_approval": {
+    "state": "awaiting_approval",
+    "approval": null,
+    "execution": null
+  },
+  "plan_binding": {
+    "plan_id": "12d06e0484c910ab3dde8b1e88111bf075d224c560a4e77e3f66ae99e65adfc0",
+    "policy_sha256": "e6c358acd635791e9f87c1e2f29d669be8a0b09e8050a1dbecd5c88e5ba00fae",
+    "snapshot_sha256": "34d268542974fabcb7989514a3d6064c207a7edad2ecea0895b84940c1400a26",
+    "prepared_at": "2026-10-27T04:18:54.204144+00:00"
+  },
+  "approval": {
+    "plan_id": "12d06e0484c910ab3dde8b1e88111bf075d224c560a4e77e3f66ae99e65adfc0",
+    "phase": "dispatching",
+    "issued_at": "2026-10-27T04:18:59.572702+00:00",
+    "expires_at": "2026-10-27T04:33:59.572702+00:00"
+  },
+  "business_before_prepare": {
+    "purchase_order": {
+      "count": 6,
+      "rows_md5": "ca0b878097d2b01d9a4609a56c059227"
+    },
+    "purchase_order_line": {
+      "count": 6,
+      "rows_md5": "99993a3db9855cdf56351868cb333fbf"
+    },
+    "mrp_production": {
+      "count": 4,
+      "rows_md5": "b5aeeed2f59b8dda150c7a025ccbed93"
+    },
+    "stock_picking": {
+      "count": 11,
+      "rows_md5": "fa995632ff6da406e9c8832eed340498"
+    },
+    "stock_move": {
+      "count": 81,
+      "rows_md5": "fbaa6ff0859ff8201524b49382aa8a33"
+    },
+    "stock_move_line": {
+      "count": 69,
+      "rows_md5": "e0fbe9b056702659da15719b2e7bf992"
+    },
+    "mrp_workorder": {
+      "count": 4,
+      "rows_md5": "e2a565f9843ddd744aca9dff55672593"
+    },
+    "mrp_workcenter": {
+      "count": 2,
+      "rows_md5": "98e7bc2b69dc2b59a048e49f7ad1729d"
+    },
+    "product_product": {
+      "count": 55,
+      "rows_md5": "2de7a90117bc26c075bb3ac53c479b96"
+    },
+    "product_template": {
+      "count": 55,
+      "rows_md5": "5196349de3714520ebda00ac0044fee2"
+    },
+    "stock_quant": {
+      "count": 108,
+      "rows_md5": "2f392d4b417ed70c81f457cb717a68a1"
+    },
+    "res_partner": {
+      "count": 122,
+      "rows_md5": "05e277504140e40d3a042a3cadcf9289"
+    }
+  },
+  "business_after_prepare": {
+    "purchase_order": {
+      "count": 6,
+      "rows_md5": "ca0b878097d2b01d9a4609a56c059227"
+    },
+    "purchase_order_line": {
+      "count": 6,
+      "rows_md5": "99993a3db9855cdf56351868cb333fbf"
+    },
+    "mrp_production": {
+      "count": 4,
+      "rows_md5": "b5aeeed2f59b8dda150c7a025ccbed93"
+    },
+    "stock_picking": {
+      "count": 11,
+      "rows_md5": "fa995632ff6da406e9c8832eed340498"
+    },
+    "stock_move": {
+      "count": 81,
+      "rows_md5": "fbaa6ff0859ff8201524b49382aa8a33"
+    },
+    "stock_move_line": {
+      "count": 69,
+      "rows_md5": "e0fbe9b056702659da15719b2e7bf992"
+    },
+    "mrp_workorder": {
+      "count": 4,
+      "rows_md5": "e2a565f9843ddd744aca9dff55672593"
+    },
+    "mrp_workcenter": {
+      "count": 2,
+      "rows_md5": "98e7bc2b69dc2b59a048e49f7ad1729d"
+    },
+    "product_product": {
+      "count": 55,
+      "rows_md5": "2de7a90117bc26c075bb3ac53c479b96"
+    },
+    "product_template": {
+      "count": 55,
+      "rows_md5": "5196349de3714520ebda00ac0044fee2"
+    },
+    "stock_quant": {
+      "count": 108,
+      "rows_md5": "2f392d4b417ed70c81f457cb717a68a1"
+    },
+    "res_partner": {
+      "count": 122,
+      "rows_md5": "05e277504140e40d3a042a3cadcf9289"
+    }
+  },
+  "measurement_scope": "Exact row counts and ordered row-content MD5 for twelve named business tables; not all Odoo tables.",
+  "question": "方案要取消和新建的采购数量各是多少？",
+  "assistant": {
+    "answer": "方案中采购相关的两个动作各取 3 个单位：\n\n- **取消采购**：3 个（单据 P00006，物料 P27637E67E7-LED-CRS-009，计量单位 Units）\n- **新建采购**：3 个（单据 new:purchase.order:0006，物料 P27637E67E7-LED-CRS-009，计量单位 Units）\n\n取消与新建均针对同一物料，数量相同，都是 3 个单位。\n\n案例参考：本案例",
+    "mode": "harness",
+    "source_mode": "model",
+    "case_context": {
+      "schema_version": 1,
+      "case_id": "62daf2882c5df8ce3e0559daaa8281e1",
+      "state": "awaiting_approval",
+      "version": 1,
+      "plan_id": "12d06e0484c910ab3dde8b1e88111bf075d224c560a4e77e3f66ae99e65adfc0",
+      "comparison_id": null,
+      "selection_revision": null,
+      "selection_pending": false,
+      "updated_at": "2026-10-27T04:18:54.207069+00:00",
+      "outcome": "awaiting_approval"
+    },
+    "evidence_usage": {
+      "source": "case_snapshot",
+      "snapshot_id": "f9c84aad68c35c5afe979ac57f35b0ea2c13e6ad4b80bf00b1c0ba11ef8e3276",
+      "coverage": [
+        {
+          "topic": "actions",
+          "status": "available",
+          "total": 2,
+          "shown": 2
+        }
+      ]
+    },
+    "evidence_refs": [
+      {
+        "kind": "case",
+        "id": "62daf2882c5df8ce3e0559daaa8281e1",
+        "href": "/api/product/cases/62daf2882c5df8ce3e0559daaa8281e1",
+        "label": "Case evidence"
+      }
+    ]
+  },
+  "execution": {
+    "state": "succeeded",
+    "status": "succeeded",
+    "writes": [
+      {
+        "document": "P00006",
+        "kind": "cancel_po",
+        "quantity": 3
+      },
+      {
+        "document": "new:purchase.order:0006",
+        "kind": "create_po",
+        "quantity": 3
+      }
+    ],
+    "readback": {
+      "execution_validated": true,
+      "verified_steps": 7,
+      "receipt_sha256": "97f428629c8806937955af61ea6af875f09ee9230e809e65c6b15b90f7632b9d",
+      "readback_sha256": "bca2ea7dc2a48e4265aa38c2e07342cbe6bcb58c3124e3d89fb58473b4a2ad09",
+      "verified_at": "2026-10-27T04:19:35.689772+00:00",
+      "records": [
+        {
+          "document": "P00006",
+          "kind": "cancel_po",
+          "state": "reflected",
+          "quantity": 3
+        },
+        {
+          "document": "new:purchase.order:0006",
+          "kind": "create_po",
+          "state": "reflected",
+          "quantity": 3
+        }
+      ]
+    },
+    "verifier": {
+      "status": "passed",
+      "evaluation_scope": "product_original_verifier",
+      "evaluation_valid": true,
+      "strict_success": true,
+      "original_passed": true,
+      "verification_attempt": "9f7ea8190f5c4f00902ae1dfd4a53699",
+      "reward_sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c",
+      "score": 100.0,
+      "applicable_rule_count": 51,
+      "passed_rule_count": 51,
+      "failed_rule_count": 0
+    },
+    "verification_receipt_binding": {
+      "sha256": "97f428629c8806937955af61ea6af875f09ee9230e809e65c6b15b90f7632b9d",
+      "bindings": {
+        "approval_sha256": "9fac1b144431680bb6c526ff66906c967093d071fc394c3a025ce4bf0127df20",
+        "case_id": "62daf2882c5df8ce3e0559daaa8281e1",
+        "journal_sha256": "6ff2ac6f03c5b8a5131a4107996e4eba371376203e521a255640c3d1b97a19ba",
+        "plan_id": "12d06e0484c910ab3dde8b1e88111bf075d224c560a4e77e3f66ae99e65adfc0",
+        "policy_sha256": "e6c358acd635791e9f87c1e2f29d669be8a0b09e8050a1dbecd5c88e5ba00fae",
+        "readback_sha256": "bca2ea7dc2a48e4265aa38c2e07342cbe6bcb58c3124e3d89fb58473b4a2ad09",
+        "reconciliation_source_sha256": "5b590ade0506c4bb75f17f443274317fb965f017e67e1620f966f38cf27c4f12",
+        "run_id": "local-62daf2882c5df8ce3e0559daaa8281e1",
+        "snapshot_sha256": "34d268542974fabcb7989514a3d6064c207a7edad2ecea0895b84940c1400a26",
+        "sources_sha256": "0b448f834b050ade96cca7339eedfe1a923f2ef5f7858e901c72bc872e51249c"
+      },
+      "digest_validated": true
+    },
+    "raw_readback_scope": "Supplementary apply-stage document snapshot, whose file hash is different from the verifier receipt scope+documents canonical digest.",
+    "actual_erp_records": [
+      {
+        "plan_record": "existing:purchase.order:6",
+        "id": 6,
+        "name": "P00006",
+        "state": "cancel",
+        "origin": "S00004",
+        "quantity": 3.0
+      },
+      {
+        "plan_record": "new:purchase.order:0006",
+        "id": 7,
+        "name": "FF/PO/b7bd345cf9c5549a4b77bd24",
+        "state": "purchase",
+        "origin": "S00004",
+        "quantity": 3.0
+      }
+    ],
+    "raw_readback_file_sha256": "4d55a5732dcdd9a8d8ed478f17ae6a0639228443ca8205f623f9c6de04ae0db6"
+  },
+  "business_before_duplicate": {
+    "purchase_order": {
+      "count": 7,
+      "rows_md5": "9f90bf0ee557fd87a5fd304d99c0456a"
+    },
+    "purchase_order_line": {
+      "count": 7,
+      "rows_md5": "761789890449f6a3b988b92497b0fa6e"
+    },
+    "mrp_production": {
+      "count": 4,
+      "rows_md5": "b86b364fe84579a41bbc793aa768c42e"
+    },
+    "stock_picking": {
+      "count": 12,
+      "rows_md5": "d73db978d9e581ae1c5d122eed681925"
+    },
+    "stock_move": {
+      "count": 82,
+      "rows_md5": "0b291acb035c79c3bcda31c737d9d714"
+    },
+    "stock_move_line": {
+      "count": 69,
+      "rows_md5": "fddf61d56aeee225d65e279140fd7582"
+    },
+    "mrp_workorder": {
+      "count": 4,
+      "rows_md5": "e2a3b8c363d125f725deeecc50177a39"
+    },
+    "mrp_workcenter": {
+      "count": 2,
+      "rows_md5": "98e7bc2b69dc2b59a048e49f7ad1729d"
+    },
+    "product_product": {
+      "count": 55,
+      "rows_md5": "2de7a90117bc26c075bb3ac53c479b96"
+    },
+    "product_template": {
+      "count": 55,
+      "rows_md5": "5196349de3714520ebda00ac0044fee2"
+    },
+    "stock_quant": {
+      "count": 108,
+      "rows_md5": "2f392d4b417ed70c81f457cb717a68a1"
+    },
+    "res_partner": {
+      "count": 122,
+      "rows_md5": "05e277504140e40d3a042a3cadcf9289"
+    }
+  },
+  "business_after_duplicate": {
+    "purchase_order": {
+      "count": 7,
+      "rows_md5": "9f90bf0ee557fd87a5fd304d99c0456a"
+    },
+    "purchase_order_line": {
+      "count": 7,
+      "rows_md5": "761789890449f6a3b988b92497b0fa6e"
+    },
+    "mrp_production": {
+      "count": 4,
+      "rows_md5": "b86b364fe84579a41bbc793aa768c42e"
+    },
+    "stock_picking": {
+      "count": 12,
+      "rows_md5": "d73db978d9e581ae1c5d122eed681925"
+    },
+    "stock_move": {
+      "count": 82,
+      "rows_md5": "0b291acb035c79c3bcda31c737d9d714"
+    },
+    "stock_move_line": {
+      "count": 69,
+      "rows_md5": "fddf61d56aeee225d65e279140fd7582"
+    },
+    "mrp_workorder": {
+      "count": 4,
+      "rows_md5": "e2a3b8c363d125f725deeecc50177a39"
+    },
+    "mrp_workcenter": {
+      "count": 2,
+      "rows_md5": "98e7bc2b69dc2b59a048e49f7ad1729d"
+    },
+    "product_product": {
+      "count": 55,
+      "rows_md5": "2de7a90117bc26c075bb3ac53c479b96"
+    },
+    "product_template": {
+      "count": 55,
+      "rows_md5": "5196349de3714520ebda00ac0044fee2"
+    },
+    "stock_quant": {
+      "count": 108,
+      "rows_md5": "2f392d4b417ed70c81f457cb717a68a1"
+    },
+    "res_partner": {
+      "count": 122,
+      "rows_md5": "05e277504140e40d3a042a3cadcf9289"
+    }
+  },
+  "duplicate_approval_same_execution": true,
+  "environment": {
+    "before": {
+      "generation": null,
+      "available": true,
+      "owned_by_me": false
+    },
+    "after": {
+      "generation": null,
+      "available": true,
+      "owned_by_me": false
+    }
+  },
+  "served_frontend": {
+    "index_http_sha256": "3a66ba1995e5fd2a8a8e2e5ae8f5d922ab17408aef622490a172fe5a1f470d11",
+    "index_disk_sha256": "3a66ba1995e5fd2a8a8e2e5ae8f5d922ab17408aef622490a172fe5a1f470d11",
+    "assets": {
+      "/app/assets/index-Bkfrvw5D.js": {
+        "http_sha256": "422d80b60ed05a0f59734894085b0611b558f49f6442cd8898a7818d2c99c91a",
+        "disk_sha256": "422d80b60ed05a0f59734894085b0611b558f49f6442cd8898a7818d2c99c91a"
+      },
+      "/app/assets/index-BCxSFGBu.css": {
+        "http_sha256": "2fbe100207ca8a7a8c8be072fe46169667ab466262e34c1cac3c5240463d7012",
+        "disk_sha256": "2fbe100207ca8a7a8c8be072fe46169667ab466262e34c1cac3c5240463d7012"
+      }
+    }
+  },
+  "private_capture_sha256": "fd718d8d4255abeba23c4b72315806ece10d12f5bb0eb2e1e5ddc09f7a1bff8a",
+  "limitations": {
+    "formal_reviewer_workspaces_used": false,
+    "public_deployment_changed": false,
+    "provider_usage_or_billing_verified": false,
+    "raw_model_answer_archived": false,
+    "frontend_browser_interaction_tested": false,
+    "ci_run": false,
+    "local_preflight_asset_mapping_failure_preserved": true
+  }
+}

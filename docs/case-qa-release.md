@@ -61,8 +61,27 @@ node web-public/e2e/case-turn-language.mjs
 
 已有工具的复用范围：
 
-- `scripts/vps_reviewer_acceptance.py` 的 `prepare`、`model`、`approve`、`isolation`、`restart` 阶段面向 `qa1/qa2`，会真实准备/批准业务任务并将结果保存在 root 私有文件中。仅在已明确安排的新 QA 验收中运行；它保留已有结果，不能删除旧结果来伪装新一轮。该脚本验证回环后端，不代替公网 HTTPS 验收；其源码哈希范围也不包含全部问答代码和前端，需附上本次冻结版本记录。
+- `scripts/vps_reviewer_acceptance.py` 的 `prepare`、`model`、`approve`、`isolation`、`restart` 阶段面向 `qa1/qa2`，会真实准备/批准业务任务并将结果保存在 root 私有文件中。新记录使用 schema 2：要求 `--revision` 指定完整提交、干净 checkout、两实例匹配的 QA 身份/端口与独立数据目录；保存全部 Git 跟踪文件、实际 `static/app` 产物哈希以及配置 Python 的包解析路径。每阶段前后比对固定记录，并检查已保存的 ERP generation 和归属。源码、界面、实例目标或代次变化会拒绝继续；文件绑定不代替进程内存证明或公网 HTTP 资源核对。
 - `scripts/vps_reviewer_release_check.py stream --case-id ... --output ...` 检查历史案例的真实公网模型流，不批准 ERP 写入，也不证明新回合协议、恢复或本轮 ERP 执行。
 - `scripts/vps_gateway_acceptance.py` 可检查登录和隔离。仅未使用过的正式环境才适用 `--fresh`；已使用的环境不要为使检查通过而重置。
 
+每轮选择新的 root 私有状态文件，旧文件保留。`prepare` 要求 QA 案例为空且 generation 未被占用；`--state` 不会重置 ERP。已使用的 QA 必须先按实例维护流程备份并轮换，禁止为了通过检查删除旧案例。操作示例（只适用于已安排的新 QA 环境）：
+
+```sh
+FF_RELEASE_REVISION=$(git rev-parse HEAD)
+FF_QA_CAPTURE=/root/forgeflow-qa-release-YYYYMMDD.json
+.venv/bin/python scripts/vps_reviewer_acceptance.py prepare --revision "$FF_RELEASE_REVISION" --state "$FF_QA_CAPTURE"
+.venv/bin/python scripts/vps_reviewer_acceptance.py model --revision "$FF_RELEASE_REVISION" --state "$FF_QA_CAPTURE"
+.venv/bin/python scripts/vps_reviewer_acceptance.py approve --revision "$FF_RELEASE_REVISION" --state "$FF_QA_CAPTURE"
+.venv/bin/python scripts/vps_reviewer_acceptance.py isolation --revision "$FF_RELEASE_REVISION" --state "$FF_QA_CAPTURE"
+.venv/bin/python scripts/vps_reviewer_acceptance.py restart --revision "$FF_RELEASE_REVISION" --state "$FF_QA_CAPTURE"
+.venv/bin/python scripts/export_reviewer_evidence.py --source "$FF_QA_CAPTURE" --output /root/forgeflow-qa-public-YYYYMMDD
+```
+
+阶段必须顺序完成；失败、中断或已尝试的阶段不会自动重跑。已返回的案例、执行响应、原始 reward 与双实例部分结果会保留。批准超时可能已经写入 ERP，记录中的 `pending_or_unknown` 不能当作未执行，应先按 case/plan 查回执。不要删除状态文件后重复批准来消除失败记录。输出只打印阶段和异常类型，不打印网络异常正文。短时间重复登录受现有登录限额约束，安排阶段间隔时一并考虑。
+
+新 schema 2 导出要求五阶段均通过，并核对同一 case/plan/version、模型答复上下文、批准及原始验收；缺阶段或身份不一致时拒绝发布为成功。公开副本保留版本/文件哈希与最终答案哈希，不包含邀请码、cookie、模型密钥、审批身份或私有运行路径；旧 schema 1 标为历史版本未知，日期取原记录，缺失时为 `null`。导出不表示已核实供应商账单。
+
 归档时分别写明本地回归、浏览器操作、真实模型调用、ERP 执行及公网发布哪些已完成，哪些尚未完成。旧的 38 条问答、旧的 ERP 成绩和本次固定样本不能充当本版本新真实联调记录。
+
+最新本地业务联调见 [2026-10-27 完整业务记录](evidence/2026-10-27-local-full-loop/README.md)。它使用独立本地环境和单案例驱动，不能当作新版 VPS 双实例验收脚本、公网发布或供应商计费核验已完成。

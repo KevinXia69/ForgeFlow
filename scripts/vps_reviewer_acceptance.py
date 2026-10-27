@@ -7,35 +7,64 @@ HTTPS Host/Origin; this verifies the backends, not the external HTTPS gateway.
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from contextlib import closing
+import fcntl
 import hashlib
 import json
 import os
-from pathlib import Path
+import stat
 import subprocess
+import tempfile
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import closing
+from datetime import UTC, datetime
+from pathlib import Path
 
 import httpx
+from reviewer_release import check as check_release
+from reviewer_release import snapshot as release_snapshot
 
 from forgeflow.vps_runtime import configuration, trusted_json
 
 STATE = Path("/root/forgeflow-reviewer-acceptance.json")
+STAGES = ("prepare", "model", "approve", "isolation", "restart")
+_SESSION_COOKIES = {}
 TABLES = ("purchase_order", "purchase_order_line", "mrp_production", "stock_picking",
           "stock_move", "stock_move_line", "mrp_workorder", "mrp_workcenter",
           "product_product", "product_template", "stock_quant", "res_partner")
 
 
 def save(value: dict) -> None:
-    temporary = STATE.with_suffix(".new")
-    with temporary.open("w", encoding="utf-8") as handle:
-        json.dump(value, handle, indent=2)
-        handle.write("\n")
-        handle.flush()
-        os.fsync(handle.fileno())
-    temporary.chmod(0o600)
-    os.replace(temporary, STATE)
+    value["updated_at"] = datetime.now(UTC).isoformat()
+    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=STATE.parent,
+                                     prefix=STATE.name + ".", suffix=".new", delete=False) as handle:
+        temporary = Path(handle.name)
+        try:
+            json.dump(value, handle, indent=2)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+            os.replace(temporary, STATE)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+
+def load_capture(path: Path) -> dict:
+    # Captures include resource samples and exceed the config reader's 64 KiB cap.
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    try:
+        info = os.fstat(descriptor)
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != 0
+                or info.st_mode & 0o077 or info.st_size > 64 * 1024 * 1024):
+            raise ValueError("untrusted_acceptance_capture")
+        with os.fdopen(descriptor, "r", closefd=False) as handle:
+            value = json.load(handle)
+        if not isinstance(value, dict):
+            raise ValueError("invalid_acceptance_capture")
+        return value
+    finally:
+        os.close(descriptor)
 
 
 def run(argv: list[str]) -> str:
@@ -63,12 +92,19 @@ def snapshot(config: dict) -> dict:
 def client_for(item: dict, host: str):
     client = httpx.Client(base_url=f"http://127.0.0.1:{item['port']}", timeout=940,
                          headers={"Host": host, "Origin": "https://" + host,
-                                  "X-Forwarded-Proto": "https"})
+                                  "X-Forwarded-Proto": "https"}, trust_env=False)
+    # Reuse only this process's login across the extra generation checks. Each
+    # instance keeps its own cookie; never retry authentication or a mutation.
+    key = (host, item["port"], hashlib.sha256(item["invite_code"].encode()).hexdigest())
+    if key in _SESSION_COOKIES:
+        client.headers["Cookie"] = _SESSION_COOKIES[key]
+        return closing(client)
     response = client.post("/api/auth/session", json={"invite_code": item["invite_code"]})
     if response.status_code != 201 or not response.cookies.get("ff_session"):
         client.close()
         raise RuntimeError("qa_login_failed")
     client.headers["Cookie"] = "ff_session=" + response.cookies["ff_session"]
+    _SESSION_COOKIES[key] = client.headers["Cookie"]
     return closing(client)
 
 
@@ -123,12 +159,20 @@ class Sampler:
         self.thread.join(timeout=40)
 
 
-def prepare(item, config, host):
+def prepare(item, config, host, _result, checkpoint):
     before = snapshot(config)
     started = time.monotonic()
     with client_for(item, host) as client:
+        environment = request(client, "GET", "/api/environment")
+        existing = request(client, "GET", "/api/product/cases")
+        if (existing or environment.get("available") is not True
+                or environment.get("owned_by_me") is not False or not environment.get("generation")):
+            raise RuntimeError("fresh_disposable_qa_environment_required")
+        checkpoint({"generation": environment["generation"], "before_prepare": before})
         case = request(client, "POST", "/api/product/cases", {"scenario": "A"}, 201)
+        checkpoint({"prepared": case})
     after = snapshot(config)
+    checkpoint({"after_prepare": after})
     if case.get("state") != "awaiting_approval" or case.get("execution") is not None:
         raise RuntimeError("qa_preparation_failed")
     if before != after:
@@ -137,24 +181,29 @@ def prepare(item, config, host):
             "prepare_seconds": time.monotonic() - started}
 
 
-def model(item, _config, host, result):
+def model(item, _config, host, result, checkpoint):
     started = time.monotonic()
     with client_for(item, host) as client:
         response = request(client, "POST", "/api/product/cases/" + result["prepared"]["case_id"] + "/ask",
                            {"question": "Read this case's evidence. Briefly explain the proposed recovery and whether any ERP write has already occurred.",
                             "conversation_id": "reviewer-isolation-acceptance"})
-    if response.get("mode") != "harness" or not response.get("answer"):
+    checkpoint({"assistant": response, "model_seconds": time.monotonic() - started})
+    if (response.get("mode") != "harness" or response.get("source_mode") != "model"
+            or not response.get("answer")):
         raise RuntimeError("real_harness_answer_required")
     return {"assistant": response, "model_seconds": time.monotonic() - started}
 
 
-def approve(item, config, host, result):
+def approve(item, config, host, result, checkpoint):
     started = time.monotonic()
     original = result["prepared"]
     path = "/api/product/cases/" + original["case_id"] + "/approve"
     payload = {"plan_id": original["plan"]["plan_id"], "comment": "Disposable reviewer acceptance"}
     with client_for(item, host) as client:
+        checkpoint({"approval_request": {"case_id": original["case_id"], **payload},
+                    "approval_outcome": "pending_or_unknown"})
         case = request(client, "POST", path, payload)
+        checkpoint({"executed": case, "approval_outcome": "response_received"})
         execution = case.get("execution") or {}
         verifier = execution.get("verifier") or {}
         if (case.get("state") != "succeeded" or verifier.get("strict_success") is not True
@@ -163,12 +212,16 @@ def approve(item, config, host, result):
                 or execution.get("readback", {}).get("execution_validated") is not True):
             raise RuntimeError("qa_real_execution_or_verifier_failed")
         before_duplicate = snapshot(config)
+        checkpoint({"before_duplicate": before_duplicate})
         repeated = request(client, "POST", path, payload)
         after_duplicate = snapshot(config)
+        checkpoint({"duplicate_response": repeated, "after_duplicate": after_duplicate})
     if repeated.get("execution") != execution or before_duplicate != after_duplicate:
         raise RuntimeError("qa_duplicate_approval_changed_business_state")
     reward = subprocess.run(["docker", "exec", config["container"], "cat", "/logs/verifier/reward.json"],
                             capture_output=True, timeout=30)
+    if not reward.returncode:
+        checkpoint({"original_reward_json": reward.stdout.decode("utf-8")})
     if reward.returncode or hashlib.sha256(reward.stdout).hexdigest() != verifier.get("reward_sha256"):
         raise RuntimeError("qa_original_reward_binding_failed")
     return {"executed": case, "before_duplicate": before_duplicate, "after_duplicate": after_duplicate,
@@ -227,45 +280,150 @@ def restart(index, configs, results, host):
             "leases_preserved": True, "service_restart_passed": True}
 
 
+def validate_stage(results, stage):
+    if results.get("schema") != 2:
+        raise RuntimeError("legacy_capture_preserved_choose_new_state_and_fresh_qa")
+    stages = results.get("stages", {})
+    if stage in stages:
+        raise RuntimeError("stage_already_attempted_preserve_results")
+    if any(stages.get(previous, {}).get("status") != "passed"
+           for previous in STAGES[:STAGES.index(stage)]):
+        raise RuntimeError("acceptance_previous_stage_not_passed")
+
+
+def validate_targets(index, configs):
+    if set(index) != set(configs) or set(configs) != {"qa1", "qa2"}:
+        raise RuntimeError("only_disposable_qa_instances_allowed")
+    for name, config in configs.items():
+        if (config.get("instance_name") != name or config.get("api_port") != index[name].get("port")
+                or config.get("api_user") != "forgeflow-api-" + name
+                or config.get("dsh_user") != "forgeflow-dsh-" + name
+                or config.get("service_unit") != f"forgeflow-runtime@{name}.service"):
+            raise RuntimeError("qa_target_configuration_mismatch")
+    for key in ("api_port", "container", "sandbox_root", "case_root", "socket"):
+        if not configs["qa1"].get(key) or configs["qa1"].get(key) == configs["qa2"].get(key):
+            raise RuntimeError("qa_targets_not_independent")
+
+
+def check_generations(index, host, results):
+    for name, result in results.items():
+        generation = result.get("generation")
+        if not generation:
+            raise RuntimeError("qa_generation_missing")
+        with client_for(index[name], host) as client:
+            environment = request(client, "GET", "/api/environment")
+            if environment.get("generation") != generation or environment.get("owned_by_me") is not True:
+                raise RuntimeError("qa_generation_or_owner_changed")
+
+
+def execute_stage(stage, results, index, configs, host, revision):
+    """Append one attempt. A failed/uncertain write is never retried here."""
+    validate_stage(results, stage)
+    record = {"status": "running", "started_at": datetime.now(UTC).isoformat()}
+    results["stages"][stage] = record
+    save(results)
+    lock = threading.Lock()
+
+    def checkpoint(name, values):
+        with lock:
+            results["instances"].setdefault(name, {}).update(values)
+            save(results)
+
+    try:
+        current = release_snapshot(configs, revision, driver=Path(__file__))
+        if stage == "prepare":
+            results["release"] = current
+            results["source_sha256"] = current["source_sha256"]
+            save(results)
+        else:
+            check_release(results["release"], current)
+            check_generations(index, host, results["instances"])
+        with Sampler(configs) as sampled:
+            try:
+                if stage in {"isolation", "restart"}:
+                    operation = isolation if stage == "isolation" else restart
+                    results[stage] = operation(index, configs, results["instances"], host)
+                    save(results)
+                else:
+                    operation = {"prepare": prepare, "model": model, "approve": approve}[stage]
+                    failures = []
+                    with ThreadPoolExecutor(max_workers=2) as pool:
+                        tasks = {pool.submit(operation, item, configs[name], host,
+                                             results["instances"].get(name, {}),
+                                             lambda values, name=name: checkpoint(name, values)): name
+                                 for name, item in index.items()}
+                        for future in as_completed(tasks):
+                            name = tasks[future]
+                            try:
+                                checkpoint(name, future.result())
+                            except Exception as error:
+                                failures.append(type(error).__name__)
+                                checkpoint(name, {"failed_stage": stage, "error_type": type(error).__name__})
+                    if failures:
+                        raise RuntimeError("acceptance_instance_failed")
+            finally:
+                results["resources"][stage] = {"samples": sampled.samples,
+                                               "sample_errors": sampled.errors}
+        check_release(results["release"], release_snapshot(configs, revision, driver=Path(__file__)))
+        check_generations(index, host, results["instances"])
+        record["status"] = "passed"
+    except Exception as error:
+        record.update(status="failed", error_type=type(error).__name__)
+        raise
+    finally:
+        record["finished_at"] = datetime.now(UTC).isoformat()
+        save(results)
+
+
 def main():
+    global STATE
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("stage", choices=("prepare", "model", "approve", "isolation", "restart"))
+    parser.add_argument("stage", choices=STAGES)
+    parser.add_argument("--state", type=Path, default=STATE,
+                        help="New private capture per QA round; old captures are never overwritten")
+    parser.add_argument("--revision", required=True, help="Full clean Git revision frozen for all stages")
     args = parser.parse_args()
     if os.geteuid() != 0:
         parser.error("root operator required")
     os.umask(0o077)
+    STATE = args.state.absolute()
+    if (STATE.is_symlink() or not STATE.parent.is_dir() or STATE.parent.resolve() != STATE.parent
+            or STATE.parent.stat().st_uid != 0 or STATE.parent.stat().st_mode & 0o077):
+        parser.error("state requires a private operator directory")
+    # Serialize stage admission; do not race a second writer against an approval.
+    descriptor = os.open(STATE.with_suffix(".lock"), os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, "w") as lock:
+        info = os.fstat(lock.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != 0 or info.st_mode & 0o077:
+            parser.error("untrusted acceptance lock")
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            parser.error("another acceptance stage is running")
+        try:
+            return run_acceptance(args)
+        except Exception as error:
+            # Never print request/credential-bearing exception details.
+            print(json.dumps({"stage": args.stage, "passed": False,
+                              "error_type": type(error).__name__, "capture_preserved": STATE.exists()}))
+            return 1
+
+
+def run_acceptance(args):
+    _SESSION_COOKIES.clear()
     private = trusted_json(Path("/etc/forgeflow/reviewers.json"))
     index = {name: private["instances"][name] for name in ("qa1", "qa2")}
     configs = {name: configuration(trusted_json(Path(item["config"]))) for name, item in index.items()}
-    results = json.loads(STATE.read_text()) if STATE.exists() else {"schema": 1, "instances": {}, "resources": {}}
+    validate_targets(index, configs)
+    results = load_capture(STATE) if STATE.exists() else {
+        "schema": 2, "created_at": datetime.now(UTC).isoformat(),
+        "instances": {}, "resources": {}, "stages": {}}
     host = private["trusted_hosts"][0]
-    if args.stage == "prepare" and results["instances"]:
-        raise RuntimeError("acceptance_already_started_preserve_existing_results")
-    with Sampler(configs) as sampled:
-        if args.stage in {"isolation", "restart"}:
-            operation = isolation if args.stage == "isolation" else restart
-            results[args.stage] = operation(index, configs, results["instances"], host)
-        else:
-            operation = {"prepare": prepare, "model": model, "approve": approve}[args.stage]
-            with ThreadPoolExecutor(max_workers=2) as pool:
-                tasks = {pool.submit(operation, item, configs[name], host,
-                                     *([] if args.stage == "prepare" else [results["instances"][name]])): name
-                         for name, item in index.items()}
-                for future in as_completed(tasks):
-                    name = tasks[future]
-                    results["instances"].setdefault(name, {}).update(future.result())
-                    save(results)
-                    print(json.dumps({"instance": name, "stage": args.stage, "passed": True}), flush=True)
-    results["resources"][args.stage] = {"samples": sampled.samples, "sample_errors": sampled.errors}
-    repo = Path(configs["qa1"]["repo_root"])
-    results["source_sha256"] = {str(path.relative_to(repo)): hashlib.sha256(path.read_bytes()).hexdigest()
-                               for path in (Path(__file__), repo / "src/forgeflow/vps_runtime.py",
-                                            repo / "src/forgeflow/dsh_launcher.py", repo / "scripts/vps_provision.py",
-                                            repo / "scripts/vps_reviewers.py")}
-    save(results)
-    print(json.dumps({"stage": args.stage, "passed": True, "samples": len(sampled.samples),
+    execute_stage(args.stage, results, index, configs, host, args.revision)
+    print(json.dumps({"stage": args.stage, "passed": True,
                       "official_reviewer_instances_used": False}), flush=True)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
