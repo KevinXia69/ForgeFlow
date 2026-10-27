@@ -156,7 +156,11 @@ async function selectRun(runId) {
       fact("采样参数", sampling.temperature === null && sampling.top_p === null ? "未记录" : `temperature ${sampling.temperature ?? "未记录"} / top_p ${sampling.top_p ?? "未记录"}`);
     }
     fact("输入 / 输出 tokens", `${measured(record.metrics.n_input_tokens)} / ${measured(record.metrics.n_output_tokens)}`);
-    fact("模型成本", record.metrics.cost_usd === null ? "未测量" : `$${record.metrics.cost_usd}`);
+    const usageAccounting = record.metrics.usage_accounting || {};
+    if (record.agent === "pi") {
+      fact("用量记录", ({complete: "普通调用与压缩用量已完整记录", incomplete: "记录不完整；以上为已记录小计"})[usageAccounting.status] || "完整性未知；旧记录可能未包含压缩用量");
+    }
+    fact("模型成本", record.metrics.cost_usd === null ? "未测量" : `$${record.metrics.cost_usd}${usageAccounting.cost_status === "complete" ? "" : "（已记录金额，完整性未确认）"}`);
     if (record.error_type) fact("失败类型", record.error_type);
     if (record.issue_count) fact("证据校验问题", `${record.issue_count} 项`);
     const trace = record.trace || {status: "unavailable", steps: []};

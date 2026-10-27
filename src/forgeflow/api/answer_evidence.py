@@ -14,6 +14,7 @@ import re
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
+from ..product.state import execution_result
 from .evidence import public_evidence
 
 MAX_ROWS = 24
@@ -648,18 +649,35 @@ def _action_claim_issues(rows: list[dict], text: str, documents: list[str]) -> l
             for row in candidates:
                 if str(row.get("kind", "")).split("_")[0] != kind:
                     issues.append(f"contradictory_action:{row.get('document')}")
-        quantity = re.search(_QUANTITY, fragment, re.I)
+        quantities = list(re.finditer(_QUANTITY, fragment, re.I))
+        quantity = quantities[0] if quantities else None
         # A multi-document clause is checked per document above. Its first
         # amount cannot stand for every named document or their aggregate.
         if quantity and candidates and len(bound) <= 1:
             if not any(_number(quantity.group(1)) == _number(row.get("quantity")) for row in candidates):
                 issues.append(f"contradictory_action_quantity:{kind}")
-        role = re.search(r"成品|组件|零部件|finished(?: goods)?|components?", fragment, re.I)
+        roles = list(re.finditer(r"成品|组件|零部件|finished(?: goods)?|components?", fragment, re.I))
+        role = roles[0] if roles else None
+        actual_role = ("finished" if re.fullmatch(r"成品|finished(?: goods)?", role.group(), re.I)
+                       else "component") if role else None
         expected_roles = {row.get("supply_role") for row in candidates}
         if role and expected_roles and expected_roles <= {"finished", "component"}:
-            actual_role = "finished" if re.fullmatch(r"成品|finished(?: goods)?", role.group(), re.I) else "component"
             if actual_role not in expected_roles:
                 issues.append(f"contradictory_supply_role:{kind}")
+        if not bound and (quantity or role):
+            # Matching the amount and role independently can accept crossed
+            # facts (2 finished / 5 component -> 2 component / 5 finished).
+            # An anonymous claim must identify one compatible action row. If
+            # several quantities/roles share a clause, its binding is unknown.
+            if len(quantities) > 1 or len(roles) > 1:
+                issues.append(f"ambiguous_action_facts:{kind}")
+                continue
+            matched = [row for row in candidates
+                       if (quantity is None or _number(quantity.group(1)) == _number(row.get("quantity")))
+                       and (actual_role is None or actual_role == row.get("supply_role"))]
+            if len(matched) != 1:
+                issues.append(f"ambiguous_action_facts:{kind}" if matched
+                              else f"contradictory_action_facts:{kind}")
     return issues
 
 
@@ -749,6 +767,16 @@ def _unqualified_historical_countdown(text: str) -> bool:
     return False
 
 
+def _execution_verdict_claimed(text: str) -> bool:
+    """Also check unsolicited verdicts in otherwise unrelated model answers."""
+    return bool(re.search(
+        r"(?:验收|验证|校验|回读)[^。;；\n!?！？]{0,32}(?:通过|失败|成功|完成|未运行|未确认)"
+        r"|\b(?:verification|verifier|acceptance|readback)\b[^.;\n!?]{0,60}"
+        r"\b(?:pass(?:ed)?|fail(?:ed|ure)?|success(?:ful)?|succeeded|complete(?:d)?|not run|unconfirmed)\b",
+        text, re.I,
+    ))
+
+
 def validate_model_answer(question: str, case: dict[str, Any], text: str,
                           lang: str | None = None) -> dict[str, Any]:
     """Conservative mechanical checks, not a claim of general semantic proof.
@@ -772,6 +800,25 @@ def validate_model_answer(question: str, case: dict[str, Any], text: str,
         issues.append("plan_confirmation_requires_deterministic_answer")
     if _unknown_execution(case) and set(evidence["topics"]) & {"execution", "status", "delivery"}:
         issues.append("unknown_execution_requires_deterministic_answer")
+    if "execution" in evidence["topics"] or _execution_verdict_claimed(binding):
+        outcome = execution_result(case.get("execution"), str(case.get("state", "")))
+        # Rule counts alone cannot establish a verdict. Failed, missing,
+        # unexecuted or simulation-only evidence retains the host's explanation.
+        if outcome["verified"] is not True:
+            issues.append("execution_verdict_requires_deterministic_answer")
+        else:
+            # A disclaimer before a comma cannot negate a separate verdict.
+            verdict_text = re.sub(r"[，,]", ";", binding)
+            if _affirmed(r"(?:验收|验证|校验)(?:结果|状态)?(?:为|是)?"
+                         r"(?:(?:已经|已)?失败|(?:并)?(?:未|没有)(?:全部|完全)?通过|(?:尚未|未|并未|没有)运行)|"
+                         r"\b(?:verification|verifier|acceptance)\s+(?:(?:has|have|had|is|was)\s+)?"
+                         r"(?:failed|(?:not|never)\s+(?:fully\s+)?(?:passed|run)|did\s+not\s+pass)\b", verdict_text):
+                issues.append("contradictory_verification_verdict")
+            if _affirmed(r"回读(?:结果|状态)?(?:为|是)?"
+                         r"(?:(?:已经|已)?失败|(?:并)?(?:未|没有)(?:全部|完全)?成功|(?:尚未|未|并未|没有)运行)|"
+                         r"\breadback\s+(?:(?:has|have|had|is|was)\s+)?"
+                         r"(?:failed|(?:not|never)\s+(?:fully\s+)?(?:successful|succeeded|completed|run)|did\s+not\s+succeed)\b", verdict_text):
+                issues.append("contradictory_readback_verdict")
 
     def number_present(value):
         number = _number(value)

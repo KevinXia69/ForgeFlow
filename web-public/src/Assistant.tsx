@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { MarkdownText } from "@forgeflow/dsh-primitives";
 import { ApiError, askAssistant, streamAssistant, cancelAssistantTurn, type StreamTurn } from "./api";
-import { newConversationId, readConversations, writeConversations, type PendingChatTurn } from "./conversation";
+import { newConversationId, newStreamTurnId, readConversations, writeConversations, type PendingChatTurn } from "./conversation";
 import { useWorkspace } from "./workspace";
 import { ActivityPanel } from "./Activity";
 import { DshComposer } from "./dsh/Composer";
@@ -313,7 +313,7 @@ export function ChatSurface({
     if (!trimmed || busy) return;
     setMessages(value => [...value, { id: newId(), role: "user", text: trimmed }]);
     setInput(""); setFollowing(true);
-    await runTurn({ id: newId(), question: trimmed, lastEventId: "", lang }, false);
+    await runTurn({ id: newStreamTurnId(), question: trimmed, lastEventId: "", lang }, false);
   }
 
   async function stop() {

@@ -42,6 +42,29 @@ from forgeflow.agents.pi_source_patch import PROVIDER_SOURCE, patch_provider_sou
 from forgeflow.config import NebiusConfig, resolve_execution_guidance
 
 
+def test_usage_override_persists_compaction_and_completeness_in_harbor_result(tmp_path):
+    from harbor.models.agent.context import AgentContext
+
+    usage = {"input": 10, "output": 4, "cacheRead": 3, "cacheWrite": 2}
+    events = [
+        {"type": "message_end", "message": {"role": "assistant", "usage": usage}},
+        {"type": "compaction_end", "aborted": False, "result": {"usage": usage}},
+        {"type": "compaction_end", "aborted": True},
+    ]
+    (tmp_path / "pi.txt").write_text("\n".join(json.dumps(event) for event in events))
+    agent = SimpleNamespace(logs_dir=tmp_path, _OUTPUT_FILENAME="pi.txt")
+    context = AgentContext(metadata={"existing": "preserved"})
+    PiNebius.populate_context_post_run(agent, context)
+    result = json.loads(context.model_dump_json())
+    assert result["n_input_tokens"] == 30
+    assert result["n_output_tokens"] == 8
+    assert result["n_cache_tokens"] == 6
+    assert result["metadata"]["existing"] == "preserved"
+    assert result["metadata"]["usage_accounting"]["status"] == "incomplete"
+    PiNebius.populate_context_post_run(agent, context)
+    assert context.model_dump() == result  # repeated post-run collection is not additive
+
+
 def test_config_is_secret_free_and_uses_pinned_pi_environment_syntax(tmp_path):
     config = NebiusConfig(tmp_path, api_key="private-nebius-secret", model=DEFAULT_MODEL)
     result = build_models_config(config, DEFAULT_MODEL)

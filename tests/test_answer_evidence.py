@@ -251,7 +251,9 @@ def test_status_count_is_derived_from_range_and_missing_receipt_is_not_a_success
     assert "7 张订单" in answer and "70 台" in answer
     assert "执行回读尚未确认" in answer
     assert "系统已经执行并回读" not in answer
-    assert validate_model_answer(QUESTIONS[2], case, answer)["valid"]
+    validation = validate_model_answer(QUESTIONS[2], case, answer)
+    assert not validation["valid"]
+    assert "execution_verdict_requires_deterministic_answer" in validation["issues"]
     assert "missing_order_count" in validate_model_answer(QUESTIONS[2], case, "50 张订单，70 台。交付未知。")["issues"]
 
 
@@ -468,3 +470,38 @@ def test_quantities_before_document_bind_to_the_same_action(case, answer):
     assert not rejected["valid"]
     assert "contradictory_quantity:PO-A" in rejected["issues"]
     assert "contradictory_quantity:PO-B" in rejected["issues"]
+
+
+@pytest.mark.parametrize("question,correct,swapped", [
+    ("取消数量分别是多少？", "取消2件成品；取消5件组件。", "取消2件组件；取消5件成品。"),
+    ("What quantities were cancelled?", "Cancel 2 units of finished goods; cancel 5 units of components.",
+     "Cancel 2 units of components; cancel 5 units of finished goods."),
+])
+def test_anonymous_summary_matches_quantity_and_role_on_the_same_action(case, question, correct, swapped):
+    _two_purchase_actions(case, "cancel_po")
+    assert validate_model_answer(question, case, correct)["valid"]
+    rejected = validate_model_answer(question, case, swapped)
+    assert not rejected["valid"]
+    assert "contradictory_action_facts:cancel" in rejected["issues"]
+
+
+@pytest.mark.parametrize("answer", [
+    "取消2件；取消5件。",
+    "Cancel 2 units; cancel 5 units.",
+])
+def test_anonymous_summary_without_role_cannot_choose_between_duplicate_quantities(case, answer):
+    rows = _two_purchase_actions(case, "cancel_po")["plan"]["actions"]
+    rows.append({**copy.deepcopy(rows[0]), "document": "PO-C", "supply_role": "component"})
+    rejected = validate_model_answer("取消数量分别是多少？", case, answer)
+    assert not rejected["valid"]
+    assert "ambiguous_action_facts:cancel" in rejected["issues"]
+
+
+@pytest.mark.parametrize("answer", [
+    "取消2件成品和5件组件。", "Cancel 2 units of finished goods and 5 units of components.",
+])
+def test_anonymous_multi_value_clause_needs_unambiguous_bindings(case, answer):
+    _two_purchase_actions(case, "cancel_po")
+    rejected = validate_model_answer("取消数量分别是多少？", case, answer)
+    assert not rejected["valid"]
+    assert "ambiguous_action_facts:cancel" in rejected["issues"]

@@ -106,6 +106,41 @@ def test_recorded_usage_is_totalled_without_inventing_a_cost(tmp_path):
     assert view["usage"]["total_tokens"] == 1040
     assert view["usage"]["cache_tokens"] == 900
     assert view["usage"]["cost"]["usd"] is None
+    assert view["usage"]["accounting"]["status"] == "unknown"
+    assert "不能确认" in view["usage"]["total_tokens_note"]
+
+
+@pytest.mark.parametrize("interrupted", [False, True])
+def test_pi_usage_metadata_survives_result_summary_and_repeated_views(tmp_path, interrupted):
+    from forgeflow.agents.pi_usage import collect_pi_usage
+    from forgeflow.runner import summarize_run
+
+    events = [
+        {"type": "message_end", "message": {"role": "assistant", "usage": {
+            "input": 10, "output": 4, "cacheRead": 3, "cacheWrite": 2}}},
+        {"type": "compaction_end", "aborted": False, "result": {"usage": {
+            "input": 5, "output": 1, "cacheRead": 1, "cacheWrite": 1}}},
+    ]
+    if interrupted:
+        events.append({"type": "compaction_end", "aborted": True})
+    usage = collect_pi_usage(map(json.dumps, events))
+    accounting = usage.pop("usage_accounting")
+    run_dir = write_run(tmp_path)
+    path = run_dir / "harbor/job/one/result.json"
+    result = json.loads(path.read_text())
+    result["agent_result"] = {**usage, "metadata": {"usage_accounting": accounting}}
+    path.write_text(json.dumps(result))
+    raw = path.read_bytes()
+    summary = summarize_run(run_dir)
+    assert summary["metrics"]["usage_accounting"] == accounting
+    view = build_run_view(run_dir, tmp_path / "runs")
+    assert view["usage"]["total_tokens"] == 27
+    assert view["usage"]["accounting"] == accounting
+    assert view["usage"]["accounting"]["status"] == (
+        "incomplete" if interrupted else "complete")
+    assert legacy_record(view)["metrics"]["usage_accounting"] == accounting
+    assert build_run_view(run_dir, tmp_path / "runs")["usage"] == view["usage"]
+    assert path.read_bytes() == raw
 
 
 def test_recovery_plan_is_bound_and_counted(tmp_path):

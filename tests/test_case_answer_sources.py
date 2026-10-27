@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 import test_product_cases as api_tests
+from turn_helpers import turn_id
 
 from forgeflow.api.app import _case_model_reply, _case_question_prompt, _case_reply_base
 from forgeflow.api.dsh_harness import DshUnavailable
@@ -83,7 +84,7 @@ def test_unavailable_model_is_labeled_deterministic_for_both_transports(tmp_path
         api_tests.sign_in(client)
         case = api_tests.create_case(client)
         route = f"/api/product/cases/{case['case_id']}/ask" + ("/stream" if stream else "")
-        response = client.post(route, json={"question": "What is the cost?", "lang": "zh", "turn_id": "sources"})
+        response = client.post(route, json={"question": "What is the cost?", "lang": "zh", "turn_id": turn_id('sources')})
         assert response.status_code == 200
         if stream:
             body = [json.loads(line[6:]) for line in response.text.splitlines() if line.startswith("data: ")][-1]
@@ -110,7 +111,7 @@ def test_language_is_bound_to_case_turn_identity(tmp_path, monkeypatch):
         api_tests.sign_in(client)
         case = api_tests.create_case(client)
         route = f"/api/product/cases/{case['case_id']}/ask/stream"
-        request = {"question": "Say hello", "lang": "en", "turn_id": "fixed-language"}
+        request = {"question": "Say hello", "lang": "en", "turn_id": turn_id('fixed-language')}
         original = client.post(route, json=request)
         assert original.status_code == 200
         mismatch = client.post(route, json={**request, "lang": "zh", "resume": True})
@@ -156,7 +157,7 @@ def test_negated_cost_clause_does_not_break_case_answer_routes(
         api_tests.sign_in(client)
         case = api_tests.create_case(client)
         route = f"/api/product/cases/{case['case_id']}/ask" + ("/stream" if stream else "")
-        response = client.post(route, json={"question": question, "lang": lang, "turn_id": "negation"})
+        response = client.post(route, json={"question": question, "lang": lang, "turn_id": turn_id('negation')})
         assert response.status_code == 200
         if stream:
             events = [json.loads(line[6:]) for line in response.text.splitlines()

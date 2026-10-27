@@ -24,6 +24,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from .agents.pi_usage import accounting_view
 from .config import EXECUTION_GUIDANCE_PROFILES
 from .recovery_evidence import execution_projection
 from .runner import PLANNER_PROFILES, rule_projection, summarize_run
@@ -331,6 +332,7 @@ def usage_view(summary: dict[str, Any]) -> dict[str, Any]:
     output_tokens = _count(metrics.get("n_output_tokens"))
     cache_tokens = _count(metrics.get("n_cache_tokens"))
     cost = _number(metrics.get("cost_usd"))
+    accounting = accounting_view(metrics.get("usage_accounting"))
     total = (
         input_tokens + output_tokens
         if input_tokens is not None and output_tokens is not None
@@ -341,10 +343,18 @@ def usage_view(summary: dict[str, Any]) -> dict[str, Any]:
         "output_tokens": output_tokens,
         "cache_tokens": cache_tokens,
         "total_tokens": total,
-        "total_tokens_note": "输入与输出之和；缓存 token 已包含在输入内。",
+        "accounting": accounting,
+        "total_tokens_note": (
+            "已记录的输入与输出之和；缓存读写 token 已包含在输入内。"
+            + {"complete": "普通调用与压缩用量已完整记录。",
+               "incomplete": "记录不完整，不能作为完整模型用量。",
+               "unknown": "旧记录未标记完整性，不能确认包含全部压缩用量。"}
+            [accounting["status"]]
+        ),
         "cost": {
             "usd": cost,
             "source": "recorded" if cost is not None else "not_reported",
+            "completeness": accounting["cost_status"],
             "estimate": None,
             "estimate_basis": None,
         },
@@ -643,6 +653,7 @@ def legacy_record(view: dict[str, Any]) -> dict[str, Any]:
             "n_output_tokens": usage["output_tokens"],
             "n_cache_tokens": usage["cache_tokens"],
             "cost_usd": usage["cost"]["usd"],
+            "usage_accounting": usage["accounting"],
         },
         "attestation": view["attestation"]["status"],
         "evidence": {

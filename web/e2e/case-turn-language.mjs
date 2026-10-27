@@ -13,17 +13,24 @@ await server.listen();
 const base=`http://127.0.0.1:${server.httpServer.address().port}/app/`;
 const browser=await chromium.launch({channel:'chrome',headless:true});
 const cases=isPublic
-  ? [{initial:'en',next:'en'}, {initial:'en',next:'en',legacy:'zh'}, {initial:'en',next:'en',legacy:'absent'}]
-  : [{initial:'zh',next:'en'}, {initial:'en',next:'zh'}, {initial:'zh',next:'en',legacy:'zh'}, {initial:'zh',next:'en',legacy:'absent'}];
+  ? [{initial:'en',next:'en'}, {initial:'en',next:'en',legacy:'zh'}, {initial:'en',next:'en',legacy:'absent'}, {initial:'en',next:'en',legacyId:'legacy-saved-turn'}]
+  : [{initial:'zh',next:'en'}, {initial:'en',next:'zh'}, {initial:'zh',next:'en',legacy:'zh'}, {initial:'zh',next:'en',legacy:'absent'}, {initial:'zh',next:'en',legacyId:'legacy-saved-turn'}];
+function assertFreshId(id,earliest,latest=Date.now()) {
+ const match=/^t1_(\d{13})_([0-9a-f]{32})$/.exec(id);
+ assert.ok(match,`invalid new-turn identity: ${id}`);
+ assert.ok(Number(match[1])>=earliest&&Number(match[1])<=latest,'timestamp is not from this submission');
+}
 try {
  for(const variant of cases) {
   const context=await browser.newContext({viewport:{width:1280,height:900}});
   await context.addInitScript(lang=>{if(!localStorage.getItem('forgeflow.lang'))localStorage.setItem('forgeflow.lang',lang);},variant.initial);
   const page=await context.newPage();
   const owner='language-owner',key=`forgeflow.chat.v2.${owner}:case:${fixture.case_id}`;
-  const requests=[],turns=new Map();let starts=0,release,observeStart;
+  const requests=[],turns=new Map();let starts=0,release,releaseSecond,observeStart,observeSecond;
   const firstStarted=new Promise(resolve=>{observeStart=resolve;});
+  const secondStarted=new Promise(resolve=>{observeSecond=resolve;});
   const hold=new Promise(resolve=>{release=resolve;});
+  const secondHold=new Promise(resolve=>{releaseSecond=resolve;});
   await page.route('**/api/**',async route=>{
    const path=new URL(route.request().url()).pathname;
    if(path==='/api/auth/me')return route.fulfill({json:{scope_id:owner,display_name:'Synthetic reviewer',deployment:'local'}});
@@ -38,6 +45,11 @@ try {
     if(!body.resume) {
      assert.ok(!turns.has(body.turn_id));starts++;
      turns.set(body.turn_id,{question:body.question,lang:variant.legacy==='absent'?undefined:variant.legacy??body.lang});
+     if(starts>1) {
+      observeSecond();
+      await secondHold;
+      return route.fulfill({contentType:'text/event-stream',body:'id: 1\ndata: '+JSON.stringify({type:'final',found:true,answer:'Fresh second response',source_mode:'model',citations:[]})+'\n\n'}).catch(()=>{});
+     }
      observeStart();
      await hold;
      return route.fulfill({contentType:'text/event-stream',body:''}).catch(()=>{});
@@ -54,14 +66,22 @@ try {
    await page.goto(`${base}#case=${fixture.case_id}`);
    await page.locator('[data-ask-case]').click();
    await page.locator('[data-composer-input]').fill('Recover this exact case turn');
+   const firstSubmitted=Date.now();
    await page.locator('button.send').click();
    await page.waitForFunction(storageKey=>!!JSON.parse(localStorage.getItem(storageKey)||'{}').sessions?.find(s=>s.pendingTurn)?.pendingTurn,key);
-   const pending=await page.evaluate(storageKey=>JSON.parse(localStorage.getItem(storageKey)).sessions.find(s=>s.pendingTurn).pendingTurn,key);
+   let pending=await page.evaluate(storageKey=>JSON.parse(localStorage.getItem(storageKey)).sessions.find(s=>s.pendingTurn).pendingTurn,key);
    assert.equal(pending.lang,variant.initial);
+   assertFreshId(pending.id,firstSubmitted);
    await firstStarted;
+   assert.equal(requests[0].turn_id,pending.id,'network and saved identity diverged');
    await page.waitForFunction(()=>document.querySelector('[data-live-reasoning]'));
    // Leave while the original stream is pending, change language, and return.
    await page.locator('.case-chat-back').click();
+   if(variant.legacyId) {
+    turns.set(variant.legacyId,turns.get(pending.id));turns.delete(pending.id);
+    pending={...pending,id:variant.legacyId};
+    await page.evaluate(({storageKey,id})=>{const store=JSON.parse(localStorage.getItem(storageKey));store.sessions.find(s=>s.pendingTurn).pendingTurn.id=id;localStorage.setItem(storageKey,JSON.stringify(store));},{storageKey:key,id:pending.id});
+   }
    if(variant.legacy)await page.evaluate(storageKey=>{const store=JSON.parse(localStorage.getItem(storageKey));delete store.sessions.find(s=>s.pendingTurn).pendingTurn.lang;localStorage.setItem(storageKey,JSON.stringify(store));},key);
    if(!isPublic) {
     await page.getByRole('button',{name:variant.initial==='zh'?'设置':'Settings',exact:true}).click();
@@ -78,7 +98,21 @@ try {
    if(!variant.legacy)assert.ok(requests.slice(1).every(r=>r.lang===pending.lang),'saved-language resume probed a different language');
    assert.equal(await page.locator('.msg.user').count(),1);
    await page.waitForFunction(storageKey=>JSON.parse(localStorage.getItem(storageKey)).sessions.every(s=>!s.pendingTurn),key);
-   console.log(`PASS ${isPublic?'public':'local'} ${variant.initial}->${variant.next} ${variant.legacy??'saved language'}: ${requests.length} HTTP requests, ${starts} producer`);
-  } finally {release();await context.close();}
+   const restoreRequests=requests.length;
+   const secondSubmitted=Date.now();
+   await page.locator('[data-composer-input]').fill('Start a distinct second turn');
+   await page.locator('button.send').click();
+   await page.waitForFunction(storageKey=>!!JSON.parse(localStorage.getItem(storageKey)).sessions.find(s=>s.pendingTurn),key);
+   const second=await page.evaluate(storageKey=>JSON.parse(localStorage.getItem(storageKey)).sessions.find(s=>s.pendingTurn).pendingTurn,key);
+   assertFreshId(second.id,secondSubmitted);assert.notEqual(second.id,pending.id);
+   assert.equal(second.lang,variant.next);
+   await secondStarted;
+   assert.equal(starts,2);assert.equal(requests.at(-1).turn_id,second.id);assert.equal(requests.at(-1).resume,false);
+   releaseSecond();
+   await page.locator('.msg.assistant').filter({hasText:'Fresh second response'}).waitFor();
+   await page.waitForFunction(storageKey=>JSON.parse(localStorage.getItem(storageKey)).sessions.every(s=>!s.pendingTurn),key);
+   assert.equal(await page.locator('.msg.user').count(),2);
+   console.log(`PASS ${isPublic?'public':'local'} ${variant.initial}->${variant.next} ${variant.legacyId??variant.legacy??'saved language'}: ${restoreRequests} restore HTTP requests, same identity; second turn has fresh identity`);
+  } finally {release();releaseSecond();await context.close();}
  }
 } finally {await browser.close();await server.close();}

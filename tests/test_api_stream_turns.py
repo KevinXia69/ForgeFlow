@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 from fastapi.testclient import TestClient
+from turn_helpers import turn_id
 
 from forgeflow.api.app import create_app
 from forgeflow.api.settings import create_settings
@@ -63,17 +64,17 @@ def routes(kind, case_id):
 def test_stop_then_new_question_never_reuses_old_answer(streaming_app, kind):
     client, calls, started, release, case_id = streaming_app
     stream, cancel = routes(kind, case_id)
-    first = {'question': 'first question', 'conversation_id': 'chat', 'turn_id': 'first'}
+    first = {'question': 'first question', 'conversation_id': 'chat', 'turn_id': turn_id('first')}
     with ThreadPoolExecutor() as pool:
         pending = pool.submit(client.post, stream, json=first)
         assert started.wait(2)
-        assert client.post(cancel, json={'conversation_id': 'chat', 'turn_id': 'first'}).json() == {
+        assert client.post(cancel, json={'conversation_id': 'chat', 'turn_id': turn_id('first')}).json() == {
             'cancelled': True, 'provider_interrupt_confirmed': False}
         stopped = pending.result(timeout=3)
         assert not any(event.get('type') == 'final' for event in events(stopped))
     assert client.post(stream, json={**first, 'resume': True}).status_code == 409
     release.set()
-    second = client.post(stream, json={**first, 'turn_id': 'second', 'question': 'second question'})
+    second = client.post(stream, json={**first, 'turn_id': turn_id('second'), 'question': 'second question'})
     final = events(second)[-1]
     assert final['type'] == 'final' and 'second question' in final['answer']
     assert 'first question' not in final['answer']
@@ -88,7 +89,7 @@ def test_stop_then_new_question_never_reuses_old_answer(streaming_app, kind):
 def test_resume_before_first_frame_and_completed_replay_make_no_new_call(streaming_app, kind):
     client, calls, started, release, case_id = streaming_app
     stream, _ = routes(kind, case_id)
-    body = {'question': 'remember this turn', 'conversation_id': 'chat', 'turn_id': 'turn-one'}
+    body = {'question': 'remember this turn', 'conversation_id': 'chat', 'turn_id': turn_id('turn-one')}
     with ThreadPoolExecutor() as pool:
         original = pool.submit(client.post, stream, json=body)
         assert started.wait(2)
@@ -101,7 +102,7 @@ def test_resume_before_first_frame_and_completed_replay_make_no_new_call(streami
     assert client.post(stream, json=body).status_code == 200
     assert len(calls) == 1
     assert client.post(stream, json={**body, 'question': 'different question'}).status_code == 409
-    assert client.post(stream, json={**body, 'turn_id': 'missing', 'resume': True}).status_code == 410
+    assert client.post(stream, json={**body, 'turn_id': turn_id('missing'), 'resume': True}).status_code == 410
     assert len(calls) == 1
 
 
@@ -109,12 +110,12 @@ def test_resume_before_first_frame_and_completed_replay_make_no_new_call(streami
 def test_early_cancel_and_other_owner_cannot_recover_or_restart_turn(streaming_app, kind):
     client, calls, _, release, case_id = streaming_app
     stream, cancel = routes(kind, case_id)
-    body = {'question': 'protected question', 'conversation_id': 'chat', 'turn_id': 'early'}
-    assert client.post(cancel, json={'conversation_id': 'chat', 'turn_id': 'early'}).status_code == 200
+    body = {'question': 'protected question', 'conversation_id': 'chat', 'turn_id': turn_id('early')}
+    assert client.post(cancel, json={'conversation_id': 'chat', 'turn_id': turn_id('early')}).status_code == 200
     assert client.post(stream, json=body).status_code == 409
     assert calls == []
     release.set()
-    body['turn_id'] = 'ready'
+    body['turn_id'] = turn_id('ready')
     assert client.post(stream, json=body).status_code == 200
     client.cookies.clear()
     assert client.post('/api/auth/session', json={'invite_code': 'synthetic-turn-owner-b'}).status_code == 201
@@ -129,7 +130,7 @@ def test_case_answer_retains_original_state_after_progress_and_stream_replay(str
     client, calls, started, release, case_id = streaming_app
     route, _ = routes('case', case_id)
     before = client.get(f'/api/product/cases/{case_id}').json()
-    body = {'question': 'Explain the current plan', 'conversation_id': 'history-context', 'turn_id': 'original'}
+    body = {'question': 'Explain the current plan', 'conversation_id': 'history-context', 'turn_id': turn_id('original')}
     with ThreadPoolExecutor() as pool:
         response = pool.submit(client.post, route, json=body)
         assert started.wait(2)
@@ -151,7 +152,7 @@ def test_replay_and_cancel_do_not_require_a_new_runtime(streaming_app, monkeypat
     """An unavailable/full runtime cache cannot prevent recovery or stopping."""
     client, calls, started, release, case_id = streaming_app
     stream, cancel = routes(kind, case_id)
-    body = {'question': 'remember the original facts', 'conversation_id': 'busy-cache', 'turn_id': 'old'}
+    body = {'question': 'remember the original facts', 'conversation_id': 'busy-cache', 'turn_id': turn_id('old')}
     if kind == 'case':
         body['lang'] = 'zh'
 
@@ -175,7 +176,7 @@ def test_replay_and_cancel_do_not_require_a_new_runtime(streaming_app, monkeypat
         mismatch = client.post(stream, json={**body, 'lang': 'en', 'resume': True})
         assert mismatch.status_code == 409
         assert mismatch.json()['detail'] == 'turn_payload_mismatch'
-    assert client.post(cancel, json={'conversation_id': 'busy-cache', 'turn_id': 'old'}).json()['cancelled']
+    assert client.post(cancel, json={'conversation_id': 'busy-cache', 'turn_id': turn_id('old')}).json()['cancelled']
     assert client.post(stream, json={**body, 'resume': True}).status_code == 409
     assert len(calls) == 1
 
@@ -184,7 +185,7 @@ def test_replay_and_cancel_do_not_require_a_new_runtime(streaming_app, monkeypat
 def test_running_turn_can_cancel_after_content_changes_without_runtime_allocation(streaming_app, monkeypatch, kind):
     client, calls, started, release, case_id = streaming_app
     stream, cancel = routes(kind, case_id)
-    body = {'question': 'hold this turn', 'conversation_id': 'busy-cache', 'turn_id': 'running'}
+    body = {'question': 'hold this turn', 'conversation_id': 'busy-cache', 'turn_id': turn_id('running')}
     with ThreadPoolExecutor() as pool:
         pending = pool.submit(client.post, stream, json=body)
         assert started.wait(2)
@@ -193,7 +194,7 @@ def test_running_turn_can_cancel_after_content_changes_without_runtime_allocatio
                            json={'plan_id': before['plan']['plan_id']}).status_code == 200
         monkeypatch.setattr(client.app.state.dsh_harness, 'with_evidence',
                             lambda _path: pytest.fail('cancel allocated a new runtime'))
-        assert client.post(cancel, json={'conversation_id': 'busy-cache', 'turn_id': 'running'}).json()['cancelled']
+        assert client.post(cancel, json={'conversation_id': 'busy-cache', 'turn_id': turn_id('running')}).json()['cancelled']
         assert not any(row.get('type') == 'final' for row in events(pending.result(timeout=3)))
     assert len(calls) == 1
 
@@ -202,7 +203,7 @@ def test_running_turn_can_cancel_after_content_changes_without_runtime_allocatio
 def test_recovery_still_rejects_changed_membership_without_starting_runtime(streaming_app, monkeypatch, kind):
     client, calls, _, release, case_id = streaming_app
     stream, _ = routes(kind, case_id)
-    body = {'question': 'original scope', 'conversation_id': 'scope-change', 'turn_id': 'old'}
+    body = {'question': 'original scope', 'conversation_id': 'scope-change', 'turn_id': turn_id('old')}
     release.set()
     assert client.post(stream, json=body).status_code == 200
     assert client.post('/api/product/cases', json={'scenario': 'A'}).status_code == 201
@@ -245,7 +246,7 @@ def test_completed_turn_survives_a_restart_at_the_api_level(tmp_path, monkeypatc
         })
         return create_app(settings, product_executor=FakeProductExecutor())
 
-    body = {'question': 'what is waiting on me', 'turn_id': 'turn-restart'}
+    body = {'question': 'what is waiting on me', 'turn_id': turn_id('turn-restart')}
 
     with TestClient(app()) as client:
         assert client.post('/api/auth/session', json={'invite_code': 'synthetic-turn-owner-a'}).status_code == 201
@@ -294,8 +295,8 @@ def test_cancelled_turn_stays_cancelled_after_api_restart(tmp_path, monkeypatch,
         "FORGEFLOW_INVITE_CODES": "synthetic-turn-owner-a",
         "FORGEFLOW_SECURE_COOKIE": "false",
     })
-    body = {"question": "cancel this turn", "conversation_id": "chat", "turn_id": "stopped"}
-    cancel_body = {"conversation_id": "chat", "turn_id": "stopped"}
+    body = {"question": "cancel this turn", "conversation_id": "chat", "turn_id": turn_id('stopped')}
+    cancel_body = {"conversation_id": "chat", "turn_id": turn_id('stopped')}
 
     def login(client):
         assert client.post("/api/auth/session", json={

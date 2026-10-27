@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
+from turn_helpers import turn_id
 
 from forgeflow.api.app import create_app
 from forgeflow.api.dsh_harness import DshReply
@@ -112,7 +113,7 @@ def test_not_started_stream_keeps_reservation_then_cancel_releases_it(cache_app,
             finished.set()
 
     monkeypatch.setattr(StreamJob, '_run', delayed)
-    body = {'question': 'queued stream', 'conversation_id': 'queued', 'turn_id': 'cancel-before-start'}
+    body = {'question': 'queued stream', 'conversation_id': 'queued', 'turn_id': turn_id('cancel-before-start')}
     with ThreadPoolExecutor() as pool:
         pending = pool.submit(client.post, '/api/assistant/stream', json=body)
         assert entered.wait(2)
@@ -120,7 +121,7 @@ def test_not_started_stream_keeps_reservation_then_cancel_releases_it(cache_app,
             pressure(1)
             assert not created[0].closed
             assert client.post('/api/assistant/cancel', json={
-                'conversation_id': 'queued', 'turn_id': 'cancel-before-start',
+                'conversation_id': 'queued', 'turn_id': turn_id('cancel-before-start'),
             }).json()['cancelled']
         finally:
             release.set()

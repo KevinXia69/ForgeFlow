@@ -4,6 +4,8 @@ export type PendingChatTurn = { id: string; question: string; lastEventId: strin
 export type SavedConversation = { id: string; title: string; messages: StoredChatMessage[]; pending: boolean; pendingTurn?: PendingChatTurn | null; updated: number };
 export type ConversationStore = { active: string; sessions: SavedConversation[] };
 export function newConversationId(): string { return crypto.randomUUID(); }
+/** The timestamp is part of the identity, so an expired Stop cannot be replayed as a new turn. */
+export function newStreamTurnId(): string { return `t1_${Date.now()}_${crypto.randomUUID().replaceAll("-", "")}`; }
 const key = (scope: string) => `forgeflow.chat.v2.${scope}`;
 export function readConversations(scope: string): ConversationStore {
   if (scope) try {

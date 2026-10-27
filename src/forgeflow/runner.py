@@ -23,6 +23,7 @@ from importlib.metadata import version
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from forgeflow.agents.pi_usage import accounting_view
 from forgeflow.budget import BUDGET_MECHANISM_VERSION, CLEANUP_ALLOWANCE_SEC, SETUP_BUDGET_SEC
 from forgeflow.config import (
     VERIFIER_HARDENING,
@@ -1410,6 +1411,8 @@ def summarize_run(run_dir: str | Path) -> dict:
         expected = score == 100 and strict_success is True
     agent_result = result.get("agent_result") if result else None
     agent_result = agent_result if isinstance(agent_result, dict) else {}
+    metadata = agent_result.get("metadata")
+    metadata = metadata if isinstance(metadata, dict) else {}
     data_profile = manifest.get("data_profile")
     planner = manifest.get("planner")
     return {
@@ -1436,6 +1439,10 @@ def summarize_run(run_dir: str | Path) -> dict:
         "runner_error": manifest.get("error"),
         "raw_reward_path": str(reward_path.relative_to(run_dir)) if reward_path and reward_path.exists() else None,
         "raw_result_path": str(result_path.relative_to(run_dir)) if result_path and result_path.exists() else None,
-        "metrics": {key: agent_result.get(key) for key in ("n_input_tokens", "n_output_tokens", "n_cache_tokens", "cost_usd")},
+        "metrics": {
+            **{key: agent_result.get(key) for key in
+               ("n_input_tokens", "n_output_tokens", "n_cache_tokens", "cost_usd")},
+            "usage_accounting": accounting_view(metadata.get("usage_accounting")),
+        },
         "issues": issues,
     }

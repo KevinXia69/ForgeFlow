@@ -1,6 +1,6 @@
 """Minimal Nebius transport and installation adaptation of ERP-Bench's Pi.
 
-This retains the upstream single-agent loop and usage accounting. Filesystem
+This retains the upstream single-agent loop with project-level usage accounting. Filesystem
 permissions below are limited hardening, not isolation from Odoo's database or
 the network. The surrounding runner must verify its actual container boundary.
 """
@@ -26,6 +26,7 @@ from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 
 from forgeflow.agents.pi_source_patch import PROVIDER_SOURCE, patch_provider_source
+from forgeflow.agents.pi_usage import collect_pi_usage_file
 from forgeflow.budget import (
     BUDGET_MECHANISM_VERSION,
     CLEANUP_ALLOWANCE_SEC,
@@ -535,6 +536,15 @@ class PiNebius(UpstreamPi):
     # Reviewed thinking controls are configured through model samplingParams.
     CLI_FLAGS = []
     EXTRA_ENV_KEYS = ()
+
+    def populate_context_post_run(self, context: AgentContext) -> None:
+        """Include compression calls omitted by the immutable upstream adapter."""
+        usage = collect_pi_usage_file(self.logs_dir / self._OUTPUT_FILENAME)
+        for key in ("n_input_tokens", "n_output_tokens", "n_cache_tokens", "cost_usd"):
+            setattr(context, key, usage[key])
+        context.metadata = {
+            **(context.metadata or {}), "usage_accounting": usage["usage_accounting"],
+        }
 
     def __init__(
         self,

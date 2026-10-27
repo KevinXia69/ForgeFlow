@@ -62,6 +62,7 @@ from .runs import RunService, RunUnavailable
 from .settings import Settings
 from .stream_hub import AssistantStreamHub, StreamCapacityError, TurnJournal
 from .trust import is_trusted_api_request
+from .turn_identity import InvalidTurnIdentity, new_turn_expiry
 
 logger = logging.getLogger(__name__)
 SECURITY_HEADERS = {
@@ -313,6 +314,7 @@ def create_app(
     dsh_harness = DshHarness.from_env()
     app.state.dsh_harness = dsh_harness
     assistant_hub = AssistantStreamHub(journal=TurnJournal(settings.approvals_root / "turn-journal"))
+    app.state.assistant_hub = assistant_hub
     evidence = ReadOnlyEvidenceProjection(settings, product_cases, runs, lambda: _executor_connection())
     scoped_harnesses: dict[str, Any] = {}
     owner_snapshots: dict[str, Path] = {}
@@ -449,6 +451,38 @@ def create_app(
     def _job_key(base: str, turn_id: str) -> str:
         return f"{base}:turn:{hashlib.sha256(turn_id.encode()).hexdigest()}"
 
+    def _new_turn_expiry(turn_id: str) -> float:
+        try:
+            return new_turn_expiry(turn_id)
+        except InvalidTurnIdentity as error:
+            status = 400 if str(error) == "turn_timestamp_in_future" else 410
+            raise HTTPException(status_code=status, detail=str(error)) from None
+
+    def _cancel_turn(base: str, body: StreamCancelRequest, uid: str) -> dict[str, bool]:
+        key = _job_key(base, body.turn_id)
+        existing = assistant_hub.get(key)
+        expires_at = existing.expires_at if existing is not None else None
+        if existing is None:
+            expires_at = _new_turn_expiry(body.turn_id)
+            # A stream of unknown Stops consumes storage. Existing tasks must
+            # still be stoppable when that separate request budget is exhausted.
+            if settings.deployment == "hosted":
+                for budget, limit in ((f"cancel:{uid}", 30), ("cancel:global", 120)):
+                    delay = limiter.retry_after(budget, limit=limit)
+                    if delay:
+                        raise HTTPException(status_code=429, detail="rate_limit_exceeded",
+                                            headers={"Retry-After": str(delay)})
+        try:
+            cancelled = assistant_hub.cancel(key, owner=uid, expires_at=expires_at)
+        except ValueError as error:
+            # Expiry can pass between lookup and the hub's admission lock.
+            if str(error) == "turn_expired":
+                raise HTTPException(status_code=410, detail="turn_expired") from None
+            raise
+        except StreamCapacityError:
+            raise HTTPException(status_code=503, detail="cancel_capacity") from None
+        return {"cancelled": cancelled, "provider_interrupt_confirmed": False}
+
     def _stream_response(base: str, body, request: Request, producer=None, metadata=None,
                          harness=None) -> StreamingResponse | None:
         if body.resume and not body.turn_id:
@@ -466,6 +500,7 @@ def create_app(
         job = assistant_hub.get(key)
         if body.resume and job is None:
             raise HTTPException(status_code=410, detail="turn_unavailable")
+        expires_at = _new_turn_expiry(body.turn_id) if job is None and body.turn_id else None
         if job is not None:
             if job.cancelled:
                 raise HTTPException(status_code=409, detail="turn_cancelled")
@@ -497,9 +532,13 @@ def create_app(
             try:
                 job = assistant_hub.start(key, producer_factory,
                                           request_hash=digest, on_cancel=stopped.set,
-                                          reuse_completed=bool(body.turn_id), metadata=metadata)
+                                          reuse_completed=bool(body.turn_id),
+                                          metadata={**(metadata or {}), **({"expires_at": expires_at}
+                                                    if expires_at is not None else {})})
                 producer_started = True
-            except ValueError:
+            except ValueError as error:
+                if str(error) == "turn_expired":
+                    raise HTTPException(status_code=410, detail="turn_expired") from None
                 raise HTTPException(status_code=409, detail="turn_payload_mismatch") from None
             except StreamCapacityError:
                 raise HTTPException(status_code=503, detail="stream_capacity") from None
@@ -606,7 +645,7 @@ def create_app(
                           path.endswith(("/ask", "/ask/stream")))
                     if model_call:
                         budgets = [(f"model:{uid}", 30), ("model:global", 120)]
-                    elif path.startswith("/api/product/cases"):
+                    elif path.startswith("/api/product/cases") and not path.endswith("/ask/cancel"):
                         budgets = [(f"product:{uid}", 20), ("product:global", 60)]
             for key, limit in budgets:
                 delay = limiter.retry_after(key, limit=limit)
@@ -857,8 +896,7 @@ def create_app(
     @app.post("/api/assistant/cancel")
     def cancel_assistant(body: StreamCancelRequest, uid: str = Depends(require_principal)):
         base = f"{evidence.scope_key_for(uid)}:{_conversation_key(uid, body.conversation_id)}"
-        cancelled = assistant_hub.cancel(_job_key(base, body.turn_id))
-        return {"cancelled": cancelled, "provider_interrupt_confirmed": False}
+        return _cancel_turn(base, body, uid)
 
     @app.post("/api/assistant/answer")
     def assistant_answer(
@@ -1075,8 +1113,7 @@ def create_app(
             raise HTTPException(status_code=404, detail="case_not_found")
         scope = evidence.scope_key_for(uid)
         base = f"{scope}:case-{uid}:{case_id}:{body.conversation_id or 'default'}"
-        cancelled = assistant_hub.cancel(_job_key(base, body.turn_id))
-        return {"cancelled": cancelled, "provider_interrupt_confirmed": False}
+        return _cancel_turn(base, body, uid)
 
     @app.post("/api/product/cases/{case_id}/approve")
     def approve_product_case(
