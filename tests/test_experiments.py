@@ -3,6 +3,7 @@
 import hashlib
 import importlib.util
 import json
+import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -458,6 +459,85 @@ def test_manifest_fingerprint_same_config_not_mixed_and_read_only(tmp_path, caps
     assert product["actual_cost"] is None
     assert "mixed_config=false" in capsys.readouterr().out
     assert _tree_state([first, second]) == before
+
+
+@pytest.mark.parametrize("command", ["manifest", "report"])
+def test_exports_preserve_usage_completeness_without_changing_recorded_numbers(tmp_path, command):
+    runs = tmp_path / "runs"
+    runs.mkdir()
+    accounting = {
+        "version": "pi-events-v1", "status": "complete", "cost_status": "complete",
+        "issues": [], "message_events": 1, "compaction_events": 1,
+        "usage_events": 2, "cache_write_tokens": 4,
+    }
+    expected = {
+        "complete": accounting,
+        "incomplete": {**accounting, "status": "incomplete", "cost_status": "incomplete",
+                       "issues": ["compaction_usage_missing"], "usage_events": 1},
+        "historical": {"version": None, "status": "unknown", "cost_status": "unknown",
+                       "issues": []},
+    }
+    directories = []
+    for name in expected:
+        run = _write_g0_run(runs, name, cost_usd=0.25)
+        directories.append(run)
+        if name != "historical":
+            path = run / "summary.json"
+            summary = json.loads(path.read_text())
+            summary["metrics"]["usage_accounting"] = {
+                **expected[name], "private_note": "do-not-export-this-field",
+            }
+            path.write_text(json.dumps(summary))
+    before = _tree_state([runs])
+    out = tmp_path / f"{command}.json"
+    # Exercise the real CLI with site packages and PYTHONPATH disabled, from
+    # outside the checkout. Exporting recorded evidence needs no installation.
+    subprocess.run(
+        [sys.executable, "-I", "-S", str(ROOT / "scripts/experiments.py"), command,
+         *(str(path) for path in directories), "--json", str(out)],
+        cwd=tmp_path, check=True, capture_output=True, text=True, timeout=30,
+    )
+    payload = json.loads(out.read_text())
+    assert payload["mixed_config"] is False
+    products = {record["run_id"]: record["product"] for record in payload["runs"]}
+    assert set(products) == set(expected)
+    for name, product in products.items():
+        assert product["input_tokens"] == 100
+        assert product["output_tokens"] == 10
+        assert product["cache_tokens"] == 20
+        assert product["actual_cost"] == 0.25
+        assert product["usage_accounting"] == expected[name]
+        assert product["cost_completeness"] == expected[name]["cost_status"]
+    assert "do-not-export-this-field" not in out.read_text()
+    assert _tree_state([runs]) == before
+
+
+@pytest.mark.parametrize("command", ["manifest", "report"])
+def test_exports_keep_missing_cost_and_unknown_accounting_explicit(tmp_path, command):
+    runs = tmp_path / "runs"
+    runs.mkdir()
+    missing = _write_g0_run(runs, "missing-cost", cost_usd=None)
+    unknown = _write_g0_run(runs, "unknown-cost", cost_usd=0)
+    for run, metadata in (
+        (missing, {"version": "pi-events-v1", "status": "complete",
+                   "cost_status": "not_reported", "issues": []}),
+        (unknown, {"version": "unrecognized", "status": "complete", "cost_status": "complete"}),
+    ):
+        path = run / "summary.json"
+        summary = json.loads(path.read_text())
+        summary["metrics"]["usage_accounting"] = metadata
+        path.write_text(json.dumps(summary))
+    before = _tree_state([runs])
+    out = tmp_path / f"{command}.json"
+    assert experiments.main([command, str(missing), str(unknown), "--json", str(out)]) == 0
+    products = {row["run_id"]: row["product"] for row in json.loads(out.read_text())["runs"]}
+    assert products["missing-cost"]["actual_cost"] is None
+    assert products["missing-cost"]["usage_accounting"]["status"] == "complete"
+    assert products["missing-cost"]["cost_completeness"] == "not_reported"
+    assert products["unknown-cost"]["actual_cost"] == 0
+    assert products["unknown-cost"]["usage_accounting"]["status"] == "unknown"
+    assert products["unknown-cost"]["cost_completeness"] == "unknown"
+    assert _tree_state([runs]) == before
 
 
 def test_manifest_missing_fingerprint_values_stay_null(tmp_path):

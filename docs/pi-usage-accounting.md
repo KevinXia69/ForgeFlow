@@ -27,6 +27,15 @@ Harbor result 的 metadata 通过 `summarize_run().metrics.usage_accounting`
 用量说明区分完整记录、不完整小计和未标记完整性的旧记录。旧记录显示
 `unknown`，本次不重写原始日志、结果、历史摘要或验收成绩。
 
+`scripts/experiments.py manifest` 与 `report` 导出的每个 `runs[].product`
+也保留归一化的 `usage_accounting`，并将其 `cost_status` 同步为
+`cost_completeness`。后者区分 `complete`、`incomplete`、`not_reported` 和
+`unknown`；token 完整不代表费用完整。已有 token 和 `actual_cost` 数字保持
+原值，缺失费用仍为 `null`，历史无标记或无法识别的标记为 `unknown`。
+这些字段是兼容性新增，配置指纹与业务结果汇总的口径不变。成本比较需同时
+检查费用完整性，不能把不完整小计或历史未知值当作完整费用。
+
 固定事件回归覆盖普通调用、成功压缩、压缩重试、缓存读写、缺失/中止/截断、
 全零默认值、有效零输出、重复读取，
-以及 result → summary → RunView 的传播，不调用模型或 ERP。
+以及 result → summary → RunView 的传播。导出回归另覆盖两种命令的完整、
+不完整、历史未知及费用未报告记录，检查源记录不被修改，不调用模型或 ERP。

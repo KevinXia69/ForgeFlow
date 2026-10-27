@@ -22,6 +22,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+# Keep direct, dependency-free invocation tied to this checkout's accounting
+# projection rather than a possibly older installed package.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from forgeflow.agents.pi_usage import accounting_view  # noqa: E402
+
 TASKS = ("A", "B")
 SECURITY_PROFILES = ("none", "permission-split-v1")
 DATA_PROFILE = "planning-metadata-v1"
@@ -1185,6 +1190,7 @@ def _product(
     )
     metrics = summary.get("metrics")
     metrics = metrics if isinstance(metrics, dict) else {}
+    accounting = accounting_view(metrics.get("usage_accounting"))
     cost = _first_number(metrics, ("cost_usd", "actual_cost"))
     if cost is not None and cost < 0:
         cost = None
@@ -1215,6 +1221,8 @@ def _product(
         "output_tokens": _first_count(metrics, ("n_output_tokens", "output_tokens")),
         "cache_tokens": _first_count(metrics, ("n_cache_tokens", "cache_tokens")),
         "actual_cost": cost,
+        "usage_accounting": accounting,
+        "cost_completeness": accounting["cost_status"],
     }
     product["failure_stage"], product["failure_class"] = _failure_info(
         manifest, summary, product

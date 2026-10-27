@@ -165,6 +165,12 @@ The product reading is separate:
 - `failure_stage` is one of runner, agent, trial, verifier, budget, or business.
 - Costs and tokens remain `null` when the provider or summary did not report
   them.
+- Both `manifest` and `report` JSON exports retain `runs[].product.usage_accounting`
+  and `cost_completeness` alongside the recorded numbers. Token accounting can
+  be complete while cost is `not_reported`; partial cost is `incomplete`, and
+  historical or unrecognized accounting is `unknown`. Use these fields before
+  comparing model costs. The additive fields do not change configuration
+  fingerprints, business-result totals, or historical source files.
 
 ## Historical verifier audit
 
