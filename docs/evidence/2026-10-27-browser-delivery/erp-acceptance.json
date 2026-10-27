@@ -1,0 +1,380 @@
+{
+  "schema": 1,
+  "evidence_kind": "operator_captured_browser_workflow_not_independent_attestation",
+  "execution_kind": "new_local_live_odoo_sandbox",
+  "data_kind": "synthetic_erp_bench_non_production",
+  "scenario": "A",
+  "data_profile": "planning-metadata-v1",
+  "captured_at": "2026-10-27T06:38:02.130663+00:00",
+  "base_revision": "7949a2b746af655fc28d535e188ebd1f15408158",
+  "case_id": "c59f05da3e4f9ec2c4b1593c0b8527fb",
+  "plan_id": "1d9c175615c4a80365cf3e806b30877ff7f14ddec4c1fd3c0f515c61adb00889",
+  "version": 1,
+  "before_approval": {
+    "state": "awaiting_approval",
+    "approval": null,
+    "execution": null
+  },
+  "plan_binding": {
+    "plan_id": "1d9c175615c4a80365cf3e806b30877ff7f14ddec4c1fd3c0f515c61adb00889",
+    "policy_sha256": "e6c358acd635791e9f87c1e2f29d669be8a0b09e8050a1dbecd5c88e5ba00fae",
+    "snapshot_sha256": "0a17130f201bca9f5c9399802c66bb31a38d80e7a6dd47395e3eb3fecb2c79be",
+    "prepared_at": "2026-10-27T06:34:53.974064+00:00"
+  },
+  "approval": {
+    "plan_id": "1d9c175615c4a80365cf3e806b30877ff7f14ddec4c1fd3c0f515c61adb00889",
+    "phase": "dispatching",
+    "issued_at": "2026-10-27T06:35:06.723730+00:00",
+    "expires_at": "2026-10-27T06:50:06.723730+00:00"
+  },
+  "checkpoint_times": {
+    "initial": "2026-10-27T06:34:50.197827+00:00",
+    "after-prepare": "2026-10-27T06:34:54.152674+00:00",
+    "before-approval": "2026-10-27T06:35:06.252931+00:00",
+    "after-approval": "2026-10-27T06:35:47.088255+00:00",
+    "after-reload": "2026-10-27T06:35:48.110314+00:00"
+  },
+  "business_before_prepare": {
+    "purchase_order": {
+      "count": 6,
+      "rows_md5": "ddf89e2b0aa66b3f3fcd51017a7fd5cc"
+    },
+    "purchase_order_line": {
+      "count": 6,
+      "rows_md5": "463df583747ad4b735aa4a9ad07ddf2a"
+    },
+    "mrp_production": {
+      "count": 4,
+      "rows_md5": "c13e34a9e30fd75d87a732d235cba801"
+    },
+    "stock_picking": {
+      "count": 11,
+      "rows_md5": "4b58e8d5425134eff60b5b01ad421e7a"
+    },
+    "stock_move": {
+      "count": 81,
+      "rows_md5": "e86e8cd504c5c9eaf21acdd6eec613e7"
+    },
+    "stock_move_line": {
+      "count": 69,
+      "rows_md5": "52537a6a7b091bf3965c52c4812ebf23"
+    },
+    "mrp_workorder": {
+      "count": 4,
+      "rows_md5": "c99ce5a031e2628ef946d7e3839e4e6b"
+    },
+    "mrp_workcenter": {
+      "count": 2,
+      "rows_md5": "e95f81c1a4cff949d75e84f6d9df03c3"
+    },
+    "product_product": {
+      "count": 55,
+      "rows_md5": "5f6044fc2fbf08c796e4b9ed14687a67"
+    },
+    "product_template": {
+      "count": 55,
+      "rows_md5": "b37fd12d28116b92747e54cf261f2bda"
+    },
+    "stock_quant": {
+      "count": 108,
+      "rows_md5": "4cd647fa0bae54aa7d7d4f76cdbd3158"
+    },
+    "res_partner": {
+      "count": 122,
+      "rows_md5": "80d983466a27c1cb1ab459c00e1a28f4"
+    }
+  },
+  "business_after_prepare": {
+    "purchase_order": {
+      "count": 6,
+      "rows_md5": "ddf89e2b0aa66b3f3fcd51017a7fd5cc"
+    },
+    "purchase_order_line": {
+      "count": 6,
+      "rows_md5": "463df583747ad4b735aa4a9ad07ddf2a"
+    },
+    "mrp_production": {
+      "count": 4,
+      "rows_md5": "c13e34a9e30fd75d87a732d235cba801"
+    },
+    "stock_picking": {
+      "count": 11,
+      "rows_md5": "4b58e8d5425134eff60b5b01ad421e7a"
+    },
+    "stock_move": {
+      "count": 81,
+      "rows_md5": "e86e8cd504c5c9eaf21acdd6eec613e7"
+    },
+    "stock_move_line": {
+      "count": 69,
+      "rows_md5": "52537a6a7b091bf3965c52c4812ebf23"
+    },
+    "mrp_workorder": {
+      "count": 4,
+      "rows_md5": "c99ce5a031e2628ef946d7e3839e4e6b"
+    },
+    "mrp_workcenter": {
+      "count": 2,
+      "rows_md5": "e95f81c1a4cff949d75e84f6d9df03c3"
+    },
+    "product_product": {
+      "count": 55,
+      "rows_md5": "5f6044fc2fbf08c796e4b9ed14687a67"
+    },
+    "product_template": {
+      "count": 55,
+      "rows_md5": "b37fd12d28116b92747e54cf261f2bda"
+    },
+    "stock_quant": {
+      "count": 108,
+      "rows_md5": "4cd647fa0bae54aa7d7d4f76cdbd3158"
+    },
+    "res_partner": {
+      "count": 122,
+      "rows_md5": "80d983466a27c1cb1ab459c00e1a28f4"
+    }
+  },
+  "business_before_approval": {
+    "purchase_order": {
+      "count": 6,
+      "rows_md5": "ddf89e2b0aa66b3f3fcd51017a7fd5cc"
+    },
+    "purchase_order_line": {
+      "count": 6,
+      "rows_md5": "463df583747ad4b735aa4a9ad07ddf2a"
+    },
+    "mrp_production": {
+      "count": 4,
+      "rows_md5": "c13e34a9e30fd75d87a732d235cba801"
+    },
+    "stock_picking": {
+      "count": 11,
+      "rows_md5": "4b58e8d5425134eff60b5b01ad421e7a"
+    },
+    "stock_move": {
+      "count": 81,
+      "rows_md5": "e86e8cd504c5c9eaf21acdd6eec613e7"
+    },
+    "stock_move_line": {
+      "count": 69,
+      "rows_md5": "52537a6a7b091bf3965c52c4812ebf23"
+    },
+    "mrp_workorder": {
+      "count": 4,
+      "rows_md5": "c99ce5a031e2628ef946d7e3839e4e6b"
+    },
+    "mrp_workcenter": {
+      "count": 2,
+      "rows_md5": "e95f81c1a4cff949d75e84f6d9df03c3"
+    },
+    "product_product": {
+      "count": 55,
+      "rows_md5": "5f6044fc2fbf08c796e4b9ed14687a67"
+    },
+    "product_template": {
+      "count": 55,
+      "rows_md5": "b37fd12d28116b92747e54cf261f2bda"
+    },
+    "stock_quant": {
+      "count": 108,
+      "rows_md5": "4cd647fa0bae54aa7d7d4f76cdbd3158"
+    },
+    "res_partner": {
+      "count": 122,
+      "rows_md5": "80d983466a27c1cb1ab459c00e1a28f4"
+    }
+  },
+  "business_after_approval": {
+    "purchase_order": {
+      "count": 7,
+      "rows_md5": "0475336b6136766498a32adfe4c97bb5"
+    },
+    "purchase_order_line": {
+      "count": 7,
+      "rows_md5": "9eebec03accfcdb345493f78ca28615c"
+    },
+    "mrp_production": {
+      "count": 4,
+      "rows_md5": "aa66b3ba40260f2aab0ca1b7a408e0be"
+    },
+    "stock_picking": {
+      "count": 12,
+      "rows_md5": "c612dc3836c6e8680fac92ac72e30124"
+    },
+    "stock_move": {
+      "count": 82,
+      "rows_md5": "c7a89187a392cc98d8f32a3347eaad5f"
+    },
+    "stock_move_line": {
+      "count": 69,
+      "rows_md5": "94d2047d1e0a421329098b1ecbd1f5e7"
+    },
+    "mrp_workorder": {
+      "count": 4,
+      "rows_md5": "9819f5d906cd9c59813b9b716e89f6d7"
+    },
+    "mrp_workcenter": {
+      "count": 2,
+      "rows_md5": "e95f81c1a4cff949d75e84f6d9df03c3"
+    },
+    "product_product": {
+      "count": 55,
+      "rows_md5": "5f6044fc2fbf08c796e4b9ed14687a67"
+    },
+    "product_template": {
+      "count": 55,
+      "rows_md5": "b37fd12d28116b92747e54cf261f2bda"
+    },
+    "stock_quant": {
+      "count": 108,
+      "rows_md5": "4cd647fa0bae54aa7d7d4f76cdbd3158"
+    },
+    "res_partner": {
+      "count": 122,
+      "rows_md5": "80d983466a27c1cb1ab459c00e1a28f4"
+    }
+  },
+  "business_after_reload": {
+    "purchase_order": {
+      "count": 7,
+      "rows_md5": "0475336b6136766498a32adfe4c97bb5"
+    },
+    "purchase_order_line": {
+      "count": 7,
+      "rows_md5": "9eebec03accfcdb345493f78ca28615c"
+    },
+    "mrp_production": {
+      "count": 4,
+      "rows_md5": "aa66b3ba40260f2aab0ca1b7a408e0be"
+    },
+    "stock_picking": {
+      "count": 12,
+      "rows_md5": "c612dc3836c6e8680fac92ac72e30124"
+    },
+    "stock_move": {
+      "count": 82,
+      "rows_md5": "c7a89187a392cc98d8f32a3347eaad5f"
+    },
+    "stock_move_line": {
+      "count": 69,
+      "rows_md5": "94d2047d1e0a421329098b1ecbd1f5e7"
+    },
+    "mrp_workorder": {
+      "count": 4,
+      "rows_md5": "9819f5d906cd9c59813b9b716e89f6d7"
+    },
+    "mrp_workcenter": {
+      "count": 2,
+      "rows_md5": "e95f81c1a4cff949d75e84f6d9df03c3"
+    },
+    "product_product": {
+      "count": 55,
+      "rows_md5": "5f6044fc2fbf08c796e4b9ed14687a67"
+    },
+    "product_template": {
+      "count": 55,
+      "rows_md5": "b37fd12d28116b92747e54cf261f2bda"
+    },
+    "stock_quant": {
+      "count": 108,
+      "rows_md5": "4cd647fa0bae54aa7d7d4f76cdbd3158"
+    },
+    "res_partner": {
+      "count": 122,
+      "rows_md5": "80d983466a27c1cb1ab459c00e1a28f4"
+    }
+  },
+  "measurement_scope": "Exact row counts and ordered row-content MD5 for twelve named business tables; not all Odoo tables.",
+  "reload_execution_unchanged": true,
+  "execution": {
+    "state": "succeeded",
+    "status": "succeeded",
+    "writes": [
+      {
+        "document": "P00006",
+        "kind": "cancel_po",
+        "quantity": 3
+      },
+      {
+        "document": "new:purchase.order:0006",
+        "kind": "create_po",
+        "quantity": 3
+      }
+    ],
+    "readback": {
+      "execution_validated": true,
+      "verified_steps": 7,
+      "receipt_sha256": "2cb4815e2f6cdc5147b66fca39155ddbd1d569582b4fe3008af3ff8923de8d05",
+      "readback_sha256": "98ebd2874f1779d76b4b0d3804fecc48e114f59abfba8b8b765d1a433bd78327",
+      "verified_at": "2026-10-27T06:35:46.557483+00:00"
+    },
+    "verifier": {
+      "status": "passed",
+      "evaluation_scope": "product_original_verifier",
+      "evaluation_valid": true,
+      "strict_success": true,
+      "original_passed": true,
+      "verification_attempt": "4e83e6d3308649fdb39a9abc69d3af4f",
+      "reward_sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c",
+      "score": 100.0,
+      "applicable_rule_count": 51,
+      "passed_rule_count": 51,
+      "failed_rule_count": 0
+    },
+    "verification_receipt_binding": {
+      "sha256": "2cb4815e2f6cdc5147b66fca39155ddbd1d569582b4fe3008af3ff8923de8d05",
+      "bindings": {
+        "approval_sha256": "575852ce912f789d3310fb4c310c86fe2cd868b43c2d80a4d14dfc5e397c42a0",
+        "case_id": "c59f05da3e4f9ec2c4b1593c0b8527fb",
+        "journal_sha256": "987377f3c5ded7ebc111ecc9c6e378642f474eb3db6d32d7e665dbab892e854c",
+        "plan_id": "1d9c175615c4a80365cf3e806b30877ff7f14ddec4c1fd3c0f515c61adb00889",
+        "policy_sha256": "e6c358acd635791e9f87c1e2f29d669be8a0b09e8050a1dbecd5c88e5ba00fae",
+        "readback_sha256": "98ebd2874f1779d76b4b0d3804fecc48e114f59abfba8b8b765d1a433bd78327",
+        "reconciliation_source_sha256": "5b590ade0506c4bb75f17f443274317fb965f017e67e1620f966f38cf27c4f12",
+        "run_id": "local-c59f05da3e4f9ec2c4b1593c0b8527fb",
+        "snapshot_sha256": "0a17130f201bca9f5c9399802c66bb31a38d80e7a6dd47395e3eb3fecb2c79be",
+        "sources_sha256": "0b448f834b050ade96cca7339eedfe1a923f2ef5f7858e901c72bc872e51249c"
+      },
+      "digest_validated": true
+    },
+    "actual_erp_records": [
+      {
+        "plan_record": "existing:purchase.order:6",
+        "id": 6,
+        "name": "P00006",
+        "state": "cancel",
+        "origin": "S00004",
+        "quantity": 3.0
+      },
+      {
+        "plan_record": "new:purchase.order:0006",
+        "id": 7,
+        "name": "FF/PO/b3246adfbe8e0595f79f8fcd",
+        "state": "purchase",
+        "origin": "S00004",
+        "quantity": 3.0
+      }
+    ],
+    "raw_readback_file_sha256": "f249c89374cdcbca1649dbf90f497303afa24420b2d3a2188c208914655263f6"
+  },
+  "environment": {
+    "before": {
+      "generation": null,
+      "available": true,
+      "owned_by_me": false
+    },
+    "after": {
+      "generation": null,
+      "available": true,
+      "owned_by_me": false
+    }
+  },
+  "limitations": {
+    "formal_reviewer_workspaces_used": false,
+    "public_deployment_changed": false,
+    "provider_usage_or_billing_verified": false,
+    "raw_model_answer_archived": false,
+    "vps_schema2_driver_run": false,
+    "ci_run": false
+  }
+}

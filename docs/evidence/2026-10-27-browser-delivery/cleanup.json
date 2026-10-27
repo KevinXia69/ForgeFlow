@@ -1,0 +1,8 @@
+{
+  "captured_at": "2026-10-27T06:48:12.598817+00:00",
+  "owned_api_and_executor_processes_stopped": true,
+  "both_owned_containers_stopped": true,
+  "other_running_containers_before_vm_shutdown": 0,
+  "colima_profile_restored_to_initial_stopped_state": true,
+  "cases_volumes_and_private_originals_retained": true
+}

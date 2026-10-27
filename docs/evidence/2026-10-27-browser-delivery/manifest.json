@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "created_at": "2026-10-27T06:48:12.603818+00:00",
+  "application_revision": "7949a2b746af655fc28d535e188ebd1f15408158",
+  "scope": "Allowlisted public evidence; screenshots inspected; known local keys, invitation/session values and private absolute paths excluded. Raw model bodies, provider bills, private configurations and browser storageState not exported.",
+  "files": {
+    "01-start.png": {
+      "sha256": "a0f66e02aa0522e55398ffa8693d6d6aa0b69affc6ece15d8281a3faee7f4017",
+      "bytes": 231418
+    },
+    "02-proposed-changes.png": {
+      "sha256": "9886ca28a413e706195365da74e1a151b53f6bd3cc061195eb02ecdef74a0929",
+      "bytes": 56996
+    },
+    "03-model-answer.png": {
+      "sha256": "dbf3012f0bf86ee8f243cab2a2494dd87a61671790259ef29599a7a3f5cb43c7",
+      "bytes": 294184
+    },
+    "04-approval-confirmation.png": {
+      "sha256": "2baef560894bdaaa209b9e2cced15233e8abf22bcd22d89cda1ed0eafa77d56f",
+      "bytes": 245642
+    },
+    "05-execution-receipt.png": {
+      "sha256": "58e720393621762a9307a098199ea3ba8ec5e8164b02353aa2c045b95648736a",
+      "bytes": 68382
+    },
+    "06-restored-answer.png": {
+      "sha256": "8efda676e447436a250c89b825fbb72868dd5d2672592570f9129d40b83d250f",
+      "bytes": 320027
+    },
+    "browser-acceptance.json": {
+      "sha256": "3dd99d1347adfa27a530ac76885ed11fb878be83919b48f3457e20d3f240b1bf",
+      "bytes": 20071
+    },
+    "cleanup.json": {
+      "sha256": "8814cbec6de047d4ac573daa80b28ea9413ed07e4428d8219519756480914cff",
+      "bytes": 317
+    },
+    "erp-acceptance.json": {
+      "sha256": "a9f1953147404c84743f9005c1bcc445f007d9551ab3598fa71317f531bc9c6c",
+      "bytes": 11206
+    },
+    "failed-attempt.json": {
+      "sha256": "83dcad3a2c7cddfb6ef53ae402f5cc592b6c74765e7be91d41306f9827a60702",
+      "bytes": 2124
+    },
+    "original-reward.json": {
+      "sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c",
+      "bytes": 19134
+    },
+    "provenance.json": {
+      "sha256": "059bbacd13cd9cad49c801f28488e069b55a06cef815950d86fedb487b6d2a4b",
+      "bytes": 105752
+    },
+    "public-readiness.json": {
+      "sha256": "f12b9c34230329d1e3fd076cb0873f32f54a5a112e5fc8768d0665544af8689f",
+      "bytes": 1003
+    }
+  }
+}

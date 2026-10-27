@@ -1,0 +1,313 @@
+{
+  "schema": 1,
+  "tested_revision": "7949a2b746af655fc28d535e188ebd1f15408158",
+  "started_at": "2026-10-27T06:34:48.387Z",
+  "passed": true,
+  "driver_sha256": "5658e86fc0cf74e02e858f3606bae5262903262182dfb1b894ead379223bdd9f",
+  "stages": [
+    {
+      "name": "verify_served_assets",
+      "at": "2026-10-27T06:34:49.147Z"
+    },
+    {
+      "name": "login",
+      "at": "2026-10-27T06:34:49.439Z"
+    },
+    {
+      "name": "prepare_in_browser",
+      "at": "2026-10-27T06:34:50.546Z"
+    },
+    {
+      "name": "model_question_in_browser",
+      "at": "2026-10-27T06:34:54.482Z"
+    },
+    {
+      "name": "approval_confirmation_in_browser",
+      "at": "2026-10-27T06:35:06.327Z"
+    },
+    {
+      "name": "reload_and_restore",
+      "at": "2026-10-27T06:35:47.552Z"
+    }
+  ],
+  "checkpoints": {
+    "initial": {
+      "table_count": 12,
+      "case_count": 0
+    },
+    "after-prepare": {
+      "table_count": 12,
+      "case_count": 1
+    },
+    "before-approval": {
+      "table_count": 12,
+      "case_count": 1
+    },
+    "after-approval": {
+      "table_count": 12,
+      "case_count": 1
+    },
+    "after-reload": {
+      "table_count": 12,
+      "case_count": 1
+    }
+  },
+  "screenshots": [
+    {
+      "name": "01-start.png",
+      "bytes": 231418,
+      "sha256": "a0f66e02aa0522e55398ffa8693d6d6aa0b69affc6ece15d8281a3faee7f4017"
+    },
+    {
+      "name": "02-proposed-changes.png",
+      "bytes": 56996,
+      "sha256": "9886ca28a413e706195365da74e1a151b53f6bd3cc061195eb02ecdef74a0929"
+    },
+    {
+      "name": "03-model-answer.png",
+      "bytes": 294184,
+      "sha256": "dbf3012f0bf86ee8f243cab2a2494dd87a61671790259ef29599a7a3f5cb43c7"
+    },
+    {
+      "name": "04-approval-confirmation.png",
+      "bytes": 245642,
+      "sha256": "2baef560894bdaaa209b9e2cced15233e8abf22bcd22d89cda1ed0eafa77d56f"
+    },
+    {
+      "name": "05-execution-receipt.png",
+      "bytes": 68382,
+      "sha256": "58e720393621762a9307a098199ea3ba8ec5e8164b02353aa2c045b95648736a"
+    },
+    {
+      "name": "06-restored-answer.png",
+      "bytes": 320027,
+      "sha256": "8efda676e447436a250c89b825fbb72868dd5d2672592570f9129d40b83d250f"
+    }
+  ],
+  "writes": [
+    {
+      "path": "/api/product/cases",
+      "at": "2026-10-27T06:34:50.638Z"
+    },
+    {
+      "path": "/api/product/cases/c59f05da3e4f9ec2c4b1593c0b8527fb/ask/stream",
+      "at": "2026-10-27T06:34:54.614Z"
+    },
+    {
+      "path": "/api/product/cases/c59f05da3e4f9ec2c4b1593c0b8527fb/approve",
+      "at": "2026-10-27T06:35:06.726Z"
+    }
+  ],
+  "observer_sha256": "cc4afa5214074914ffc462ba4cd5ba4ce1ff077e35c897fcdc28db9e84dc48dd",
+  "interaction": "automated_chromium_real_dom_under_user_authorization",
+  "limitations": {
+    "public_deployment_changed": false,
+    "provider_billing_verified": false,
+    "raw_model_body_archived": false,
+    "human_usability_study": false,
+    "ci_run": false
+  },
+  "assets": {
+    "assets/KaTeX_AMS-Regular-BQhdFMY1.woff2": "0cdd387c9590a1a9f9794560022dbb59654a7d86f187aa0c81495ad42d3a7308",
+    "assets/KaTeX_AMS-Regular-DMm9YOAa.woff": "30da91e84c893f875e252689faebdc590b2871145e8adc7f9a9d4dbd8ce0b251",
+    "assets/KaTeX_AMS-Regular-DRggAlZN.ttf": "68534840bcfdd2bffb6f0e8deb48684dd01e7f04ea2813267577afb906de1d13",
+    "assets/KaTeX_Caligraphic-Bold-ATXxdsX0.ttf": "07d8e303ce4fc12b4bb54f1004170dd190a1f3db45d400fe68060df3e0897268",
+    "assets/KaTeX_Caligraphic-Bold-BEiXGLvX.woff": "1ae6bd7475590e97e7f145a89e09ccde322f7a6bc0b91607b1c8b8ee28290fed",
+    "assets/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2": "de7701e42cf1f4cf0b766c03fb27977207eee2f4fd5d76fa82188406da43ea4c",
+    "assets/KaTeX_Caligraphic-Regular-CTRA-rTL.woff": "3398dd02302557a793f2863f88e02d96ce10df2abffa07c8e9fa90775116e65c",
+    "assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2": "5d53e70ad607c2352162dec9e0923fb54ecdafaccbf604cd8dcf7d00facb989b",
+    "assets/KaTeX_Caligraphic-Regular-wX97UBjC.ttf": "ed0b74372feefcbb9c0666b2e210da37b7e49fa7fbbf3eeb11db5f693dacfbb7",
+    "assets/KaTeX_Fraktur-Bold-BdnERNNW.ttf": "9163df9c7122432e6495b4229fa9071cf9ae86a758ae5efc4924ec2e1a6dbce1",
+    "assets/KaTeX_Fraktur-Bold-BsDP51OF.woff": "9be7ceb88004ab8ad124082246fbfcca4091e36385d4ec6ed1df67375dad50fb",
+    "assets/KaTeX_Fraktur-Bold-CL6g_b3V.woff2": "74444efd593c005e3f4573b44524704c0af0a937fe911cca9e94068d0d140d3f",
+    "assets/KaTeX_Fraktur-Regular-CB_wures.ttf": "1e6f9579e90e2cac37f8f60a597c436e075c114385652b7cbeb0dec0421291b3",
+    "assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2": "51814d270d06ff0255dba0799994fa4d8c84d11f09951d47595f4abb1f3602dc",
+    "assets/KaTeX_Fraktur-Regular-Dxdc4cR9.woff": "5e28753be717dac97f559f49bc10be9cf3c124ddcabda6659d11cb68febc6463",
+    "assets/KaTeX_Main-Bold-Cx986IdX.woff2": "0f60d1b897938ec918c8ce073092411baf9438f6739465693ff18b0f9d20b021",
+    "assets/KaTeX_Main-Bold-Jm3AIy58.woff": "c76c5d696297d51b9cb1639c7da4334f0e7dec81b42b11213b5e25ef671bb822",
+    "assets/KaTeX_Main-Bold-waoOVXN0.ttf": "138ac28d1663b3037e9c5f52371fa5c63d8324f4a38d22cd573e6ea3a3fd0cf8",
+    "assets/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2": "99cd42a3c072d918f2f44984a807cf7aa16e13545fd0875fc07c6c65f99e715b",
+    "assets/KaTeX_Main-BoldItalic-DzxPMmG6.ttf": "70ee1f64a20f2048c21940ef46d0144fd215baa953ca69afd1e31e98544f708f",
+    "assets/KaTeX_Main-BoldItalic-SpSLRI95.woff": "a6f7ec0d846ac7ad975adb8959c37ed49b94acbc4ae436db9ce9e20287e4a64c",
+    "assets/KaTeX_Main-Italic-3WenGoN9.ttf": "0d85ae7cc30f23790a7f1a58c4a112fdca8aae769b6ba11429af1d98b1b6cb3a",
+    "assets/KaTeX_Main-Italic-BMLOBm91.woff": "f1d6ef86f3b11a528bd5185199bd2443ecb2b0dead96d88674b5a2c12be24bdf",
+    "assets/KaTeX_Main-Italic-NWA7e6Wa.woff2": "97479ca6cce906abc961ecac96faa5f9ca2e61b8e7670d475826bcdee9a7c267",
+    "assets/KaTeX_Main-Regular-B22Nviop.woff2": "c2342cd8b869e01752a9321dc17213fc40d4d04c79688c1d43f2cf316abd7866",
+    "assets/KaTeX_Main-Regular-Dr94JaBh.woff": "c6368d87e8a1a3a5d337623d83d8dc4b868f242a9ad476237d6f8d1e0f168cdc",
+    "assets/KaTeX_Main-Regular-ypZvNtVU.ttf": "d0332f52868370fd83ae7fa46470f90c8f2eab2fcf12bc4f88080b340c95a830",
+    "assets/KaTeX_Math-BoldItalic-B3XSjfu4.ttf": "f9377ab0271cda59af24bcffbd46a4d0c8a3572ffafdbb38de2ad5ea7b0d5ee5",
+    "assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2": "dc47344dbb6cb5b655c8460d561f4df5f501b90c804ad3c6cec65fe322351ab1",
+    "assets/KaTeX_Math-BoldItalic-iY-2wyZ7.woff": "850c0af5c2238497febaf5e461d880bf458c341f42f4f330f1b1ab5698b1998e",
+    "assets/KaTeX_Math-Italic-DA0__PXp.woff": "8a8d244581371912b8f3f5a23e2437cb2a59cd9bcaebb0346e722c05737a2571",
+    "assets/KaTeX_Math-Italic-flOr_0UB.ttf": "08ce98e51b04d58945a301e639e02b6998af29fdfd61a7b8afdd07bbfc479d4a",
+    "assets/KaTeX_Math-Italic-t53AETM-.woff2": "7af58c5ec8f132a2ddde9027c6d7814decce4d3b822a11192a42a20e2e973264",
+    "assets/KaTeX_SansSerif-Bold-CFMepnvq.ttf": "1ece03f79f95277d57dc7f6b435a74e1379b0d46104a8530286b60ff49369ea0",
+    "assets/KaTeX_SansSerif-Bold-D1sUS0GD.woff2": "e99ae51144bf1232efcc1bfe5add36262c6866b0faab24fa75740e1b98577a62",
+    "assets/KaTeX_SansSerif-Bold-DbIhKOiC.woff": "ece03cfd83e22c212cdef66feb8442d25a083beb988db3f1883f3f9738d750ba",
+    "assets/KaTeX_SansSerif-Italic-C3H0VqGB.woff2": "00b26ac825e2095056396e0553b8ac26d3f8ad158c3826e28b4c45b385c4714a",
+    "assets/KaTeX_SansSerif-Italic-DN2j7dab.woff": "91ee67500cc0129aa0ace3ac5c61ff1692102f0f31d02b69347fba35dcb75bf2",
+    "assets/KaTeX_SansSerif-Italic-YYjJ1zSn.ttf": "3931dd81faed86ba021bb2bbdc36f5bed9a38d6b4f4077aca59b265aa1b02083",
+    "assets/KaTeX_SansSerif-Regular-BNo7hRIc.ttf": "f36ea897e19f4a2e571d1e900e4e3710e438deb05a842486045ba0a3e616a4ad",
+    "assets/KaTeX_SansSerif-Regular-CS6fqUqJ.woff": "11e4dc8a6471ff6d6ee561d53d10fde8f7489e798257ff449c5d37c197435605",
+    "assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2": "68e8c73ef42afd3ccec58bf0fba302cce448938e7fc020a5e31f8a952eee1342",
+    "assets/KaTeX_Script-Regular-C5JkGWo-.ttf": "1c67f068fea8bb09bf099c088b1cf64bd27516a6e07f4684344873564bb66a67",
+    "assets/KaTeX_Script-Regular-D3wIWfF6.woff2": "036d4e95149b69ff9bcc0cd55771efeb25ffa3947293e69acd78d5ac328c684b",
+    "assets/KaTeX_Script-Regular-D5yQViql.woff": "d96cdf2b3bdd4d64a8fd5f74a4c467f123a8a73931cd435889f08ffaf9bf947a",
+    "assets/KaTeX_Size1-Regular-C195tn64.woff": "c943cc986384f59e86bea5fd7dc50a9c4dfe567a7c05eb40d6790720dead97c9",
+    "assets/KaTeX_Size1-Regular-Dbsnue_I.ttf": "95b6d2f1a50173bfedb8c63e1d1c99b10427d0a4df4201cb44513b226951a22b",
+    "assets/KaTeX_Size1-Regular-mCD8mA8B.woff2": "6b47c40166b6dbe21a5dfca7718413f2147fd2399be1ba605d8ad39cedf25dfe",
+    "assets/KaTeX_Size2-Regular-B7gKUWhC.ttf": "a6b2099fb555c60e3a0db3a08842ebf1d732c6eb4e4bf44913613bed4fc4e39b",
+    "assets/KaTeX_Size2-Regular-Dy4dx90m.woff2": "d04c54219f9eaec6d4d4fd42dfb28785975a4794d6b2fc71e566b9cd6db842dd",
+    "assets/KaTeX_Size2-Regular-oD1tc_U0.woff": "2014c523c3210bcc166648c4d4cc57f05b747df07a24277bf71c51e67dc79e3d",
+    "assets/KaTeX_Size3-Regular-CTq5MqoE.woff": "6ab6b62e9b62dae2c00dd90f791bd10950be0ecc3490d7d6045f51c2e8fe0949",
+    "assets/KaTeX_Size3-Regular-DgpXs0kz.ttf": "500e04d54f0d51666332c9d2089aa803be22aa878eca539e59fa53c6e522b082",
+    "assets/KaTeX_Size4-Regular-BF-4gkZK.woff": "99f9c6750b489c9462bf04900bd3f939df9b829339daaaaa99ef5495cdddea58",
+    "assets/KaTeX_Size4-Regular-DWFBv043.ttf": "c647367d1dd4e162468717d020e1fc0f1dc5c26ebfdffbe55261713bf88c5877",
+    "assets/KaTeX_Size4-Regular-Dl5lxZxV.woff2": "a4af7d414440a1c1790825cfb700cf9cf43b0f2c4b04f0ebc523011ad9853ec0",
+    "assets/KaTeX_Typewriter-Regular-C0xS9mPB.woff": "e14fed02b1aba7ce9f5afd5844b5d0321b22351febc720e0de8b8723527609f7",
+    "assets/KaTeX_Typewriter-Regular-CO6r4hn1.woff2": "71d517d67827787cfabdf186914cc3358eda539e37931941f2b2fd4a21f68c0b",
+    "assets/KaTeX_Typewriter-Regular-D3Ib7_Hf.ttf": "f01f3e87d9c6a61c0c081ceb577abd864eb00a612f7ac1620dd6915fad2ef5aa",
+    "assets/asciidoc-SCjQUq34.js": "c25f5580df710302eafd8160e7349d1e0bebe9a9816ce679fba30de15d12ec6a",
+    "assets/bat-qdxAdBWQ.js": "5f7ddcf2a2d3e1f390740ebd044903396aa05484a5af6b048c233a710563f268",
+    "assets/bibtex-Ci_nEsc7.js": "aa0e61cb4519a8b8d05d4a085b06c8ae2b068018e63cc2b46f6882f941b9576a",
+    "assets/c-BhzFMcTl.js": "83d5b7a3158773223d788e898f0fa0819002d8ba22e506cbf9bac1417db93a07",
+    "assets/clojure-DqKBuwfJ.js": "3d454f8188234e9ca28cd30a6cb2edddae363dc44aba55e781665677a034954b",
+    "assets/cmake-Bj61d0ZC.js": "297bcccb380fd8394d99100d51e7cb1090648f9f1bceda5a58fa357439c592c7",
+    "assets/cpp-BbZ4ggrl.js": "759e2e55ef82dbd005ff3ea8107b1d09411a136b51ddc98eeb8ce6b8436463c9",
+    "assets/csharp-oqKa8noW.js": "3e00ef56588e872dce4531d4b62f0bda2e854f66073297deb435dc0011f8b35e",
+    "assets/css-BfD8md2y.js": "1ec2647c1d7d96eb9e11195a2386f06e83a6c1d68bea44b63c8d09e87026b84c",
+    "assets/csv-Dx-8-gkx.js": "e33c4e7598db66e7ccc2f4d9035f44d1443eae54961f057bce30c363329943df",
+    "assets/dart-CnvKMtbv.js": "f1dda1ea804f0d482bf43304957a7891c20a107cfe93a3a21c32a99432503625",
+    "assets/diff-woXpYk--.js": "80befa61827dedd8e1a37e5521dd2ef55fad173bbbd9f36db966fc0b088079e6",
+    "assets/dotenv-_5a1GRtc.js": "53e43b54d31fbd73d1c9c00a3e46c18f98abc049b5bc2fdfe187c7ad4401becc",
+    "assets/elixir-BgxBhBtY.js": "b77f21a65a8421aca9691b1e0c8c8fe3c8897e598fe9423286465ca1c23d142e",
+    "assets/erlang-Cphh6RMH.js": "b9a11533ab2ebdc7e81775d80ed997b1a5349c24bfa458dd9dafd4bb9b4f4352",
+    "assets/fish-BJitypiv.js": "d7e3366523a700914a2e41df69abafe4a33b6fa3db8ef7df072dee516a5ad114",
+    "assets/forgeflow-logo-aNN464Zu.png": "349e8413ff041c96998375fce3ee83a31b40846c72c1ba2f412486baf3ce8b26",
+    "assets/fsharp-D13ZGOAj.js": "ba08f4aa9f2593aa6993f6d131476774ac36264fdd88ff9f88144ed16d71bbdf",
+    "assets/geist-cyrillic-ext-wght-normal-DjL33-gN.woff2": "2317fa4bb293c9c0b110e18315d529235c47a0ddd3338cea3d8c7955e927899e",
+    "assets/geist-cyrillic-wght-normal-BEAKL7Jp.woff2": "6894439694946a589d157ece003086960a6a4013d74a813dab7602efdb3d8c09",
+    "assets/geist-latin-ext-wght-normal-DC-KSUi6.woff2": "824f485b5d26e2f2da3c2b236132ece1bc8e4e43373452950bb0e40548b4313f",
+    "assets/geist-latin-wght-normal-BgDaEnEv.woff2": "19f9c92546aa300c312235e3125af1b81394d8db9a4bc4a425cd5b641d2d54e1",
+    "assets/geist-vietnamese-wght-normal-6IgcOCM7.woff2": "8fa40e5d248247735eb97a0bd593b8852440430600d6ba01364c31fe0abc1fe1",
+    "assets/go-rLFTqkRN.js": "ee035f34de70dac3319923bcfa0415cc576769462e60f09183c352f305de335e",
+    "assets/graphql-BqWHwLqN.js": "9e5d1b53c3665f04c586f81d4661e980c0d1af488fc756a2b6939147ececcfde",
+    "assets/groovy-CacY0gHj.js": "5d74cad359f1e4504dfe43819da771c97da14e44163db73bff27cc11ed2ca749",
+    "assets/haskell-D8IpX4py.js": "0b9fb3c75a1b3440bad27d867e0c77c060d6cba97d659a0df0bdf2ca65f9650d",
+    "assets/hcl-Dh228itO.js": "3f660ee9007a12bf5f80931e1bc3dfc1816d9fe5431dd29dfbb91c8fcecafa40",
+    "assets/html-CSlEAIe1.js": "b6e30948a125029bb009fca028914da2537c89c93b6de42320accbd196d7c526",
+    "assets/html-derivative-CJjm2YNP.js": "ef42431fba5c846640097481a21b04fce8d7cefe274f9c43861f46ca1730613b",
+    "assets/http-BES-g48_.js": "b117ad87d57f9d2c73ddff6cf22a8371ea70e5fdc18696cef67bdd366a5fb4bc",
+    "assets/index-BCxSFGBu.css": "2fbe100207ca8a7a8c8be072fe46169667ab466262e34c1cac3c5240463d7012",
+    "assets/index-Bkfrvw5D.js": "422d80b60ed05a0f59734894085b0611b558f49f6442cd8898a7818d2c99c91a",
+    "assets/ini-B5eOa1yu.js": "e192d3a30c17886e1366926606314b37568768ff6c7790d71b58c8cd2ae68f4d",
+    "assets/java-CfF6We79.js": "dc21adb0a0d9d77e4a78f4215da1c83542291ae7874ba93fc94e33521891b906",
+    "assets/javascript-BzbQS41l.js": "4914f43c4495fd0c8375e5d78993533a679e0579010f602fb75cc33a763e6f1c",
+    "assets/julia-hJF5fvXe.js": "a89ec926ad71a2292a09ed37d9b853b6f46ebd4a1333e23d7ca8bb44b3becdb3",
+    "assets/kotlin-DhhofPvG.js": "26daf37ac3c38cb6385e619be24b677a4277d90bb885632d856479c1d6ea95de",
+    "assets/latex-B09VXsUz.js": "b4772444908dd1a2312ce7c53630643be7410900863b30fb049231169c6e8b3d",
+    "assets/less-DVTAwKKz.js": "eaae91cdf46dc79d5a386af2a1513267af2f6ecfb82ca935bb25c19fd36e3987",
+    "assets/log-BNLmms1o.js": "ec646556cf65c5240590590b79cbdf3cdd29fabfb6dfa1d3d8a64c897f78376e",
+    "assets/lora-cyrillic-ext-wght-normal-YcVxMP-u.woff2": "0e523e4bc3c6308f002a3208ea2990cb4f64282d4fbb67c12f5726d13b66eef6",
+    "assets/lora-cyrillic-wght-normal-UWPuZLjM.woff2": "c57d9ca3bd42e6bc093badc7744dd2059a78f66a3a4dc6ca40574480c870f553",
+    "assets/lora-latin-ext-wght-normal-C2Wlntb9.woff2": "2a2d9c22c9863086a23f5013fede1428585321812b25f2662542c39d02967c5e",
+    "assets/lora-latin-wght-normal-BiLcIKcI.woff2": "ddb8c66035104e233fc024669183aad3738b6daa16deee2ebb1241bd0f98ace1",
+    "assets/lora-math-wght-normal-sOy7rEfW.woff2": "a8c4cb778ab6202d22bdea2ccc8d7e7caf802cfe0a7ce37df7b212f82341468f",
+    "assets/lora-symbols-wght-normal-DQ5VrUkH.woff2": "2df52199eac56e2ec7a735e609bb151bdab79422c3e73948f4b6580c66bb5a50",
+    "assets/lora-vietnamese-wght-normal-CfJ7gtf3.woff2": "98c22de85f6e83bcd6ae1a443e12e256fbc8de7142bec4f76b059f8ff9c2797e",
+    "assets/lua-4bJIyvxV.js": "c77daf147e481f2800154b7c506d55e47357220f734d426bfac7b1d0f6a52975",
+    "assets/make-Dixweg8N.js": "da64e0fe46f9082eb68771e104d68863bd8eb61080821caecfd68edb2eaf4c9c",
+    "assets/markdown-BYOwaDjH.js": "024bf1ea6f860d9477d5ef72a2553f1ae4b0ff3d07f5d24d2e270e4f4f5a9b95",
+    "assets/mdx-DQZ5AkYe.js": "3ce7fbf0a650b6315f3b147c46af64f02363f6be71cda746d6a1ffe6e0ce2d61",
+    "assets/nix-IvuFDN5E.js": "9c9b37de934e52e15440c998b929ea14d85da18f605393458febc86b1a2951fe",
+    "assets/perl-CqTBjR_K.js": "f7af45c01f68d48bdb7ea31cb24edf06d4138d74d60c74f165ade432ec7cbab8",
+    "assets/php-C2J1LCFC.js": "5ca6d525cd62ead6caaf33f6c55a92dda4987757be16d417f9d2de9705d956be",
+    "assets/powershell-CCSX75yM.js": "adf005b48d4c8f9fb96e88c5bb97bc7844cb43664a6a974e370ba6b010005b96",
+    "assets/proto-DB4EqR-F.js": "37b31636d2023e7e8b9c756fd82ccfd02409ddfd8af1334c356faa3effb24d43",
+    "assets/python-gzcpVVnB.js": "be0bae300e9d8dbae905d9faa24b84adc622796c87170848bf0460d01ad4049c",
+    "assets/r-ITRxGXy_.js": "8b612c72e97daed6fb95efc39a850c283c065d5fb4d90607f58987ef744eb7b0",
+    "assets/rst-DtHnFLn7.js": "aba2bf8212a74a36789943d855f42c4d7f0f5335376d3e652da570fae799f849",
+    "assets/ruby-C_CYayXr.js": "0f61f80ece4f3507d48a4dc7593bbad10e7450c68e269c94f6dcc50e8db1e33a",
+    "assets/rust-Cfkwpbl8.js": "8fedcfe76b25574d9afbb86db6b972ab86d8231284e91fe3b10779a30129a5a5",
+    "assets/scala-BiFt_7mu.js": "20949c1a3baaadd4d423e06341d9d1b3b2eff7a47810fc23fd6b585f860d2686",
+    "assets/scss-DZOXNCw0.js": "393589a2e9131482091042abb06fbd9813123625ac1a52b69bf5aeefb8bc56fc",
+    "assets/sql-B4gQ-QzR.js": "d47ff51a441f0a16b0b42e83a2d8d3974ee1ae8c3e8da7bedbc733577c23b062",
+    "assets/svelte-BMFr1djy.js": "b5ee1e3a77a8c585c88fc48a39ff56c3edcc7c8f8705ebe298414654c96dd333",
+    "assets/swift-CyEgAFGc.js": "17c2179fc022acc48683a5cab6feee30b7e482741b57361c817ec6c55fe1b791",
+    "assets/system-verilog-Dh5ihWbf.js": "6c036d211944edbf4d8f82ca32e9f4111d2307d59a11658532ea8d35ad48f63e",
+    "assets/toml-CcmNWLt0.js": "94ca31c8af75679cb84cc087aaaeb024df25dd9cf20c75e7a4e6b26914ec4c9e",
+    "assets/vb-DOwzaHZ0.js": "381c892fee0c979ebe7605a842e2e953339d2e5323b18a698e33e4360af5062b",
+    "assets/verilog-B2gwz-sJ.js": "e49ebd94dbab4e45fd04165f7bdacd08d34b0fbd80809748cb63fb9345b2c9e6",
+    "assets/vue-BS-HgtSj.js": "7b8856206010e86a5492c6e28e4ebdc2ff4e3828ccb6041eb651a7bcaddf0d24",
+    "assets/xml-BVcrQbxh.js": "0d0b08f92ca11e8c3d194821ed539e81ec57d5192b7c83c02deb09c655586deb",
+    "assets/yaml-rwi0_p6S.js": "db14bd07972e830c86a4c8109530090c59def0c02864c923507b272d069b41a0",
+    "index.html": "3a66ba1995e5fd2a8a8e2e5ae8f5d922ab17408aef622490a172fe5a1f470d11"
+  },
+  "case_id": "c59f05da3e4f9ec2c4b1593c0b8527fb",
+  "plan_id": "1d9c175615c4a80365cf3e806b30877ff7f14ddec4c1fd3c0f515c61adb00889",
+  "version": 1,
+  "answer": {
+    "question": "方案要取消和新建的采购数量各是多少？",
+    "answer": "方案里只有一笔取消和一笔新建，两笔都是同一种物料、同一个数量：\n\n- **取消采购**：3 个单位（单据 P00006，物料 P27637E67E7-LED-CRS-009）\n- **新建采购**：3 个单位（单据 new:purchase.order:0006，物料 P27637E67E7-LED-CRS-009）\n\n两笔的计量单位都是 Units。\n\n本案例",
+    "mode": "harness",
+    "source_mode": "model",
+    "case_context": {
+      "schema_version": 1,
+      "case_id": "c59f05da3e4f9ec2c4b1593c0b8527fb",
+      "state": "awaiting_approval",
+      "version": 1,
+      "plan_id": "1d9c175615c4a80365cf3e806b30877ff7f14ddec4c1fd3c0f515c61adb00889",
+      "comparison_id": null,
+      "selection_revision": null,
+      "selection_pending": false,
+      "updated_at": "2026-10-27T06:34:53.977566+00:00",
+      "outcome": "awaiting_approval"
+    }
+  },
+  "approval_outcome": "response_received",
+  "approval": {
+    "plan_id": "1d9c175615c4a80365cf3e806b30877ff7f14ddec4c1fd3c0f515c61adb00889",
+    "issued_at": "2026-10-27T06:35:06.723730+00:00"
+  },
+  "execution": {
+    "state": "succeeded",
+    "status": "succeeded",
+    "writes": [
+      {
+        "document": "P00006",
+        "kind": "cancel_po",
+        "quantity": 3
+      },
+      {
+        "document": "new:purchase.order:0006",
+        "kind": "create_po",
+        "quantity": 3
+      }
+    ],
+    "readback": {
+      "execution_validated": true,
+      "verified_steps": 7,
+      "receipt_sha256": "2cb4815e2f6cdc5147b66fca39155ddbd1d569582b4fe3008af3ff8923de8d05",
+      "readback_sha256": "98ebd2874f1779d76b4b0d3804fecc48e114f59abfba8b8b765d1a433bd78327",
+      "verified_at": "2026-10-27T06:35:46.557483+00:00"
+    },
+    "verifier": {
+      "status": "passed",
+      "strict_success": true,
+      "evaluation_valid": true,
+      "evaluation_scope": "product_original_verifier",
+      "score": 100,
+      "passed_rule_count": 51,
+      "applicable_rule_count": 51,
+      "failed_rule_count": 0,
+      "reward_sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c"
+    }
+  },
+  "reload": {
+    "same_execution": true,
+    "original_answer_restored": true,
+    "earlier_answer_label_visible": true,
+    "new_post_requests": 0
+  },
+  "finished_at": "2026-10-27T06:35:48.301Z"
+}

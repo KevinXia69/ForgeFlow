@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "attempt": 1,
+  "passed": false,
+  "base_revision": "7949a2b746af655fc28d535e188ebd1f15408158",
+  "started_at": "2026-10-27T06:22:13.116Z",
+  "finished_at": "2026-10-27T06:22:35.518Z",
+  "case_id": "81d84260d5c56f75f3c02ae5047cde5f",
+  "plan_id": "2e0a50fe4dc65616b46686a0f83de909d4c19e71e6aa77a8124be91b0e88000e",
+  "driver_sha256": "57919ca3009b0a02a37e3e6beee71e80afbec5a54e9cde5e78f4a4c5bc41f103",
+  "failure": {
+    "stage": "model_question_in_browser",
+    "error_type": "Error"
+  },
+  "explanation": "Browser capture driver attempted to read an SSE response body after the frontend cancelled its reader on the final event. The UI had displayed a model answer. The capture failed before approval; this attempt is not counted as a passed workflow.",
+  "model_answer_visible_in_retained_failure_screenshot": true,
+  "approval_requested": false,
+  "erp_execution_requested": false,
+  "browser_writes": [
+    {
+      "path": "/api/product/cases",
+      "at": "2026-10-27T06:22:15.136Z"
+    },
+    {
+      "path": "/api/product/cases/81d84260d5c56f75f3c02ae5047cde5f/ask/stream",
+      "at": "2026-10-27T06:22:19.539Z"
+    }
+  ],
+  "original_artifacts_retained_privately": {
+    "browser-acceptance.json": {
+      "sha256": "5cfadc3e2f56cff3f71193a8aac5e8b0c0e353d200700a9635364f2c246f1b19",
+      "bytes": 16725
+    },
+    "01-start.png": {
+      "sha256": "a0f66e02aa0522e55398ffa8693d6d6aa0b69affc6ece15d8281a3faee7f4017",
+      "bytes": 231418
+    },
+    "02-proposed-changes.png": {
+      "sha256": "9886ca28a413e706195365da74e1a151b53f6bd3cc061195eb02ecdef74a0929",
+      "bytes": 56996
+    },
+    "failure.png": {
+      "sha256": "dc707aa6a8a0e349da357ebe2d733154e02564d30d0157d75dfb8f5060cd30c5",
+      "bytes": 305236
+    }
+  },
+  "retry": "Attempt 2 used a fresh independent sandbox and case, the same frozen application and frontend build, and a corrected passive SSE capture observer. It is reported separately.",
+  "limitations": "The failure screenshot is inspected but retained privately; browser session, configuration and diagnostic-private files are excluded from the public export."
+}

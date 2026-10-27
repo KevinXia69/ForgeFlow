@@ -1,0 +1,26 @@
+{
+  "checked_at": "2026-10-27T06:40:28.269336+00:00",
+  "system_proxy_available": true,
+  "login_used": false,
+  "model_or_business_requests": false,
+  "deployed_backend_revision_verified": false,
+  "tls_verification": true,
+  "checks": [
+    {
+      "path": "/api/health",
+      "status": 200,
+      "bytes": 11,
+      "sha256": "4062edaf750fb8074e7e83e0c9028c94e32468a8b6f1614774328ef045150f93"
+    },
+    {
+      "path": "/app/",
+      "status": 200,
+      "bytes": 781,
+      "sha256": "085596df8689ce67c16b652393193f4f82bedf06a1186483e15eb5b64ebb35f9"
+    }
+  ],
+  "tested_frontend_index_sha256": "3a66ba1995e5fd2a8a8e2e5ae8f5d922ab17408aef622490a172fe5a1f470d11",
+  "public_index_matches_tested_frontend": false,
+  "scope": "Anonymous read-only reachability through the system proxy. The public frontend entry HTML does not match this tested build. Not a deployment, login, backend revision check, new-version acceptance or public ERP workflow validation.",
+  "public_deployment_changed": false
+}
