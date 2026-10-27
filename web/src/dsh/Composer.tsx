@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, type HTMLAttributes } from "react";
-import { createEditor, $createParagraphNode,  $getRoot, type LexicalEditor } from "lexical";
+import { createEditor, $createParagraphNode, $createTextNode, $getRoot, type LexicalEditor } from "lexical";
 import { registerPlainText } from "@lexical/plain-text";
 import { createEmptyHistoryState, registerHistory } from "@lexical/history";
 import { mergeRegister } from "@lexical/utils";
@@ -70,12 +70,13 @@ export function DshComposer({
   }, [editor]);
 
   useEffect(() => {
-    if (value !== "") return;
     editor.update(() => {
       const root = $getRoot();
-      if (root.getTextContent() === "") return;
+      if (root.getTextContent() === value) return;
       root.clear();
-      root.append($createParagraphNode());
+      const paragraph = $createParagraphNode();
+      if (value) paragraph.append($createTextNode(value));
+      root.append(paragraph);
     }, { discrete: true });
   }, [editor, value]);
 

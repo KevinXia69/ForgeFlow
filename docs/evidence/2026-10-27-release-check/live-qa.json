@@ -1,0 +1,144 @@
+{
+  "scope": "Current API real model Q&A against an isolated historical case and an explicitly derived failure fixture; no new ERP execution.",
+  "requests": [
+    {
+      "id": "new_turn_after_cancel",
+      "case_kind": "historical_success",
+      "question": "这次取消和替代采购各是多少件？原有制造单和组件采购单保留了什么？",
+      "transport": "SSE",
+      "http_status": 200,
+      "seconds": 17.099,
+      "response": {
+        "answer": "取消：采购单 **P00006**，产品 **P27637E67E7-LED-CRS-009**，数量 **3 件（Units）**。\n\n替代（新建采购）：**new:purchase.order:0006**，同产品 **P27637E67E7-LED-CRS-009**，数量 **3 件（Units）**。这是按 3 件对 3 件的替代。\n\n保留的原有制造单（共 4 张，全部产品 **P27637E67E7-LED-CRS-009**，均未取消）：\n- WH/MO/00001：15 件\n- WH/MO/00002：6 件\n- WH/MO/00003：3 件\n- WH/MO/00004：16 件\n合计 40 件。\n\n保留的原有组件采购单（共 5 张，均未取消）：\n- P00001：15 件，产品 P27637E67E7-LED-DCI-121\n- P00002：16 件，产品 P27637E67E7-LED-DCI-121\n- P00003：22 件，产品 P27637E67E7-LED-PDS-116\n- P00004：29 件，产品 P27637E67E7-LED-SCS-124\n- P00005：47 件，产品 P27637E67E7-LED-SCS-124\n\n案例 ID：本案例",
+        "source_mode": "model",
+        "mode": "harness",
+        "case_context": {
+          "schema_version": 1,
+          "case_id": "ac1135b9b9b984a4e63060a111cac21d",
+          "state": "succeeded",
+          "version": 1,
+          "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+          "comparison_id": null,
+          "selection_revision": null,
+          "selection_pending": false,
+          "updated_at": "2026-10-24T10:35:47.923057+00:00",
+          "outcome": "verified"
+        },
+        "evidence_usage": {
+          "source": "case_snapshot",
+          "snapshot_id": "15d33d33ed24d4a71bd3a5d2ae7416fd12151a04f7bb308d9778f128806f4691",
+          "coverage": [
+            {
+              "topic": "actions",
+              "status": "available",
+              "total": 2,
+              "shown": 2
+            },
+            {
+              "topic": "preserved",
+              "status": "available",
+              "total": 9,
+              "shown": 9
+            }
+          ]
+        },
+        "evidence_refs": [
+          {
+            "kind": "case",
+            "id": "ac1135b9b9b984a4e63060a111cac21d",
+            "href": "/api/product/cases/ac1135b9b9b984a4e63060a111cac21d",
+            "label": "Case evidence"
+          }
+        ],
+        "type": "final"
+      },
+      "errors": []
+    },
+    {
+      "id": "failed_verifier",
+      "case_kind": "derived_failure_fixture",
+      "question": "原始验收通过了吗？请说明适用规则通过和失败数量。",
+      "transport": "SSE",
+      "http_status": 200,
+      "seconds": 5.848,
+      "response": {
+        "answer": "执行结束，状态为成功。原始验收结果为失败，得分 87.5/100。记录了 2 条单据变更；单据条目数不等于 ERP 事务数。回读 2 条记录。记录的检查：通过 7 项，适用 8 项，共 8 项。",
+        "source_mode": "deterministic",
+        "fallback_reason": "model_evidence_mismatch",
+        "mode": "case",
+        "case_context": {
+          "schema_version": 1,
+          "case_id": "a0332c9871064d58b776084492324d60",
+          "state": "failed",
+          "version": 1,
+          "plan_id": "77571b00c97b15bc3e7a4af21cf0f46db6aa3a16c20d93e4b4cb4b00f5e9281b",
+          "comparison_id": null,
+          "selection_revision": null,
+          "selection_pending": false,
+          "updated_at": "2026-10-24T10:35:47.923057+00:00",
+          "outcome": "verification_failed"
+        },
+        "evidence_usage": {
+          "source": "case_snapshot",
+          "snapshot_id": "b13091481fe91533c507ff437073c7d7882e3b774c82183c093f0a61fabfe427",
+          "coverage": [
+            {
+              "topic": "execution",
+              "status": "available",
+              "total": 2,
+              "shown": 2
+            }
+          ]
+        },
+        "evidence_refs": [
+          {
+            "kind": "case",
+            "id": "a0332c9871064d58b776084492324d60",
+            "href": "/api/product/cases/a0332c9871064d58b776084492324d60",
+            "label": "Case evidence"
+          }
+        ],
+        "type": "final"
+      },
+      "errors": []
+    }
+  ],
+  "turn_checks": [
+    {
+      "id": "cancel_before_start",
+      "http_status": 200,
+      "response": {
+        "cancelled": true,
+        "provider_interrupt_confirmed": false
+      }
+    },
+    {
+      "id": "cancelled_start",
+      "http_status": 409,
+      "response": [
+        {
+          "detail": "turn_cancelled"
+        }
+      ],
+      "seconds": 0.004
+    },
+    {
+      "id": "cancelled_resume",
+      "http_status": 409,
+      "response": [
+        {
+          "detail": "turn_cancelled"
+        }
+      ],
+      "seconds": 0.004
+    },
+    {
+      "id": "completed_turn_resume",
+      "http_status": 200,
+      "seconds": 0.006,
+      "answer_equal": true,
+      "source_mode_equal": true
+    }
+  ],
+  "case_files_unchanged": true
+}

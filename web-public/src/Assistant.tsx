@@ -291,8 +291,15 @@ export function ChatSurface({
     } catch (error) {
       if (sequence !== requestSequence.current) return;
       const unavailable = error instanceof ApiError && [409, 410].includes(error.status);
+      const upgradeRequired = error instanceof ApiError && error.status === 410 && error.message === "turn_id_upgrade_required";
+      const expired = error instanceof ApiError && error.status === 410 && error.message === "turn_expired";
+      const cancelled = error instanceof ApiError && error.status === 409 && error.message === "turn_cancelled";
       const detail = error instanceof Error && error.message ? error.message : "unknown";
-      setMessages(value => [...value, { id: newId(), role: "assistant", text: stopRequested.current ? t("v9.stopped") : unavailable && resume ? t("v9.resumeUnavailable") : t("assistant.answerFailed", { detail }), meta: { mode: "retrieval", citations: [], passages: [] } }]);
+      // Admission rejected this new request before generation. Keep its question
+      // editable, but never replace the identity and retry it automatically.
+      if (upgradeRequired && !resume && !stopRequested.current) setInput(turn.question);
+      const failure = upgradeRequired ? t("v9.turnUpgradeRequired") : expired ? t("v9.turnExpired") : cancelled ? t("v9.turnCancelled") : unavailable && resume ? t("v9.resumeUnavailable") : t("assistant.answerFailed", { detail });
+      setMessages(value => [...value, { id: newId(), role: "assistant", text: stopRequested.current ? t("v9.stopped") : failure, meta: { mode: "retrieval", citations: [], passages: [] } }]);
     } finally {
       if (sequence === requestSequence.current) {
         controller.current = null; setLiveActivity(null); setBusy(false); setPendingTurn(null);

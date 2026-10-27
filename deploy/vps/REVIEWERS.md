@@ -91,6 +91,11 @@ with occasional overlap. No dedicated GPU is required for remote model inference
 
 ## Maintenance and backups
 
+For an application update, follow the [case Q&A release and acceptance guide](../../docs/case-qa-release.md).
+Instances share the application checkout and Python installation: stop every
+service using those paths before replacing backend code or frontend assets.
+Data isolation alone does not make an in-place code update instance-local.
+
 Operate only the intended service, for example
 `systemctl restart forgeflow-runtime@judge1`. A normal restart preserves the
 database, generation, ownership and evidence; it does not reset the scenario.

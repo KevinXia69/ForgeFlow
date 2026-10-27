@@ -1,0 +1,100 @@
+{
+  "recorded_at": "2026-10-27T01:32:45.055693+00:00",
+  "base_commit": "2dc89cf4dba45575877828928be8b10627da33d9",
+  "source_sha256": {
+    "src/forgeflow/api/app.py": "c6466fe3208a2d80368e2ba491f2c64340f68683340b3561e9aff20b26aed889",
+    "src/forgeflow/api/answer_evidence.py": "d0d0c09075d89a9bd94e65d62e28bc38213be1e9ba20f80f1e6e2afdd44c052e",
+    "src/forgeflow/api/stream_hub.py": "62882cb3bdfbd39b8c780297cd737010022adb572973f71fbf91df24e37e5aeb",
+    "src/forgeflow/api/turn_identity.py": "5351e0142971b0d6de540b7e951a7e33e7c18eae39fc8db54d54ebdcb13871a1",
+    "src/forgeflow/api/dsh_harness.py": "0f068cb9e69a330e400be70a0c74eb2a144711312936f57288f680302892609a",
+    "src/forgeflow/api/evidence.py": "6b1257cf590fc53479bfac7043a321bcba7d31e9d76b3e4b9176abbd916e1e6b"
+  },
+  "historical_case_sha256": "04404613e66bc5cd57aa40a2cf6ea72cf981c6714151d463a9d27a3f6d120810",
+  "historical_case_id": "ac1135b9b9b984a4e63060a111cac21d",
+  "failure_variant_case_id": "a0332c9871064d58b776084492324d60",
+  "historical_transformation": "Copied to isolated local storage with only owner uid changed. Existing ERP evidence belongs to the historical run.",
+  "failure_variant_transformation": "Independent derived test record: new case ID, failed state, verifier 7/8 with one failed deadline. This is deliberately synthetic test data, not an observed ERP run.",
+  "provider": "nebius",
+  "model": "nvidia/Nemotron-3.5-Super-VL",
+  "backend": "DSH CLI (SDK disabled for this bounded replay)",
+  "runner_enabled": false,
+  "executor_connected": false,
+  "new_erp_execution": false,
+  "formal_reviewer_workspaces_used": false,
+  "ci_run": false,
+  "failure_variant_patch": {
+    "state": "failed",
+    "execution.verifier": {
+      "applicable_rule_count": 8,
+      "checks": [
+        {
+          "kind": "original_verifier",
+          "passed": false,
+          "applicable": 8,
+          "passed_count": 7,
+          "total": 8
+        }
+      ],
+      "evaluation_scope": "product_original_verifier",
+      "evaluation_valid": true,
+      "failed_rule_count": 1,
+      "original_passed": false,
+      "passed_rule_count": 7,
+      "reward_sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c",
+      "rules": {
+        "by_dimension": {
+          "constraint": [
+            {
+              "rule": "coverage",
+              "status": "PASS",
+              "applicable": true
+            },
+            {
+              "rule": "coverage",
+              "status": "PASS",
+              "applicable": true
+            },
+            {
+              "rule": "coverage",
+              "status": "PASS",
+              "applicable": true
+            },
+            {
+              "rule": "coverage",
+              "status": "PASS",
+              "applicable": true
+            },
+            {
+              "rule": "coverage",
+              "status": "PASS",
+              "applicable": true
+            },
+            {
+              "rule": "coverage",
+              "status": "PASS",
+              "applicable": true
+            },
+            {
+              "rule": "coverage",
+              "status": "PASS",
+              "applicable": true
+            },
+            {
+              "rule": "deadline",
+              "status": "FAIL",
+              "applicable": true
+            }
+          ]
+        }
+      },
+      "score": 87.5,
+      "status": "failed",
+      "strict_success": false,
+      "verification_attempt": "dc83f67979714ddaaafaa1fe0e000883"
+    }
+  },
+  "provider_usage_or_billing_verified": false,
+  "raw_model_answer_archived": false,
+  "raw_model_answer_note": "Only final public API answers are archived. Private DSH session logs and reasoning were not inspected or exported.",
+  "runtime_server_stopped": true
+}
