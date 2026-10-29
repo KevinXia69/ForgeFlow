@@ -1,0 +1,21 @@
+{
+  "checked_at": "2026-10-29T08:13:46.755415+00:00",
+  "base_url": "https://168.144.242.231",
+  "mode": "fresh_reviewers",
+  "frontend_sha256": "085596df8689ce67c16b652393193f4f82bedf06a1186483e15eb5b64ebb35f9",
+  "instances": [
+    {
+      "instance": "qa3",
+      "generation": "2a9f0fc9f26d488e8856d5dbe0744f1d",
+      "available": true,
+      "owned_by_me": false,
+      "live_executor": true,
+      "authenticated_checks_seconds": 0.078,
+      "cookie_origin_and_route_checks": true
+    }
+  ],
+  "distinct_generations": true,
+  "cross_workspace_cookie_pair_rejected": false,
+  "business_writes": false,
+  "model_calls": false
+}

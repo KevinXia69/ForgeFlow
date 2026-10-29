@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "name": "qa3",
+  "stage": "execute",
+  "category": "public_https_dedicated_synthetic_product_acceptance",
+  "source_commit": "d69cab59fa35d33a5b5d332f3015944f9cd36f42",
+  "base_url": "https://168.144.242.231",
+  "generation": "2a9f0fc9f26d488e8856d5dbe0744f1d",
+  "odoo_image": "sha256:df04859629c5fade4094698b5547984d7dcd674eabce5348365fd597fcc891fa",
+  "data_profile": "planning-metadata-v1",
+  "started_at": "2026-10-29T08:13:47.854936+00:00",
+  "status": "failed",
+  "tls_verification": true,
+  "official_or_historical_environments_used": false,
+  "approval_origin": "explicitly_authorized_http_driver",
+  "browser_approval": false,
+  "autonomous_benchmark": false,
+  "business_table_scope": [
+    "purchase_order",
+    "purchase_order_line",
+    "mrp_production",
+    "mrp_workorder",
+    "sale_order",
+    "sale_order_line",
+    "stock_move",
+    "stock_picking"
+  ],
+  "all_database_writes_measured": false,
+  "error_code": "default_candidate_missing",
+  "finished_at": "2026-10-29T08:14:07.566934+00:00"
+}

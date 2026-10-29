@@ -1,0 +1,666 @@
+{
+  "overall_score": 100.0,
+  "passed": true,
+  "constraint": {
+    "earned": 40,
+    "total": 40
+  },
+  "hygiene": {
+    "earned": 11,
+    "total": 11
+  },
+  "optimality": {
+    "score": 100.0,
+    "total": 100.0
+  },
+  "rules": {
+    "total": 51,
+    "applicable": 51,
+    "passed": 51,
+    "failed": 0,
+    "not_applicable": 0,
+    "by_dimension": {
+      "constraint": [
+        {
+          "dimension": "constraint",
+          "rule": "demand_coverage",
+          "args": [
+            "r27637E67E7_c01",
+            "P27637E67E7-LED-CRS-009",
+            "7",
+            "gte"
+          ],
+          "expr": "demand_coverage r27637E67E7_c01 P27637E67E7-LED-CRS-009 7 gte",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "demand_coverage",
+          "args": [
+            "r27637E67E7_c02",
+            "P27637E67E7-LED-CRS-009",
+            "8",
+            "gte"
+          ],
+          "expr": "demand_coverage r27637E67E7_c02 P27637E67E7-LED-CRS-009 8 gte",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "demand_coverage",
+          "args": [
+            "r27637E67E7_c03",
+            "P27637E67E7-LED-CRS-009",
+            "9",
+            "gte"
+          ],
+          "expr": "demand_coverage r27637E67E7_c03 P27637E67E7-LED-CRS-009 9 gte",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "demand_coverage",
+          "args": [
+            "r27637E67E7_c04",
+            "P27637E67E7-LED-CRS-009",
+            "13",
+            "gte"
+          ],
+          "expr": "demand_coverage r27637E67E7_c04 P27637E67E7-LED-CRS-009 13 gte",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "demand_coverage",
+          "args": [
+            "r27637E67E7_c05",
+            "P27637E67E7-LED-CRS-009",
+            "13",
+            "gte"
+          ],
+          "expr": "demand_coverage r27637E67E7_c05 P27637E67E7-LED-CRS-009 13 gte",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "deadline_fulfillment",
+          "args": [
+            "r27637E67E7_c01",
+            "P27637E67E7-LED-CRS-009",
+            "8"
+          ],
+          "expr": "deadline_fulfillment r27637E67E7_c01 P27637E67E7-LED-CRS-009 8",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "deadline_fulfillment",
+          "args": [
+            "r27637E67E7_c02",
+            "P27637E67E7-LED-CRS-009",
+            "8"
+          ],
+          "expr": "deadline_fulfillment r27637E67E7_c02 P27637E67E7-LED-CRS-009 8",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "deadline_fulfillment",
+          "args": [
+            "r27637E67E7_c03",
+            "P27637E67E7-LED-CRS-009",
+            "9"
+          ],
+          "expr": "deadline_fulfillment r27637E67E7_c03 P27637E67E7-LED-CRS-009 9",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "deadline_fulfillment",
+          "args": [
+            "r27637E67E7_c04",
+            "P27637E67E7-LED-CRS-009",
+            "10"
+          ],
+          "expr": "deadline_fulfillment r27637E67E7_c04 P27637E67E7-LED-CRS-009 10",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "deadline_fulfillment",
+          "args": [
+            "r27637E67E7_c05",
+            "P27637E67E7-LED-CRS-009",
+            "10"
+          ],
+          "expr": "deadline_fulfillment r27637E67E7_c05 P27637E67E7-LED-CRS-009 10",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "list_price",
+          "args": [
+            "r27637E67E7_c01",
+            "P27637E67E7-LED-CRS-009",
+            "479.61"
+          ],
+          "expr": "list_price r27637E67E7_c01 P27637E67E7-LED-CRS-009 479.61",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "list_price",
+          "args": [
+            "r27637E67E7_c02",
+            "P27637E67E7-LED-CRS-009",
+            "479.61"
+          ],
+          "expr": "list_price r27637E67E7_c02 P27637E67E7-LED-CRS-009 479.61",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "list_price",
+          "args": [
+            "r27637E67E7_c03",
+            "P27637E67E7-LED-CRS-009",
+            "479.61"
+          ],
+          "expr": "list_price r27637E67E7_c03 P27637E67E7-LED-CRS-009 479.61",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "list_price",
+          "args": [
+            "r27637E67E7_c04",
+            "P27637E67E7-LED-CRS-009",
+            "479.61"
+          ],
+          "expr": "list_price r27637E67E7_c04 P27637E67E7-LED-CRS-009 479.61",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "list_price",
+          "args": [
+            "r27637E67E7_c05",
+            "P27637E67E7-LED-CRS-009",
+            "479.61"
+          ],
+          "expr": "list_price r27637E67E7_c05 P27637E67E7-LED-CRS-009 479.61",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "sale_revenue",
+          "args": [
+            "r27637E67E7_c01",
+            "P27637E67E7-LED-CRS-009",
+            "3357.27"
+          ],
+          "expr": "sale_revenue r27637E67E7_c01 P27637E67E7-LED-CRS-009 3357.27",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "sale_revenue",
+          "args": [
+            "r27637E67E7_c02",
+            "P27637E67E7-LED-CRS-009",
+            "3836.88"
+          ],
+          "expr": "sale_revenue r27637E67E7_c02 P27637E67E7-LED-CRS-009 3836.88",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "sale_revenue",
+          "args": [
+            "r27637E67E7_c03",
+            "P27637E67E7-LED-CRS-009",
+            "4316.49"
+          ],
+          "expr": "sale_revenue r27637E67E7_c03 P27637E67E7-LED-CRS-009 4316.49",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "sale_revenue",
+          "args": [
+            "r27637E67E7_c04",
+            "P27637E67E7-LED-CRS-009",
+            "6234.93"
+          ],
+          "expr": "sale_revenue r27637E67E7_c04 P27637E67E7-LED-CRS-009 6234.93",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "sale_revenue",
+          "args": [
+            "r27637E67E7_c05",
+            "P27637E67E7-LED-CRS-009",
+            "6234.93"
+          ],
+          "expr": "sale_revenue r27637E67E7_c05 P27637E67E7-LED-CRS-009 6234.93",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "budget_compliance",
+          "args": [
+            "r27637E67E7_c01",
+            "P27637E67E7-LED-CRS-009",
+            "3735.04"
+          ],
+          "expr": "budget_compliance r27637E67E7_c01 P27637E67E7-LED-CRS-009 3735.04",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "budget_compliance",
+          "args": [
+            "r27637E67E7_c02",
+            "P27637E67E7-LED-CRS-009",
+            "4230.56"
+          ],
+          "expr": "budget_compliance r27637E67E7_c02 P27637E67E7-LED-CRS-009 4230.56",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "budget_compliance",
+          "args": [
+            "r27637E67E7_c03",
+            "P27637E67E7-LED-CRS-009",
+            "4642.6"
+          ],
+          "expr": "budget_compliance r27637E67E7_c03 P27637E67E7-LED-CRS-009 4642.6",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "budget_compliance",
+          "args": [
+            "r27637E67E7_c04",
+            "P27637E67E7-LED-CRS-009",
+            "6416.56"
+          ],
+          "expr": "budget_compliance r27637E67E7_c04 P27637E67E7-LED-CRS-009 6416.56",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "budget_compliance",
+          "args": [
+            "r27637E67E7_c05",
+            "P27637E67E7-LED-CRS-009",
+            "6827.59"
+          ],
+          "expr": "budget_compliance r27637E67E7_c05 P27637E67E7-LED-CRS-009 6827.59",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "new_spend_margin_policy",
+          "args": [
+            "0.275"
+          ],
+          "expr": "new_spend_margin_policy 0.275",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "supply_timing_feasible",
+          "args": [],
+          "expr": "supply_timing_feasible",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "po_delivery_schedule_compliance",
+          "args": [],
+          "expr": "po_delivery_schedule_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "po_consolidation_compliance",
+          "args": [],
+          "expr": "po_consolidation_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "po_min_qty_compliance",
+          "args": [],
+          "expr": "po_min_qty_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "po_price_tier_compliance",
+          "args": [],
+          "expr": "po_price_tier_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "mo_schedule_compliance",
+          "args": [
+            "P27637E67E7-LED-CRS-009"
+          ],
+          "expr": "mo_schedule_compliance P27637E67E7-LED-CRS-009",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "finished_stock_capacity_compliance",
+          "args": [],
+          "expr": "finished_stock_capacity_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "assembly_capacity_compliance",
+          "args": [],
+          "expr": "assembly_capacity_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "finished_vendor_max_qty_compliance",
+          "args": [],
+          "expr": "finished_vendor_max_qty_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "component_vendor_max_qty_compliance",
+          "args": [],
+          "expr": "component_vendor_max_qty_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "component_stock_capacity_compliance",
+          "args": [],
+          "expr": "component_stock_capacity_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "mo_component_feasibility",
+          "args": [
+            "P27637E67E7-LED-CRS-009"
+          ],
+          "expr": "mo_component_feasibility P27637E67E7-LED-CRS-009",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "supply_coverage",
+          "args": [
+            "P27637E67E7-LED-CRS-009",
+            "50",
+            "7.0"
+          ],
+          "expr": "supply_coverage P27637E67E7-LED-CRS-009 50 7.0",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "constraint",
+          "rule": "repair_state_compliance",
+          "args": [],
+          "expr": "repair_state_compliance",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        }
+      ],
+      "hygiene": [
+        {
+          "dimension": "hygiene",
+          "rule": "seeded_order_confirmed",
+          "args": [
+            "r27637E67E7_o01",
+            "r27637E67E7_c01",
+            "P27637E67E7-LED-CRS-009",
+            "7"
+          ],
+          "expr": "seeded_order_confirmed r27637E67E7_o01 r27637E67E7_c01 P27637E67E7-LED-CRS-009 7",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "seeded_order_confirmed",
+          "args": [
+            "r27637E67E7_o02",
+            "r27637E67E7_c02",
+            "P27637E67E7-LED-CRS-009",
+            "8"
+          ],
+          "expr": "seeded_order_confirmed r27637E67E7_o02 r27637E67E7_c02 P27637E67E7-LED-CRS-009 8",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "seeded_order_confirmed",
+          "args": [
+            "r27637E67E7_o03",
+            "r27637E67E7_c03",
+            "P27637E67E7-LED-CRS-009",
+            "9"
+          ],
+          "expr": "seeded_order_confirmed r27637E67E7_o03 r27637E67E7_c03 P27637E67E7-LED-CRS-009 9",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "seeded_order_confirmed",
+          "args": [
+            "r27637E67E7_o04",
+            "r27637E67E7_c04",
+            "P27637E67E7-LED-CRS-009",
+            "13"
+          ],
+          "expr": "seeded_order_confirmed r27637E67E7_o04 r27637E67E7_c04 P27637E67E7-LED-CRS-009 13",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "seeded_order_confirmed",
+          "args": [
+            "r27637E67E7_o05",
+            "r27637E67E7_c05",
+            "P27637E67E7-LED-CRS-009",
+            "13"
+          ],
+          "expr": "seeded_order_confirmed r27637E67E7_o05 r27637E67E7_c05 P27637E67E7-LED-CRS-009 13",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "po_origin_traceability",
+          "args": [
+            "P27637E67E7-LED-CRS-009",
+            "finished"
+          ],
+          "expr": "po_origin_traceability P27637E67E7-LED-CRS-009 finished",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "po_origin_traceability",
+          "args": [
+            "P27637E67E7-LED-PDS-116",
+            "component"
+          ],
+          "expr": "po_origin_traceability P27637E67E7-LED-PDS-116 component",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "po_origin_traceability",
+          "args": [
+            "P27637E67E7-LED-DCI-121",
+            "component"
+          ],
+          "expr": "po_origin_traceability P27637E67E7-LED-DCI-121 component",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "po_origin_traceability",
+          "args": [
+            "P27637E67E7-LED-SCS-124",
+            "component"
+          ],
+          "expr": "po_origin_traceability P27637E67E7-LED-SCS-124 component",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "mrp_origin_traceability",
+          "args": [
+            "P27637E67E7-LED-CRS-009"
+          ],
+          "expr": "mrp_origin_traceability P27637E67E7-LED-CRS-009",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        },
+        {
+          "dimension": "hygiene",
+          "rule": "adjacent_data_untouched",
+          "args": [],
+          "expr": "adjacent_data_untouched",
+          "status": "PASS",
+          "passed": true,
+          "applicable": true
+        }
+      ]
+    },
+    "failed_rules": []
+  },
+  "spend": {
+    "assembly_spend": 1330.0,
+    "component_spend": 2032.62,
+    "expected_spend": 4794.94,
+    "finished_goods_spend": 1432.32,
+    "optimality_score": null,
+    "other_spend": 0.0,
+    "spend_delta": 0.0,
+    "spend_delta_abs": 0.0,
+    "spend_score": 100.0,
+    "total_new_spend": 4794.94,
+    "verified_spend_complete": true
+  },
+  "optimality_detail": {
+    "objective_kind": "repair_plan",
+    "optimality_score": 100.0,
+    "primary_actual": 6.0,
+    "primary_expected": 6.0,
+    "primary_score": 100.0,
+    "secondary_actual_spend": 4794.94,
+    "secondary_expected_spend": 4794.94,
+    "secondary_score": 100.0
+  }
+}

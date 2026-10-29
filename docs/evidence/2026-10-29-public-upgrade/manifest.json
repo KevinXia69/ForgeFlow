@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "source_commit": "a02a197319545f6c4859e12978c7953371aa6e67",
+  "files": {
+    "README.md": {
+      "bytes": 6469,
+      "sha256": "23bc6cc7b0f2e5f8cb08b10e04bbb8c7ca502c6dffdbb64a5bdafb6f857ce784"
+    },
+    "cutover-events.jsonl": {
+      "bytes": 1467,
+      "sha256": "7a283c6be5aef79d3454c9c6f447c6553ac6b9db632f26b338bee4d9be701d48"
+    },
+    "deployment-report.json": {
+      "bytes": 1629,
+      "sha256": "28be475588525bc5e3a30805fd6dbe28d5ed89eb59dbb56517c85bcd432591ba"
+    },
+    "external-probe.json": {
+      "bytes": 466,
+      "sha256": "add2de84797ed1863993ca651373cb714b86564d69d71d44bcd48b4b4189ca45"
+    },
+    "judges-after.json": {
+      "bytes": 1710,
+      "sha256": "1ac2c6e5ded928287af4f5c5309818873fa42e7c37748f9d991308cdd15a7f60"
+    },
+    "judges-before.json": {
+      "bytes": 1711,
+      "sha256": "f590f4ccb52036001ae24762e037fd96f489b487b113c53bda4cc2bc995c11cb"
+    },
+    "operators/resume_qa3.py": {
+      "bytes": 9746,
+      "sha256": "d9f2be400826bde4e4ca0825aa5f4ccabc7b7b7ae446a077ea7aa9c8250de9f4"
+    },
+    "operators/verify_production_qa3.py": {
+      "bytes": 2505,
+      "sha256": "71b57a5c698fdfd18cb2305f8b0b5e07dcea9322c82b36ea9be657af8c530e14"
+    },
+    "qa3-execute/before-prepare-tables.json": {
+      "bytes": 753,
+      "sha256": "13fa50ba686f9d4f411dd2ea10780bab8eb769f7d53e9031239ce8502d5bee27"
+    },
+    "qa3-execute/prepared.json": {
+      "bytes": 16394,
+      "sha256": "0d49f3f39a767951bae7128b528f371244fdd00cc8f665b715c1fcc518b65320"
+    },
+    "qa3-execute/report.json": {
+      "bytes": 1041,
+      "sha256": "6636d355fca6aa2c1bb80ecaa01b4f7629bb28f71e3e632b1c011c31efe2cc7c"
+    },
+    "qa3-execute/source.json": {
+      "bytes": 40513,
+      "sha256": "faa55ebf0f9ce9f2487330af156aa9f1598efed2b2230d4f20e9407e5f0b785e"
+    },
+    "qa3-fresh-gateway.json": {
+      "bytes": 634,
+      "sha256": "57bf04cd7060e273ca5d9012228efa21744efc4f2fc41ce1a4818a1fdd9119d7"
+    },
+    "qa3-model/after-model-tables.json": {
+      "bytes": 753,
+      "sha256": "d741d070b9314d18623b2e4e8aa7c94421904fe9eb9c7c0efd53226729ced098"
+    },
+    "qa3-model/before-model-tables.json": {
+      "bytes": 753,
+      "sha256": "d741d070b9314d18623b2e4e8aa7c94421904fe9eb9c7c0efd53226729ced098"
+    },
+    "qa3-model/manifest.json": {
+      "bytes": 577,
+      "sha256": "3bf5ff3b84a49ff03e9cbd2fd2127b15a43cefccf543ccdd62db9a6805420dac"
+    },
+    "qa3-model/report.json": {
+      "bytes": 1277,
+      "sha256": "883e54e47e5e24c42ee7eb5c5090598fd55cb87997af4527d57c9561dc9a9a0a"
+    },
+    "qa3-model/source.json": {
+      "bytes": 40513,
+      "sha256": "242f92d51b61894876c998f380eb3fa081fbca6b8a99342f958f1b71e1cd081d"
+    },
+    "qa3-production/case.json": {
+      "bytes": 29099,
+      "sha256": "f2f1394c8eed046ece084825d8c2b885baa622e754c5c24fb2020fc8bf1ce561"
+    },
+    "qa3-production/manifest.json": {
+      "bytes": 366,
+      "sha256": "9a9aa4fe8d511390c18331b343d654f32c0788148b49a1ac0abdc25da864f6e6"
+    },
+    "qa3-production/report.json": {
+      "bytes": 1302,
+      "sha256": "30978f5a03a10fe97addf0146417a630bbeeff9ef32e521250ae78818ccbdeaa"
+    },
+    "qa3-production/source.json": {
+      "bytes": 40513,
+      "sha256": "242f92d51b61894876c998f380eb3fa081fbca6b8a99342f958f1b71e1cd081d"
+    },
+    "qa3-production/tables.json": {
+      "bytes": 753,
+      "sha256": "d741d070b9314d18623b2e4e8aa7c94421904fe9eb9c7c0efd53226729ced098"
+    },
+    "qa3-production-initial-precheck/precheck-failure.json": {
+      "bytes": 232,
+      "sha256": "8f8daf8fd80377a0be3d6ccd4d0b21d16007aab379d6104083edf6c79d5fba53"
+    },
+    "qa3-production-initial-precheck/source.json": {
+      "bytes": 40513,
+      "sha256": "242f92d51b61894876c998f380eb3fa081fbca6b8a99342f958f1b71e1cd081d"
+    },
+    "qa3-production-model/after-model-tables.json": {
+      "bytes": 753,
+      "sha256": "d741d070b9314d18623b2e4e8aa7c94421904fe9eb9c7c0efd53226729ced098"
+    },
+    "qa3-production-model/before-model-tables.json": {
+      "bytes": 753,
+      "sha256": "d741d070b9314d18623b2e4e8aa7c94421904fe9eb9c7c0efd53226729ced098"
+    },
+    "qa3-production-model/manifest.json": {
+      "bytes": 577,
+      "sha256": "c963e47276224e9bad973cff5510ec3054780b88ba0fe33594ce8462ef69b7a4"
+    },
+    "qa3-production-model/report.json": {
+      "bytes": 1277,
+      "sha256": "a25a8a7768a24894d16e21a9aed17a131c2bf2a7f8970f6402a24dd819464f85"
+    },
+    "qa3-production-model/source.json": {
+      "bytes": 40513,
+      "sha256": "242f92d51b61894876c998f380eb3fa081fbca6b8a99342f958f1b71e1cd081d"
+    },
+    "qa3-resume/after-approval-tables.json": {
+      "bytes": 753,
+      "sha256": "d741d070b9314d18623b2e4e8aa7c94421904fe9eb9c7c0efd53226729ced098"
+    },
+    "qa3-resume/after-prepare-tables.json": {
+      "bytes": 753,
+      "sha256": "13fa50ba686f9d4f411dd2ea10780bab8eb769f7d53e9031239ce8502d5bee27"
+    },
+    "qa3-resume/after-replay-tables.json": {
+      "bytes": 753,
+      "sha256": "d741d070b9314d18623b2e4e8aa7c94421904fe9eb9c7c0efd53226729ced098"
+    },
+    "qa3-resume/after-restart-tables.json": {
+      "bytes": 753,
+      "sha256": "d741d070b9314d18623b2e4e8aa7c94421904fe9eb9c7c0efd53226729ced098"
+    },
+    "qa3-resume/before-prepare-tables.json": {
+      "bytes": 753,
+      "sha256": "13fa50ba686f9d4f411dd2ea10780bab8eb769f7d53e9031239ce8502d5bee27"
+    },
+    "qa3-resume/continuation-entry-tables.json": {
+      "bytes": 753,
+      "sha256": "13fa50ba686f9d4f411dd2ea10780bab8eb769f7d53e9031239ce8502d5bee27"
+    },
+    "qa3-resume/executed.json": {
+      "bytes": 29099,
+      "sha256": "054c239c4bb5b42bd13b5c76ab0650e88f3b971bfa9de922196fafe933025711"
+    },
+    "qa3-resume/manifest.json": {
+      "bytes": 1390,
+      "sha256": "c91009c1bda167e3a03f4dc19718cf4977bcdbf03868bbe8b422e3f7499a6b2e"
+    },
+    "qa3-resume/original-reward.raw.json": {
+      "bytes": 19134,
+      "sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c"
+    },
+    "qa3-resume/receipt-binding.json": {
+      "bytes": 847,
+      "sha256": "1315e16c9a271f9684e2da4d4ea0e5a8116f8942106290d4057693487b01ee27"
+    },
+    "qa3-resume/report.json": {
+      "bytes": 13906,
+      "sha256": "22d0e1e1e2818d4798182be81d5bc8b0361222fd772ea02df0968372e3aca2d9"
+    },
+    "qa3-resume/resumed.json": {
+      "bytes": 29099,
+      "sha256": "f2f1394c8eed046ece084825d8c2b885baa622e754c5c24fb2020fc8bf1ce561"
+    },
+    "qa3-resume/selected.json": {
+      "bytes": 16394,
+      "sha256": "28b4c7e920e9ae2737495da4fa98f1a89b2e0a3ecebe59b366a5c431bfad60d5"
+    },
+    "qa3-resume/source.json": {
+      "bytes": 40513,
+      "sha256": "242f92d51b61894876c998f380eb3fa081fbca6b8a99342f958f1b71e1cd081d"
+    },
+    "release-package.json": {
+      "bytes": 378,
+      "sha256": "f4a8e08a542639d54123b70f9b1cbdc199808420de78ca7705175348a43f4231"
+    }
+  },
+  "scope": "Hashes cover every published file except this manifest. Nested manifests retain their original capture scopes. Operator captures are not independent attestation.",
+  "privacy": "Public case projections and hash summaries only. No credentials, session cookies, ownership material, model answers or encrypted backup archives are published. Operator-driver source retains the standard server paths used during execution."
+}

@@ -1,0 +1,30 @@
+{
+  "status": "passed",
+  "source_commit": "a02a197319545f6c4859e12978c7953371aa6e67",
+  "generation": "2a9f0fc9f26d488e8856d5dbe0744f1d",
+  "case_id": "cfe8c82b65b5ed0882411535955140de",
+  "plan_id": "de4cfef3c4d8d010569e257b42d141b3985bea22a2f486de19d453cd1d8dd1f5",
+  "production_restart_preserves_receipt": true,
+  "production_replay_idempotent": true,
+  "business_tables_unchanged": true,
+  "receipt_binding": {
+    "receipt_sha256": "dad885f4b8c1c4e66b09ff4390cc82735d2c74bf6c5df48cc97de6476a290597",
+    "reward_sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c",
+    "policy_sha256": "42f96905e4029b37377c88c36a94e8e96aaf62ba172edbad4947ca3ddfa016aa",
+    "snapshot_sha256": "f9424f467206d82b9d6b8193c173152ddb03ccf2abee39d466a503ce569f06f6",
+    "journal_sha256": "6eaa288265a4e285e28852e568ea7f0256aa13c2a62de3b3aabfc2699f2448e7",
+    "readback_sha256": "677cd32e3d314c05ff7f3f0fc40b5698796490083a68ee57a285b3199b12f66c",
+    "sources_sha256": "f1e3361095c3e71561e2a7b0c5ba0f0ac8abaf961fde2ea327e53d25077cd835",
+    "verified_binding_fields": [
+      "run_id",
+      "case_id",
+      "plan_id",
+      "policy_sha256",
+      "snapshot_sha256",
+      "journal_sha256",
+      "readback_sha256",
+      "sources_sha256"
+    ],
+    "http_receipt_matches_local": true
+  }
+}

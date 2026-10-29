@@ -109,8 +109,9 @@ workspace's synthetic Odoo sandbox; cases and ERP records survive sign-out and
 restart. Execution does not reset the sandbox. Access, capacity and operator
 recovery details are in the [VPS guide](./deploy/vps/README.md).
 
-The latest source validation below was local; it did **not** upgrade the hosted
-service. Use each deployment's own evidence to identify its tested behavior.
+The hosted service was upgraded to source `a02a197` on October 29. An isolated
+QA workspace passed real HTTPS approval and original acceptance; production
+restart and replay preserved its receipt. See the [upgrade record and access-check limits](./docs/evidence/2026-10-29-public-upgrade/README.md).
 
 ## Scope and evidence
 
@@ -118,6 +119,7 @@ service. Use each deployment's own evidence to identify its tested behavior.
 | --- | --- | --- |
 | Current local A, source `bf880f2` | Supplier cancellation; approved execution, readback, 51/51 rules, 100/100 | [A-final](./docs/evidence/2026-10-28-next-phase/A-final/report.json) |
 | Current local B, source `bf880f2` | Workcenter outage; approved execution, readback, 95/95 rules, 100/100 | [B-final](./docs/evidence/2026-10-28-next-phase/B-final/report.json) |
+| Current hosted A, source `a02a197` | Isolated QA through public HTTPS: 51/51 rules, 100/100; production restart/replay preserved the receipt; five judge environments retained | [October 29 upgrade](./docs/evidence/2026-10-29-public-upgrade/README.md) |
 | Historical hosted A | Earlier deployment; real sandbox writes, model calls and separately scoped recovery/concurrency checks | [VPS record](./docs/evidence/2026-10-25-vps/README.md), [reviewer record](./docs/evidence/2026-10-26-reviewers/README.md) |
 | Autonomous research | Separate model-driven trials, with retained passes, failures, timeouts and configuration limits | [Recorded results](./docs/en/evaluation.md), [limits](./docs/en/limits.md) |
 

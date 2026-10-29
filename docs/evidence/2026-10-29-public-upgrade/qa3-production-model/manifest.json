@@ -1,0 +1,10 @@
+{
+  "files": {
+    "after-model-tables.json": "d741d070b9314d18623b2e4e8aa7c94421904fe9eb9c7c0efd53226729ced098",
+    "before-model-tables.json": "d741d070b9314d18623b2e4e8aa7c94421904fe9eb9c7c0efd53226729ced098",
+    "report.json": "a25a8a7768a24894d16e21a9aed17a131c2bf2a7f8970f6402a24dd819464f85",
+    "source.json": "242f92d51b61894876c998f380eb3fa081fbca6b8a99342f958f1b71e1cd081d"
+  },
+  "scope": "Operator capture; hashes identify bytes, not independent attestation.",
+  "redaction": "No credentials, cookies, authorization tokens, actor identities or model answers."
+}

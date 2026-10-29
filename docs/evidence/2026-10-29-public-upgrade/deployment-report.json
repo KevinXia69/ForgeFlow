@@ -1,0 +1,40 @@
+{
+  "status": "passed",
+  "checked_at": "2026-10-29T08:45:26.716462+00:00",
+  "source_commit": "a02a197319545f6c4859e12978c7953371aa6e67",
+  "public_url": "https://168.144.242.231/app/",
+  "public_health": true,
+  "tls_verification": true,
+  "public_frontend_matches_installed_bytes": true,
+  "served_entry_assets_sha256": {
+    "/app/assets/index-F9ZVsi_R.js": "b433cdc78c6bd55971f31559c1b9c3c5bd9b091f14ea9645d738d850af4f1a39",
+    "/app/assets/index-CLAZmMtz.css": "5600f08363d9b6f3a50ed43f35221e5f60c74cc1d9c5819c3be168ca7d76b6cd"
+  },
+  "built_asset_count": 134,
+  "production_assets_equal_qa_assets": true,
+  "tracked_files_match_git": true,
+  "retained_instances": 8,
+  "protected_files_unchanged": 443,
+  "business_table_comparisons": 48,
+  "historical_hash_comparison_passed": true,
+  "historical_sandboxes": 3,
+  "historical_files_unchanged": 176,
+  "encrypted_backups_verified": 9,
+  "backup_storage": "server_local_only",
+  "database_restore_drill_performed": false,
+  "retained_configs_changed_only_active_bundle": true,
+  "retained_invitations_and_secrets_unchanged": true,
+  "original_gateway_routes_restored": true,
+  "judges_fresh_gateway_checks": true,
+  "qa3_execution_and_model_verified_on_installed_source": true,
+  "qa3_final_state": "stopped; case, receipt and database retained; temporary route removed",
+  "active_services": [
+    "forgeflow-runtime.service",
+    "forgeflow-runtime@judge1.service",
+    "forgeflow-runtime@judge2.service",
+    "forgeflow-runtime@judge3.service",
+    "forgeflow-runtime@judge4.service",
+    "forgeflow-runtime@judge5.service",
+    "forgeflow-judge-gateway.service"
+  ]
+}

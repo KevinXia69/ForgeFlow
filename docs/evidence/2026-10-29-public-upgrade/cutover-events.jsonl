@@ -1,0 +1,23 @@
+{"event": "gateway_stopped"}
+{"event": "runtime_services_drained"}
+{"event": "quiesced_state_fingerprints_saved"}
+{"event": "odoo_containers_stopped"}
+{"event": "encrypted_backup_verified", "instance": "legacy"}
+{"event": "encrypted_backup_verified", "instance": "judge1"}
+{"event": "encrypted_backup_verified", "instance": "judge2"}
+{"event": "encrypted_backup_verified", "instance": "judge3"}
+{"event": "encrypted_backup_verified", "instance": "judge4"}
+{"event": "encrypted_backup_verified", "instance": "judge5"}
+{"event": "encrypted_backup_verified", "instance": "qa1"}
+{"event": "encrypted_backup_verified", "instance": "qa2"}
+{"event": "encrypted_backup_verified", "instance": "qa3"}
+{"event": "source_frontend_and_bundle_config_switched", "commit": "a02a197319545f6c4859e12978c7953371aa6e67"}
+{"event": "runtime_services_started"}
+{"event": "api_healthy_and_generation_bound", "instance": "legacy"}
+{"event": "api_healthy_and_generation_bound", "instance": "judge1"}
+{"event": "api_healthy_and_generation_bound", "instance": "judge2"}
+{"event": "api_healthy_and_generation_bound", "instance": "judge3"}
+{"event": "api_healthy_and_generation_bound", "instance": "judge4"}
+{"event": "api_healthy_and_generation_bound", "instance": "judge5"}
+{"event": "api_healthy_and_generation_bound", "instance": "qa3"}
+{"event": "gateway_reopened", "commit": "a02a197319545f6c4859e12978c7953371aa6e67", "readiness_driver_correction": "legacy_service_unit_default_resolved"}

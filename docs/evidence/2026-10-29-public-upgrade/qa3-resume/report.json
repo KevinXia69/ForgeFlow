@@ -1,0 +1,471 @@
+{
+  "schema_version": 1,
+  "name": "qa3",
+  "stage": "resume-prepared",
+  "status": "passed",
+  "category": "public_https_dedicated_synthetic_product_acceptance",
+  "operator_driver_sha256": "d9f2be400826bde4e4ca0825aa5f4ccabc7b7b7ae446a077ea7aa9c8250de9f4",
+  "source_commit": "a02a197319545f6c4859e12978c7953371aa6e67",
+  "base_url": "https://168.144.242.231",
+  "generation": "2a9f0fc9f26d488e8856d5dbe0744f1d",
+  "odoo_image": "sha256:df04859629c5fade4094698b5547984d7dcd674eabce5348365fd597fcc891fa",
+  "data_profile": "planning-metadata-v1",
+  "started_at": "2026-10-29T08:26:33.970503+00:00",
+  "tls_verification": true,
+  "official_or_historical_environments_used": false,
+  "approval_origin": "explicitly_authorized_http_driver",
+  "browser_approval": false,
+  "autonomous_benchmark": false,
+  "business_table_scope": [
+    "purchase_order",
+    "purchase_order_line",
+    "mrp_production",
+    "mrp_workorder",
+    "sale_order",
+    "sale_order_line",
+    "stock_move",
+    "stock_picking"
+  ],
+  "all_database_writes_measured": false,
+  "continuation": {
+    "previous_report_sha256": "6636d355fca6aa2c1bb80ecaa01b4f7629bb28f71e3e632b1c011c31efe2cc7c",
+    "previous_prepared_sha256": "0d49f3f39a767951bae7128b528f371244fdd00cc8f665b715c1fcc518b65320",
+    "previous_source_commit": "d69cab59fa35d33a5b5d332f3015944f9cd36f42",
+    "changed_acceptance_scripts": [
+      "scripts/verify_next_phase.py",
+      "scripts/vps_upgrade_acceptance.py"
+    ],
+    "original_after_prepare_capture_existed": false,
+    "measurement": "Original pre-prepare digest compared with two newly captured pre-approval digests; no new case or reset."
+  },
+  "case_id": "cfe8c82b65b5ed0882411535955140de",
+  "plan_id": "de4cfef3c4d8d010569e257b42d141b3985bea22a2f486de19d453cd1d8dd1f5",
+  "margin": {
+    "new_spend_revenue": "20623.23",
+    "new_spend_units": 43,
+    "stock_units": 7,
+    "planned_cost": "4794.94",
+    "margin_pct": "76.74981077163955403687977102",
+    "repair_objective": 6.0,
+    "margin_basis": "new_spend_coverage_v2"
+  },
+  "preparation_business_tables_unchanged": true,
+  "duplicate_approval_idempotent": true,
+  "restart_preserves_receipt_and_business_tables": true,
+  "business_actions": 2,
+  "confirmed_execution_steps": 7,
+  "execution": {
+    "status": "succeeded",
+    "readback": {
+      "execution_validated": true,
+      "verified_steps": 7,
+      "receipt_sha256": "dad885f4b8c1c4e66b09ff4390cc82735d2c74bf6c5df48cc97de6476a290597",
+      "readback_sha256": "677cd32e3d314c05ff7f3f0fc40b5698796490083a68ee57a285b3199b12f66c",
+      "verified_at": "2026-10-29T08:30:48.048912+00:00",
+      "records": [
+        {
+          "kind": "cancel_po",
+          "document": "P00006",
+          "state": "reflected",
+          "quantity": 3
+        },
+        {
+          "kind": "create_po",
+          "document": "new:purchase.order:0006",
+          "state": "reflected",
+          "quantity": 3
+        }
+      ]
+    },
+    "verifier": {
+      "applicable_rule_count": 51,
+      "checks": [
+        {
+          "applicable": 51,
+          "document": "100.0/100",
+          "kind": "original_verifier",
+          "passed": true,
+          "passed_count": 51,
+          "total": 51
+        }
+      ],
+      "evaluation_scope": "product_original_verifier",
+      "evaluation_valid": true,
+      "failed_rule_count": 0,
+      "original_passed": true,
+      "passed_rule_count": 51,
+      "reward_sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c",
+      "rules": {
+        "applicable": 51,
+        "by_dimension": {
+          "constraint": [
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "demand_coverage",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "demand_coverage",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "demand_coverage",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "demand_coverage",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "demand_coverage",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "deadline_fulfillment",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "deadline_fulfillment",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "deadline_fulfillment",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "deadline_fulfillment",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "deadline_fulfillment",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "list_price",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "list_price",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "list_price",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "list_price",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "list_price",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "sale_revenue",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "sale_revenue",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "sale_revenue",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "sale_revenue",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "sale_revenue",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "budget_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "budget_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "budget_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "budget_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "budget_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "new_spend_margin_policy",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "supply_timing_feasible",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "po_delivery_schedule_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "po_consolidation_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "po_min_qty_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "po_price_tier_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "mo_schedule_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "finished_stock_capacity_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "assembly_capacity_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "finished_vendor_max_qty_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "component_vendor_max_qty_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "component_stock_capacity_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "mo_component_feasibility",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "supply_coverage",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "repair_state_compliance",
+              "status": "PASS"
+            }
+          ],
+          "hygiene": [
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "seeded_order_confirmed",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "seeded_order_confirmed",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "seeded_order_confirmed",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "seeded_order_confirmed",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "seeded_order_confirmed",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "po_origin_traceability",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "po_origin_traceability",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "po_origin_traceability",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "po_origin_traceability",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "mrp_origin_traceability",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "adjacent_data_untouched",
+              "status": "PASS"
+            }
+          ]
+        },
+        "failed": 0,
+        "not_applicable": 0,
+        "passed": 51,
+        "total": 51
+      },
+      "score": 100.0,
+      "status": "passed",
+      "strict_success": true,
+      "verification_attempt": "e8266a98f9f141288515841ac1163886"
+    },
+    "writes": [
+      {
+        "after": null,
+        "before": {
+          "arrival_day": 10,
+          "date_planned": "2026-11-08 08:11:37",
+          "origin_refs": [
+            {
+              "model": "sale.order",
+              "name": "S00004"
+            }
+          ],
+          "product_code": "P27637E67E7-LED-CRS-009",
+          "quantity": 3,
+          "supply_role": "finished",
+          "unit_price": 424.09,
+          "vendor_ref": "r27637E67E7_q02"
+        },
+        "document": "P00006",
+        "kind": "cancel_po",
+        "quantity": 3,
+        "summary": "Cancel purchase_order P00006"
+      },
+      {
+        "after": {
+          "arrival_day": 10,
+          "date_planned": "2026-11-08 00:00:00",
+          "origin_refs": [
+            {
+              "model": "sale.order",
+              "name": "S00004"
+            }
+          ],
+          "product_code": "P27637E67E7-LED-CRS-009",
+          "quantity": 3,
+          "supply_role": "finished",
+          "unit_price": 477.44,
+          "vendor_ref": "r27637E67E7_q04"
+        },
+        "before": null,
+        "document": "new:purchase.order:0006",
+        "kind": "create_po",
+        "quantity": 3,
+        "summary": "Create purchase_order new:purchase.order:0006"
+      }
+    ]
+  },
+  "source_unchanged": true,
+  "finished_at": "2026-10-29T08:30:53.801818+00:00"
+}

@@ -1,0 +1,34 @@
+{
+  "purchase_order": {
+    "count": 7,
+    "rows_md5": "32525f10973f63ab6f6a3dda6f0f17af"
+  },
+  "purchase_order_line": {
+    "count": 7,
+    "rows_md5": "9b4d19988eae201b229a53ff105f9daa"
+  },
+  "mrp_production": {
+    "count": 4,
+    "rows_md5": "d4dfb2e26cb6ad1d1051fe38e4cbb1f7"
+  },
+  "mrp_workorder": {
+    "count": 4,
+    "rows_md5": "729e75920b4103c0b9598f35607dffd5"
+  },
+  "sale_order": {
+    "count": 5,
+    "rows_md5": "f701cd6664230d6b7ce7d819df0949e9"
+  },
+  "sale_order_line": {
+    "count": 5,
+    "rows_md5": "17d0b45ee5d0eb5d6e91a31dc837e150"
+  },
+  "stock_move": {
+    "count": 82,
+    "rows_md5": "bd5fae3a3e55666cf0bdf5e16e91afc8"
+  },
+  "stock_picking": {
+    "count": 12,
+    "rows_md5": "99d812d29b1bf095949667cabb9826ee"
+  }
+}

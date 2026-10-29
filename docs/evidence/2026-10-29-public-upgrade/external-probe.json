@@ -1,0 +1,13 @@
+{
+  "checked_at": "2026-10-29T08:50:25.846848+00:00",
+  "origin": "operator_Mac_outside_VPS",
+  "transport": "existing_HTTP_CONNECT_proxy",
+  "tls_verification": true,
+  "health_status": 200,
+  "health_ok": true,
+  "page_status": 200,
+  "frontend_sha256": "5d182326a28d55c206e39bef9063de0001f59c8cb822d8c5b6ef22b6faefc90c",
+  "matches_production_gateway_capture": true,
+  "direct_operator_network_attempt": "connect_timeout",
+  "browser_rendering_verified": false
+}

@@ -1,0 +1,18 @@
+{
+  "files": {
+    "after-approval-tables.json": "d741d070b9314d18623b2e4e8aa7c94421904fe9eb9c7c0efd53226729ced098",
+    "after-prepare-tables.json": "13fa50ba686f9d4f411dd2ea10780bab8eb769f7d53e9031239ce8502d5bee27",
+    "after-replay-tables.json": "d741d070b9314d18623b2e4e8aa7c94421904fe9eb9c7c0efd53226729ced098",
+    "after-restart-tables.json": "d741d070b9314d18623b2e4e8aa7c94421904fe9eb9c7c0efd53226729ced098",
+    "before-prepare-tables.json": "13fa50ba686f9d4f411dd2ea10780bab8eb769f7d53e9031239ce8502d5bee27",
+    "continuation-entry-tables.json": "13fa50ba686f9d4f411dd2ea10780bab8eb769f7d53e9031239ce8502d5bee27",
+    "executed.json": "054c239c4bb5b42bd13b5c76ab0650e88f3b971bfa9de922196fafe933025711",
+    "original-reward.raw.json": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c",
+    "receipt-binding.json": "1315e16c9a271f9684e2da4d4ea0e5a8116f8942106290d4057693487b01ee27",
+    "report.json": "22d0e1e1e2818d4798182be81d5bc8b0361222fd772ea02df0968372e3aca2d9",
+    "resumed.json": "f2f1394c8eed046ece084825d8c2b885baa622e754c5c24fb2020fc8bf1ce561",
+    "selected.json": "28b4c7e920e9ae2737495da4fa98f1a89b2e0a3ecebe59b366a5c431bfad60d5",
+    "source.json": "242f92d51b61894876c998f380eb3fa081fbca6b8a99342f958f1b71e1cd081d"
+  },
+  "scope": "Continuation of the same unapproved case after an acceptance-script fix; original failed evidence retained."
+}
