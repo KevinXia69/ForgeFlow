@@ -27,6 +27,7 @@ import httpx
 
 from forgeflow.api.evidence import public_evidence
 from forgeflow.judge_gateway import configuration as gateway_configuration
+from forgeflow.planning.objectives import bound_objective
 from forgeflow.product.reconciliation import _journal
 from forgeflow.recovery.service import verify_sources
 from forgeflow.recovery.storage import digest, read_json
@@ -222,14 +223,27 @@ def require_fresh(client, config, environment):
         need(not any(path.iterdir()), "qa_has_existing_plan_state")
 
 
-def select_default(client, case):
+def select_default(client, case, config=None):
     comparison = case.get("comparison") or {}
     candidates = comparison.get("plans") or []
-    selected = next((p for p in candidates if p.get("objective") == "preserve_quantities"),
-                    case.get("plan"))
-    need(selected and selected.get("objective") == "preserve_quantities", "default_candidate_missing")
+    if comparison:
+        selected = next((p for p in candidates if p.get("objective") == "preserve_quantities"), None)
+        need(selected is not None, "default_candidate_missing")
+    else:
+        selected = case.get("plan")
+        need(selected is not None and config is not None, "single_plan_binding_required")
     plan_id = selected["plan_id"]
     need(re.fullmatch(r"[0-9a-f]{64}", plan_id), "invalid_plan_id")
+    if not comparison:
+        directory = Path(config["sandbox_root"]) / "store" / plan_id
+        manifest = read_json(directory / "manifest.json")
+        persisted_plan = read_json(directory / "plan.json")
+        need(digest(manifest) == plan_id
+             and digest(persisted_plan) == manifest["artifacts"]["plan"]
+             and manifest.get("product", {}).get("run_id") == "local-" + case["case_id"]
+             and bound_objective(manifest, persisted_plan) in (None, "preserve_quantities")
+             and selected.get("objective") in (None, "preserve_quantities"),
+             "single_plan_default_binding_mismatch")
     if case["state"] == "awaiting_selection" or (case.get("plan") or {}).get("plan_id") != plan_id:
         case = request(client, "POST", "/api/product/cases/" + case["case_id"] + "/select",
                        {"plan_id": plan_id, "comparison_id": comparison["comparison_id"],
@@ -244,7 +258,7 @@ def independent_margin(config, case):
     helper = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(helper)
     metrics = helper.independent_margin(Path(config["sandbox_root"]) / "store" / case["plan"]["plan_id"],
-                                        case["plan"])
+                                        case["plan"], require_decision_metrics=bool(case.get("comparison")))
     need(Decimal(metrics["planned_cost"]) == Decimal("4794.94")
          and Decimal(metrics["new_spend_revenue"]) == Decimal("20623.23")
          and metrics["new_spend_units"] == 43 and metrics["stock_units"] == 7
@@ -319,7 +333,7 @@ def execute(client, config, instance, output, report):
     case = request(client, "POST", "/api/product/cases", {"scenario": "A"}, expected=201)
     save(output, "prepared", case)
     need(re.fullmatch(r"[0-9a-f]{32}", case["case_id"]), "invalid_case_id")
-    case = select_default(client, case)
+    case = select_default(client, case, config)
     save(output, "selected", case)
     report.update(case_id=case["case_id"], plan_id=case["plan"]["plan_id"])
     report["margin"] = independent_margin(config, case)
@@ -327,6 +341,15 @@ def execute(client, config, instance, output, report):
     save(output, "after-prepare-tables", after_prepare)
     need(before == after_prepare, "preparation_changed_business_tables")
     print(json.dumps({"stage": "prepared", "passed": True}), flush=True)
+    execute_prepared(client, config, instance, output, report, case, before)
+
+
+def execute_prepared(client, config, instance, output, report, case, before):
+    """Continue one already checked, unapproved case; never creates another case."""
+    need(case.get("state") == "awaiting_approval" and case.get("approval") is None
+         and case.get("execution") is None and report.get("case_id") == case.get("case_id")
+         and report.get("plan_id") == case.get("plan", {}).get("plan_id"),
+         "prepared_case_binding_mismatch")
     url = "/api/product/cases/" + case["case_id"]
     payload = {"plan_id": report["plan_id"], "comment": "Authorized isolated public upgrade acceptance"}
     case = request(client, "POST", url + "/approve", payload)

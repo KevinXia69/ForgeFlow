@@ -39,7 +39,7 @@ def sources():
     return {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
 
 
-def independent_margin(directory, public_plan):
+def independent_margin(directory, public_plan, *, require_decision_metrics=True):
     """Recalculate from persisted SO prices and finished supply flows."""
     manifest = read_json(directory / "manifest.json")
     need(digest(manifest) == public_plan["plan_id"], "manifest_identity_changed")
@@ -82,12 +82,14 @@ def independent_margin(directory, public_plan):
     expected = None if ratio is None else round(float(ratio), 2)
     need(public_plan["margin_basis"] == MARGIN_BASIS and public_plan["margin"] == expected,
          "public_margin_mismatch")
-    metrics = public_plan["decision_metrics"]
-    need(metrics["schema_version"] == 2 and metrics["basis"]["margin_basis"] == MARGIN_BASIS,
-         "decision_metrics_basis_mismatch")
-    need(Decimal(metrics["margin"]["new_spend_revenue"]) == revenue
-         and metrics["margin"]["new_spend_units"] == units
-         and metrics["margin"]["stock_units"] == stock, "decision_metrics_coverage_mismatch")
+    metrics = public_plan.get("decision_metrics")
+    need(metrics is not None or not require_decision_metrics, "decision_metrics_missing")
+    if metrics is not None:
+        need(metrics["schema_version"] == 2 and metrics["basis"]["margin_basis"] == MARGIN_BASIS,
+             "decision_metrics_basis_mismatch")
+        need(Decimal(metrics["margin"]["new_spend_revenue"]) == revenue
+             and metrics["margin"]["new_spend_units"] == units
+             and metrics["margin"]["stock_units"] == stock, "decision_metrics_coverage_mismatch")
     return {"new_spend_revenue": str(revenue), "new_spend_units": units, "stock_units": stock,
             "planned_cost": str(cost), "margin_pct": None if ratio is None else str(ratio),
             "repair_objective": plan["plan"]["objective_value"], "margin_basis": MARGIN_BASIS}

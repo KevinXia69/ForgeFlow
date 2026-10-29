@@ -90,8 +90,10 @@ def test_fresh_gate_rejects_cases_owned_by_other_principals(tmp_path):
 
 
 def selected_case():
+    plan = {"plan_id": PLAN, "objective": "preserve_quantities", "actions": [{}, {}]}
     return {"case_id": CASE, "state": "awaiting_approval", "approval": None, "execution": None,
-            "plan": {"plan_id": PLAN, "objective": "preserve_quantities", "actions": [{}, {}]}}
+            "plan": plan, "comparison": {"plans": [plan], "comparison_id": "f" * 32,
+                                         "selection_revision": 1}}
 
 
 def executed_case():
@@ -117,6 +119,73 @@ def test_selection_uses_current_comparison_binding():
     with httpx.Client(transport=httpx.MockTransport(respond), base_url="https://example.test") as client:
         assert driver.select_default(client, case)["plan"]["plan_id"] == PLAN
     assert seen == [{"plan_id": PLAN, "comparison_id": "f" * 32, "selection_revision": 3}]
+
+
+@pytest.mark.parametrize("objective,kind,allowed", [(None, "repair_plan", True),
+    (None, "min_new_spend", False), ("min_planned_cost", "min_new_spend", False)])
+def test_single_plan_without_public_objective_uses_persisted_default_binding(tmp_path, objective, kind, allowed):
+    plan = {"plan": {"objective_kind": kind}}
+    manifest = {"artifacts": {"plan": driver.digest(plan)}, "product": {"run_id": "local-" + CASE}}
+    if objective:
+        plan["product_objective"] = objective
+        manifest.update(product_objective=objective, product_objectives=["preserve_quantities", "min_planned_cost"])
+        manifest["artifacts"]["plan"] = driver.digest(plan)
+    plan_id = driver.digest(manifest)
+    directory = tmp_path / "store" / plan_id
+    directory.mkdir(parents=True)
+    (directory / "manifest.json").write_text(json.dumps(manifest))
+    (directory / "plan.json").write_text(json.dumps(plan))
+    case = {**selected_case(), "comparison": None, "plan": {"plan_id": plan_id}}
+    if allowed:
+        assert driver.select_default(None, case, {"sandbox_root": str(tmp_path)}) == case
+        assert "objective" not in case["plan"]
+    else:
+        with pytest.raises((driver.AcceptanceFailure, ValueError)):
+            driver.select_default(None, case, {"sandbox_root": str(tmp_path)})
+
+
+def test_comparison_without_named_default_never_falls_back_to_unlabelled_plan():
+    case = selected_case()
+    case["comparison"]["plans"] = [{"plan_id": PLAN, "objective": "min_planned_cost"}]
+    with pytest.raises(driver.AcceptanceFailure, match="default_candidate_missing"):
+        driver.select_default(None, case)
+
+
+def test_single_plan_margin_is_recalculated_without_inventing_missing_metrics(tmp_path):
+    snapshot = {"models": {"sale.order": [{"id": 1, "name": "S1"}],
+                "sale.order.line": [{"order_id": 1, "display_type": False, "price_unit": 479.61}]}}
+    purchase = {"target": {"token": "po1"}, "product_code": "FIN", "quantity": 3, "unit_price": 477.44}
+    manufacture = {"target": {"token": "mo1"}, "product_code": "FIN", "quantity": 40, "workcenter_code": "WC"}
+    flows = [{"source_token": source, "quantity": qty, "product_code": "FIN", "sales_order": {"name": "S1"}}
+             for source, qty in (("stock:FIN", 7), ("po1", 3), ("mo1", 40))]
+    changes = {"projected_state": {"purchase_orders": [purchase], "manufacturing_orders": [manufacture],
+                                   "sales_order_flows": flows}}
+    blueprint = {"manufactured_products": [{"workcenter_choices": [
+        {"workcenter_code": "WC", "unit_cost_dollars": 84.0655}]}]}
+    costs = {"planned": {"total": "4794.94"}}
+    plan = {"plan": {"objective_value": 6}}
+    artifacts = {"snapshot": snapshot, "change-set": changes, "blueprint": blueprint, "plan": plan}
+    manifest = {"margin_basis": "new_spend_coverage_v2", "product_costs_sha256": driver.digest(costs),
+                "artifacts": {key: driver.digest(value) for key, value in artifacts.items()}}
+    plan_id = driver.digest(manifest)
+    directory = tmp_path / "store" / plan_id
+    directory.mkdir(parents=True)
+    for name, value in {**artifacts, "manifest": manifest, "product-costs": costs}.items():
+        (directory / (name + ".json")).write_text(json.dumps(value))
+    public = {"plan_id": plan_id, "margin_basis": "new_spend_coverage_v2", "margin": 76.75}
+    case = {"plan": public, "comparison": None}
+    result = driver.independent_margin({"sandbox_root": str(tmp_path)}, case)
+    assert result["new_spend_units"] == 43 and result["stock_units"] == 7
+    assert result["new_spend_revenue"] == "20623.23"
+    assert "decision_metrics" not in public
+    helper_spec = importlib.util.spec_from_file_location("strict_margin", driver.ROOT / "scripts/verify_next_phase.py")
+    helper = importlib.util.module_from_spec(helper_spec)
+    helper_spec.loader.exec_module(helper)
+    with pytest.raises(RuntimeError, match="decision_metrics_missing"):
+        helper.independent_margin(directory, public)
+    public["decision_metrics"] = {"schema_version": 1}
+    with pytest.raises(RuntimeError, match="decision_metrics_basis_mismatch"):
+        driver.independent_margin({"sandbox_root": str(tmp_path)}, case)
 
 
 def test_approved_execution_requires_original_rules_and_exact_plan():
