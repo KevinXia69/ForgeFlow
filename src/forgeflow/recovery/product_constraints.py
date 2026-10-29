@@ -11,6 +11,7 @@ from pathlib import Path
 
 from forgeflow.planning.live import build_blueprint
 from forgeflow.planning.objectives import bound_objective
+from forgeflow.recovery.margin import margin_satisfied
 from forgeflow.recovery.storage import StorageError, digest, read_json
 
 
@@ -56,8 +57,7 @@ def check_product_margin(actual_spend: Decimal, revenue: Decimal, constraints, r
     if not constraints:
         return {}
     floor = Decimal(str(constraints["minimum_margin_pct"])) / 100
-    if (not actual_spend.is_finite() or not revenue.is_finite() or revenue <= 0
-            or actual_spend > revenue * (1 - floor)):
+    if not margin_satisfied(actual_spend, revenue, floor):
         raise ConstraintError("product_constraint_not_satisfied")
     return {"product_minimum_margin_pct": constraints["minimum_margin_pct"],
             "product_margin_satisfied": True}
@@ -81,6 +81,8 @@ def load_constraints(directory: Path, manifest: dict, request: dict):
         inputs = {"request": request, "policy_sha256": manifest["policy_sha256"], "constraints": canonical}
         if selected is not None:
             inputs["product_objectives"] = manifest["product_objectives"]
+        if manifest.get("retention_profile") is not None:
+            inputs["retention_profile"] = manifest["retention_profile"]
         if (value != canonical or digest(canonical) != manifest["product_constraints_sha256"]
                 or manifest["product"]["inputs_sha256"] != digest(inputs)):
             raise ValueError

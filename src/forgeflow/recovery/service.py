@@ -28,6 +28,7 @@ from forgeflow.planning.tool import SolverFailure, solve_blueprint
 from forgeflow.recovery.change_set import ChangeSetError, build_change_set, validate_projection
 from forgeflow.recovery.failure import failure_projection
 from forgeflow.recovery.journal import ExecutionStopped, Journal, execute, plan_digest
+from forgeflow.recovery.margin import MARGIN_BASIS
 from forgeflow.recovery.product_constraints import (
     ConstraintError,
     canonical_constraints,
@@ -87,7 +88,7 @@ def verify_sources(bundle: Path):
             raise RecoveryError("source_bytes_changed")
     required = {"recover.py", "forgeflow/recovery/" + "service.py"}
     required |= {"forgeflow/recovery/" + n + ".py" for n in (
-        "compiler", "readback", "scope_guard", "change_set", "journal", "odoo", "storage")}
+        "compiler", "readback", "scope_guard", "change_set", "journal", "odoo", "storage", "margin", "compatibility")}
     required |= {"forgeflow/approval.py", "forgeflow/contract.py",
                  "forgeflow/odoo_credentials.py"}
     required |= {"forgeflow/recovery/" + n + ".py" for n in ("client", "index")}
@@ -115,17 +116,38 @@ def _pending_plan(store):
     return plan_id
 
 
-def prepare(connection, request, *, store=STORE, bundle=BUNDLE, contract=None):
+def _retention_profile(value):
+    if value is not None:
+        from forgeflow.planning.retention import RETENTION_PROFILE
+
+        if value != RETENTION_PROFILE:
+            raise RecoveryError("invalid_retention_profile")
+    return value
+
+
+def _refine(request, snapshot, blueprint, plan, bundle, profile, constraints=None, objective=None):
+    if profile is None:
+        return plan
+    from forgeflow.planning.retention import refine_retention
+
+    return refine_retention(request, snapshot, blueprint, plan, bundle / "upstream",
+                            product_constraints=constraints, product_objective=objective)
+
+
+def prepare(connection, request, *, store=STORE, bundle=BUNDLE, contract=None, retention_profile=None):
     request = validate_request(request)
+    retention_profile = _retention_profile(retention_profile)
     if contract is not None:
         report = check_request(request, contract)
         if not report["ok"]:
             raise RecoveryError("task_contract_mismatch")
     with scope_lock(store):
-        return _prepare_locked(connection, request, store=store, bundle=bundle, contract=contract)
+        return _prepare_locked(connection, request, store=store, bundle=bundle, contract=contract,
+                               retention_profile=retention_profile)
 
 
-def _prepare_locked(connection, request, *, store, bundle, contract, product=None, product_constraints=None):
+def _prepare_locked(connection, request, *, store, bundle, contract, product=None,
+                    product_constraints=None, retention_profile=None):
     if _pending_plan(store):
         raise RecoveryError("unfinished_execution_requires_original_plan")
     sources = verify_sources(bundle)
@@ -137,6 +159,7 @@ def _prepare_locked(connection, request, *, store, bundle, contract, product=Non
     snapshot = collect_snapshot(connection, request)
     blueprint = constrained_blueprint(snapshot, request, product_constraints)
     plan = solve_blueprint(blueprint, bundle / "upstream")
+    plan = _refine(request, snapshot, blueprint, plan, bundle, retention_profile, product_constraints)
     changes = build_change_set(request, snapshot, blueprint, plan, product_constraints=product_constraints)
     validate_projection(changes, request, snapshot, blueprint, plan, product_constraints=product_constraints)
     if contract is not None:
@@ -145,17 +168,20 @@ def _prepare_locked(connection, request, *, store, bundle, contract, product=Non
     baseline = capture_execution_baseline(connection, snapshot, request)
     return _persist_prepared(connection, request, snapshot, blueprint, plan, changes, baseline,
                              sources=sources, store=store, contract=contract, product=product,
-                             product_constraints=product_constraints)
+                             product_constraints=product_constraints, retention_profile=retention_profile)
 
 
 def _persist_prepared(connection, request, snapshot, blueprint, plan, changes, baseline, *,
                       sources, store, contract, product=None, product_constraints=None,
-                      product_objectives=None, product_objective=None):
+                      product_objectives=None, product_objective=None, retention_profile=None):
+    _check_retention_binding(retention_profile, plan)
     guard = ScopeGuard(snapshot, request, changes, baseline["payload"]["workorders"], baseline)
     artifacts = dict(zip(ARTIFACTS, (
         request, snapshot, blueprint, plan, changes, baseline, guard.binding), strict=True))
-    manifest = {"schema_version": 1, "sources": sources,
+    manifest = {"schema_version": 1, "sources": sources, "margin_basis": MARGIN_BASIS,
                 "artifacts": {name: digest(value) for name, value in artifacts.items()}}
+    if retention_profile is not None:
+        manifest["retention_profile"] = retention_profile
     if product is not None:
         costs = build_cost_report(request, snapshot, blueprint, changes)
         manifest["product"] = product
@@ -197,7 +223,7 @@ def _persist_prepared(connection, request, snapshot, blueprint, plan, changes, b
 
 
 def _prepare_candidates_locked(connection, request, *, store, bundle, contract, product,
-                               product_constraints, product_objectives):
+                               product_constraints, product_objectives, retention_profile=None):
     from forgeflow.recovery.product_candidates import business_fingerprint
 
     if _pending_plan(store):
@@ -234,6 +260,8 @@ def _prepare_candidates_locked(connection, request, *, store, bundle, contract, 
             try:
                 plan = solve_blueprint(copy.deepcopy(blueprint), bundle / "upstream",
                                        product_objective=objective)
+                plan = _refine(request, snapshot, blueprint, plan, bundle, retention_profile,
+                               product_constraints, objective)
             except SolverFailure as error:
                 if str(error) != "planning_model_infeasible":
                     raise
@@ -264,7 +292,7 @@ def _prepare_candidates_locked(connection, request, *, store, bundle, contract, 
                 prepared = _persist_prepared(connection, request, snapshot, blueprint, plan, changes,
                     baseline, sources=sources, store=store, contract=contract, product=product,
                     product_constraints=product_constraints, product_objectives=product_objectives,
-                    product_objective=objective)
+                    product_objective=objective, retention_profile=retention_profile)
                 plan_id = prepared["plan_id"]
                 candidates.append(plan_id)
                 seen[fingerprint] = plan_id
@@ -289,7 +317,7 @@ def _prepare_candidates_locked(connection, request, *, store, bundle, contract, 
 
 def prepare_product(connection, request, *, run_id, owner_sha256, expected_revision,
                     operation_id, constraints=None, store=STORE, bundle=BUNDLE, contract=None,
-                    connection_factory=None, product_objectives=None):
+                    connection_factory=None, product_objectives=None, retention_profile=None):
     from forgeflow.recovery.product_versions import ProductVersions
 
     request = validate_request(request)
@@ -297,7 +325,10 @@ def prepare_product(connection, request, *, run_id, owner_sha256, expected_revis
         raise RecoveryError("task_contract_mismatch")
     constraints = canonical_constraints(constraints, request)
     product_objectives = canonical_objectives(product_objectives)
+    retention_profile = _retention_profile(retention_profile)
     inputs = {"request": request, "policy_sha256": contract.digest(), "constraints": constraints}
+    if retention_profile is not None:
+        inputs["retention_profile"] = retention_profile
     if product_objectives is not None:
         inputs["product_objectives"] = product_objectives
 
@@ -308,9 +339,10 @@ def prepare_product(connection, request, *, run_id, owner_sha256, expected_revis
         if product_objectives is not None:
             return _prepare_candidates_locked(active_connection, request, store=store, bundle=bundle,
                 contract=contract, product=context, product_constraints=constraints,
-                product_objectives=product_objectives)
+                product_objectives=product_objectives, retention_profile=retention_profile)
         result = _prepare_locked(active_connection, request, store=store, bundle=bundle,
-                                 contract=contract, product=context, product_constraints=constraints)
+                                 contract=contract, product=context, product_constraints=constraints,
+                                 retention_profile=retention_profile)
         return [result["plan_id"]]
 
     return ProductVersions(store).prepare(
@@ -345,7 +377,16 @@ def authorize_product(*, run_id, owner_sha256, expected_revision, plan_id, inten
     if moment >= expires:
         raise RecoveryError("approval_expired")
 
+    manifest = read_json(Path(store) / checked_id(plan_id) / "manifest.json")
+    if digest(manifest) != plan_id or manifest.get("margin_basis") != MARGIN_BASIS:
+        # Fail before reserving an approval intent: an old unstarted comparison
+        # must remain available for retirement and a fresh preparation.
+        raise RecoveryError("margin_basis_requires_reprepare")
+
     def issue_once(binding, data):
+        manifest = read_json(Path(store) / checked_id(plan_id) / "manifest.json")
+        if digest(manifest) != plan_id or manifest.get("margin_basis") != MARGIN_BASIS:
+            raise RecoveryError("margin_basis_requires_reprepare")
         return issue(
             Path(approval_store) if approval_store is not None else Path(store).parent / "approvals",
             run_id=run_id, plan_id=plan_id, policy_sha256=binding["policy_sha256"],
@@ -359,6 +400,22 @@ def authorize_product(*, run_id, owner_sha256, expected_revision, plan_id, inten
     )
 
 
+def _check_retention_binding(profile, plan):
+    _retention_profile(profile)
+    audit = plan.get("retention_refinement")
+    if (profile is None and audit is not None) or (
+        profile is not None and (not isinstance(audit, dict) or audit.get("profile") != profile)
+    ):
+        raise RecoveryError("retention_profile_binding_changed")
+    if profile is not None:
+        from forgeflow.planning.retention import validate_refinement_audit
+
+        try:
+            validate_refinement_audit(plan)
+        except (KeyError, TypeError, ValueError):
+            raise RecoveryError("retention_profile_binding_changed") from None
+
+
 def apply(
     connection,
     plan_id,
@@ -370,6 +427,7 @@ def apply(
     require_product_version: bool = False,
     approval_store: Path | None = None,
     now: datetime | None = None,
+    legacy_authorization: Approval | None = None,
 ):
     plan_id = checked_id(plan_id)
     with scope_lock(store):
@@ -381,7 +439,12 @@ def apply(
             raise RecoveryError("missing_original_plan")
         sources = verify_sources(bundle)
         manifest = read_json(directory / "manifest.json")
-        if digest(manifest) != plan_id or manifest["sources"] != sources:
+        if digest(manifest) != plan_id:
+            raise RecoveryError("original_source_binding_changed")
+        legacy = manifest.get("margin_basis") != MARGIN_BASIS
+        if legacy and legacy_authorization is None:
+            raise RecoveryError("margin_basis_requires_reprepare")
+        if not legacy and (manifest["sources"] != sources or legacy_authorization is not None):
             raise RecoveryError("original_source_binding_changed")
         if require_product_version and "product" not in manifest:
             raise RecoveryError("product_version_required")
@@ -400,6 +463,7 @@ def apply(
             artifacts[name] for name in ARTIFACTS)
         constraints = load_constraints(directory, manifest, request)
         objective = bound_objective(manifest, plan)
+        _check_retention_binding(manifest.get("retention_profile"), plan)
         validate_projection(changes, request, snapshot, blueprint, plan,
                             product_constraints=constraints, product_objective=objective)
         load_cost_report(directory, manifest, inputs=(request, snapshot, blueprint, changes))
@@ -424,6 +488,12 @@ def apply(
         guard = ScopeGuard(snapshot, request, changes, baseline["payload"]["workorders"], baseline)
         if guard.binding != binding:
             raise RecoveryError("original_execution_binding_changed")
+
+        if legacy:
+            from forgeflow.recovery.compatibility import consume_resume_authorization
+
+            consume_resume_authorization(plan_id, legacy_authorization, store=store,
+                bundle=bundle, grant=grant, now=now)
 
         if grant is None and require_grant:
             # The executor sets this so a bare plan_id can never dispatch.
@@ -658,13 +728,17 @@ def _load_grant(path: Path) -> ExecutionGrant:
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="mode", required=True)
-    commands.add_parser("prepare").add_argument("--request", type=Path, required=True)
+    prepare_parser = commands.add_parser("prepare")
+    prepare_parser.add_argument("--request", type=Path, required=True)
+    prepare_parser.add_argument("--retention-profile", choices=("fixed-totals-retention-v1",))
     apply_parser = commands.add_parser("apply")
     apply_parser.add_argument("--plan-id", required=True)
     apply_parser.add_argument("--autonomous", action="store_true",
                               help="benchmark path only: execute without an approval token")
     apply_parser.add_argument("--grant", type=Path, default=None,
                               help="execution grant JSON (approval + bindings)")
+    apply_parser.add_argument("--legacy-authorization", type=Path,
+                              help="operator-issued, current-review-bound recovery approval JSON")
     args = parser.parse_args(argv)
     if args.mode == "apply" and args.grant is None and not args.autonomous:
         print(json.dumps({"ok": False, "odoo_writes": False,
@@ -683,6 +757,8 @@ def main(argv=None):
 
     log_route({})
     if executor:
+        if getattr(args, "legacy_authorization", None) or getattr(args, "retention_profile", None):
+            parser.error("operator recovery and retention configuration must use the trusted executor interface")
         # The permission profile keeps the write key out of this process, so
         # prepare and apply both go through the root executor.
         return _run_via_executor(executor, args, route_log)
@@ -694,11 +770,18 @@ def main(argv=None):
             password=read_key(),
         )
         if args.mode == "prepare":
-            result = prepare(connection, read_json(args.request, 64 * 1024))
+            result = prepare(connection, read_json(args.request, 64 * 1024),
+                             retention_profile=args.retention_profile)
         else:
             grant = _load_grant(args.grant) if args.grant is not None else None
+            legacy = None
+            if args.legacy_authorization is not None:
+                record = read_json(args.legacy_authorization, 64 * 1024)
+                if record.pop("schema_version", None) != 1:
+                    raise RecoveryError("invalid_execution_grant")
+                legacy = Approval(**record)
             result = apply(connection, args.plan_id, grant=grant,
-                           require_grant=not args.autonomous)
+                           require_grant=not args.autonomous, legacy_authorization=legacy)
     except Exception as error:
         # Preserve a bounded local diagnostic without printing RPC bodies,
         # credentials, or arbitrary upstream exception messages to the model.

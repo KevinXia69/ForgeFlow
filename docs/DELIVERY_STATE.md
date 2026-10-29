@@ -1,5 +1,7 @@
 # Delivery state and worktree boundary
 
+> Historical document. Deployment and capability statements below describe their recorded date and are not the current capability overview. See [current capabilities](en/current-capabilities.md) and the [judge guide](en/judge-guide.md).
+
 > 2026-10-24. Written for v13 task **T39**; updated when the repository was made public and committed.
 
 ## One line

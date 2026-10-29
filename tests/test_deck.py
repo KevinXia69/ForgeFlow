@@ -15,6 +15,7 @@ import pytest
 # collect and run the rest of the suite.
 pptx = pytest.importorskip("pptx", reason="python-pptx is needed to inspect the generated deck")
 from pptx.enum.shapes import MSO_SHAPE_TYPE  # noqa: E402 - after the import guard
+
 Presentation = pptx.Presentation
 
 REPO = Path(__file__).resolve().parents[1]

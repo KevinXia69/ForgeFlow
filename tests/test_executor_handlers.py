@@ -97,8 +97,9 @@ def test_prepare_passes_the_recorded_contract(tmp_path, monkeypatch):
     (tmp_path / "state" / "policy.json").write_text(json.dumps(recorded.payload()))
     seen = {}
 
-    def fake_prepare(connection, request, *, store, bundle, contract=None):
-        seen.update(connection=connection, request=request, contract=contract)
+    def fake_prepare(connection, request, *, store, bundle, contract=None, retention_profile=None):
+        seen.update(connection=connection, request=request, contract=contract,
+                    retention_profile=retention_profile)
         return {"ok": True, "plan_id": PLAN, "odoo_writes": False}
 
     monkeypatch.setattr(service, "prepare", fake_prepare)
@@ -107,6 +108,7 @@ def test_prepare_passes_the_recorded_contract(tmp_path, monkeypatch):
     assert result["plan_id"] == PLAN
     assert seen["connection"] == "connection"
     assert seen["contract"].digest() == recorded.digest()
+    assert seen["retention_profile"] is None
 
 
 def test_prepare_maps_a_contract_conflict(tmp_path, monkeypatch):

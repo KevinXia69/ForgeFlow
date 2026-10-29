@@ -663,6 +663,8 @@ def _start_executor() -> None:
         "--database", "bench", "--host", "127.0.0.1", "--port", str(ODOO_PORT),
         "--allow-local-peer",
     ]
+    if os.environ.get("FORGEFLOW_RETENTION_PROFILE"):
+        command.extend(["--retention-profile", os.environ["FORGEFLOW_RETENTION_PROFILE"]])
     with (SANDBOX / "executor.log").open("a") as log:
         process = lifecycle.spawn_managed(_pid_file("executor"), command, "executor",
                                            cwd=ROOT, env=DOCKER_ENV, stdout=log,

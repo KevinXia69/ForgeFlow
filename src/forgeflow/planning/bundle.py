@@ -115,9 +115,13 @@ def build_planner_bundle(root: Path, destination: Path, *, recovery: bool = Fals
     contents["USAGE.md"] = USAGE.encode()
     contents["requirements.txt"] = (root / "build-inputs/planner/requirements.txt").read_bytes()
     if recovery:
+        retention = root / "src/forgeflow/planning/retention.py"
+        if retention.is_symlink() or not retention.is_file():
+            raise ValueError("Retention refinement source must be a regular file.")
+        contents["forgeflow/planning/retention.py"] = retention.read_bytes()
         for name in ("__init__", "change_set", "compiler", "readback", "scope_guard",
                      "journal", "odoo", "storage", "service", "product_versions", "product_constraints", "product_costs",
-                     "product_candidates", "failure"):
+                     "product_candidates", "failure", "margin", "compatibility"):
             path = root / "src/forgeflow/recovery" / (name + ".py")
             if path.is_symlink() or not path.is_file():
                 raise ValueError("Recovery source must be a regular file.")

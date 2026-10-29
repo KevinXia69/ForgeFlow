@@ -61,8 +61,9 @@ def executor(tmp_path, monkeypatch):
     (tmp_path / "state" / "policy.json").write_text(json.dumps(contract().payload()))
     seen = {}
 
-    def fake_prepare(connection, request, *, store, bundle, contract=None):
+    def fake_prepare(connection, request, *, store, bundle, contract=None, retention_profile=None):
         seen["contract"] = contract
+        assert retention_profile is None
         return {"ok": True, "plan_id": PLAN, "odoo_writes": False, "step_count": 3}
 
     def fake_apply(connection, plan_id, *, store, bundle, grant=None,

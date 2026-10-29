@@ -5,6 +5,7 @@ import copy
 import re
 from decimal import Decimal, InvalidOperation, localcontext
 
+from forgeflow.recovery.margin import MARGIN_BASIS, decimal_amount, margin_ratio
 from forgeflow.recovery.product_constraints import canonical_constraints
 from forgeflow.recovery.product_costs import project_cost_report
 from forgeflow.recovery.storage import digest
@@ -50,9 +51,38 @@ def readiness_counts(readiness):
 
 
 def _margin(revenue, cost, original, effective):
+    """Historical v1 arithmetic only; never relabel it as new-spend coverage."""
     maximum = revenue * (1 - effective / 100)
     actual = None if cost is None else (revenue - cost) / revenue * 100
     return {"sales_value": _s(revenue), "planned_cost": _s(cost),
+            "original_floor_pct": _s(original), "effective_floor_pct": _s(effective),
+            "planned_margin_pct": None if actual is None else _s(actual.quantize(Decimal("0.0001"))),
+            "headroom_pp": None if actual is None else _s((actual - effective).quantize(Decimal("0.0001"))),
+            "max_planning_cost": _s(maximum), "cost_headroom": _s(None if cost is None else maximum - cost)}
+
+
+def _coverage(budgets, readiness):
+    """Recompute backing from the bound per-order supply quantities and prices."""
+    orders = {row["order_ref"]: row for row in readiness["orders"]}
+    if len(orders) != len(readiness["orders"]) or set(orders) != {row["order_ref"] for row in budgets}:
+        raise ValueError
+    revenue, backed_units, stock_units = Decimal(0), 0, 0
+    for budget in budgets:
+        order = orders[budget["order_ref"]]
+        price = decimal_amount(_d(budget["sales_value"]) / order["demand_units"], cents=True)
+        quantity = order["purchased_units"] + order["manufactured_units"]
+        revenue += price * quantity
+        backed_units += quantity
+        stock_units += order["stock_units"]
+    return revenue, backed_units, stock_units
+
+
+def _margin_v2(sales_value, revenue, units, stock_units, cost, original, effective):
+    maximum = revenue * (1 - effective / 100)
+    ratio = None if cost is None else margin_ratio(revenue, cost)
+    actual = None if ratio is None else ratio * 100
+    return {"sales_value": _s(sales_value), "new_spend_revenue": _s(revenue),
+            "new_spend_units": units, "stock_units": stock_units, "planned_cost": _s(cost),
             "original_floor_pct": _s(original), "effective_floor_pct": _s(effective),
             "planned_margin_pct": None if actual is None else _s(actual.quantize(Decimal("0.0001"))),
             "headroom_pp": None if actual is None else _s((actual - effective).quantize(Decimal("0.0001"))),
@@ -66,6 +96,7 @@ def build_decision_metrics(request, snapshot, blueprint, constraints, costs, cap
             context.prec = 80
             if digest(snapshot) != snapshot_sha256 or costs is None or capacity is None or readiness is None:
                 raise ValueError
+            readiness = project_order_readiness(readiness, plan_id=plan_id, snapshot_sha256=snapshot_sha256)
             constraints = canonical_constraints(constraints, request)
             facts = order_budget_facts(request, snapshot)
             if facts is None or any(row["compliant"] is None for row in facts):
@@ -77,6 +108,18 @@ def build_decision_metrics(request, snapshot, blueprint, constraints, costs, cap
                                 "customer_cap": row["customer_cap"], "headroom": row["headroom"]})
             if revenue <= 0:
                 raise ValueError
+            # The readiness projector checks internal conservation; the builder
+            # also ties its demand and implied unit prices to actual sale lines.
+            orders = {row["id"]: row for row in snapshot["models"]["sale.order"]}
+            ready_by_name = {row["order_ref"]: row for row in readiness["orders"]}
+            for sid in request["sales_order_ids"]:
+                lines = [row for row in snapshot["models"]["sale.order.line"]
+                         if (row["order_id"][0] if isinstance(row["order_id"], list)
+                             else row["order_id"]) == sid and not row["display_type"]]
+                if len(lines) != 1 or _d(lines[0]["product_uom_qty"]) != ready_by_name[orders[sid]["name"]]["demand_units"]:
+                    raise ValueError
+                decimal_amount(lines[0]["price_unit"], cents=True)
+            backed_revenue, backed_units, stock_units = _coverage(budgets, readiness)
             original = _d(request["margin"]) * 100
             effective = max(original, _d(constraints.get("minimum_margin_pct", original)))
             limits = {row["code"]: row.get("capacity_minutes") for row in blueprint["workcenters"]}
@@ -90,10 +133,12 @@ def build_decision_metrics(request, snapshot, blueprint, constraints, costs, cap
                 centers.append({"code": code, "used_standard_minutes": _s(used), "horizon_limit_minutes": _s(limit),
                                 "headroom_minutes": _s(None if used is None or limit is None else limit - used)})
             total = costs["planned"]["total"]
-            result = {"schema_version": 1, "basis": {"plan_id": plan_id, "snapshot_sha256": snapshot_sha256,
+            result = {"schema_version": 2, "basis": {"plan_id": plan_id, "snapshot_sha256": snapshot_sha256,
                 "currency": costs["basis"]["currency"], "pricing_sha256": costs["basis"]["pricing_sha256"],
-                "cost_basis": "recorded_unit_price_and_manufacturing_standard", "capacity_basis": "planning_horizon_standard_minutes"},
-                "margin": _margin(revenue, None if total is None else _d(total), original, effective),
+                "cost_basis": "recorded_unit_price_and_manufacturing_standard", "capacity_basis": "planning_horizon_standard_minutes",
+                "margin_basis": MARGIN_BASIS},
+                "margin": _margin_v2(revenue, backed_revenue, backed_units, stock_units,
+                    None if total is None else _d(total), original, effective),
                 "order_budgets": sorted(budgets, key=lambda row: row["order_ref"]),
                 "workcenters": centers, "readiness": readiness_counts(readiness)}
             return project_decision_metrics(result, plan_id=plan_id, snapshot_sha256=snapshot_sha256,
@@ -113,12 +158,13 @@ def project_decision_metrics(value, *, plan_id, snapshot_sha256, costs, capacity
             readiness = project_order_readiness(readiness, plan_id=plan_id, snapshot_sha256=snapshot_sha256)
             if (costs is None or capacity is None or readiness is None
                     or type(value) is not dict or set(value) != {"schema_version", "basis", "margin", "order_budgets", "workcenters", "readiness"}
-                    or type(value["schema_version"]) is not int or value["schema_version"] != 1
+                    or type(value["schema_version"]) is not int or value["schema_version"] not in (1, 2)
                     or any(not isinstance(key, str) or re.fullmatch(r"[a-f0-9]{64}", key) is None for key in (plan_id, snapshot_sha256))
                     or costs["basis"]["snapshot_sha256"] != snapshot_sha256
                     or value["basis"] != {"plan_id": plan_id, "snapshot_sha256": snapshot_sha256, "currency": costs["basis"]["currency"],
                         "pricing_sha256": costs["basis"]["pricing_sha256"], "cost_basis": "recorded_unit_price_and_manufacturing_standard",
-                        "capacity_basis": "planning_horizon_standard_minutes"}):
+                        "capacity_basis": "planning_horizon_standard_minutes",
+                        **({"margin_basis": MARGIN_BASIS} if value["schema_version"] == 2 else {})}):
                 raise ValueError
             rows, revenue, names = value["order_budgets"], Decimal(0), set()
             if type(rows) is not list or not 0 < len(rows) <= 128:
@@ -139,7 +185,15 @@ def project_decision_metrics(value, *, plan_id, snapshot_sha256, costs, capacity
             if not 0 <= original <= effective < 100:
                 raise ValueError
             cost = costs["planned"]["total"]
-            if margin != _margin(revenue, None if cost is None else _d(cost), original, effective):
+            if value["schema_version"] == 2:
+                backed_revenue, backed_units, stock_units = _coverage(rows, readiness)
+                if any(type(margin.get(key)) is not int for key in ("new_spend_units", "stock_units")):
+                    raise ValueError
+                expected_margin = _margin_v2(revenue, backed_revenue, backed_units, stock_units,
+                    None if cost is None else _d(cost), original, effective)
+            else:
+                expected_margin = _margin(revenue, None if cost is None else _d(cost), original, effective)
+            if margin != expected_margin:
                 raise ValueError
             centers = value["workcenters"]
             if type(centers) is not list or len(centers) != len(capacity["workcenters"]):

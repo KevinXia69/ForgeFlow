@@ -1,8 +1,6 @@
 # Product API
 
-`forgeflow api` exposes a read-only review service over recorded runs, a
-one-time approval store, project knowledge retrieval, and model settings. It
-never writes to Odoo and does not require an ERP credential.
+`forgeflow api` exposes recorded-run review and capability-gated product case preparation, candidate selection, approval, execution status and evidence. ERP writes belong to the separate controlled executor; an assistant response is never approval. Deployment-specific access is described in the [judge guide](judge-guide.md).
 
 ## Authentication
 
@@ -62,7 +60,7 @@ as `plan.new_spend` in a product case, records the proposal's planned purchasing
 and manufacturing cost, including retained existing documents. Existing stock is
 treated as sunk cost. The first-version label “new spend” does not mean newly
 created purchase value or an increase over the previous plan. Planned margin uses
-the same planning-cost basis, not measured post-execution accounting margin.
+purchase/manufacturing coverage revenue as its denominator, excluding finished stock, and is not measured accounting profit. `decision_metrics.schema_version=2` and `margin_basis=new_spend_coverage_v2` identify the corrected definition; version 1 remains historical and cannot establish current compliance. The full `sales_value` is retained for context, while `new_spend_revenue` is the margin denominator.
 Customer sales-order budget caps are not a new-purchase authorization limit.
 Without a measured baseline, `cost_delta` remains unknown. Historical numeric
 records and the task's original financial constraints are unchanged.

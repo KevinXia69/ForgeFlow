@@ -1,5 +1,7 @@
 # Deploy ForgeFlow on Render
 
+> Historical document. Deployment and capability statements below describe their recorded date and are not the current capability overview. See [current capabilities](en/current-capabilities.md) and the [judge guide](en/judge-guide.md).
+
 **Historical runbook.** The Render review service is suspended. The current
 public product uses the [Linux VPS deployment](en/deployment.md) and
 [isolated judge workspaces](../deploy/vps/REVIEWERS.md). The source repository is

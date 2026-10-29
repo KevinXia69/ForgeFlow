@@ -97,9 +97,10 @@ def zh_index() -> DocumentIndex:
     return index
 
 
-def test_english_corpus_has_eight_to_ten_documents(en_index: DocumentIndex) -> None:
+def test_english_corpus_indexes_all_current_reference_documents(en_index: DocumentIndex) -> None:
     files = sorted((ROOT / "docs" / "en").rglob("*.md"))
-    assert 8 <= len(files) <= 10
+    assert files
+    assert {"README.md", "current-capabilities.md", "judge-guide.md", "architecture.md"} <= {path.name for path in files}
     indexed = {passage.path for passage in en_index.passages()}
     assert {path.relative_to(ROOT).as_posix() for path in files} == indexed
 

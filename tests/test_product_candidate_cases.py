@@ -6,6 +6,7 @@ import json
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 import pytest
 import test_product_candidate_local as local_tests
@@ -310,13 +311,15 @@ def test_two_real_processes_recover_one_durable_selection_without_second_root_de
     config = {"socket_path": executor.socket_path, "store": str(executor.store),
               "approvals": str(executor.approvals), "request": str(request),
               "case_root": str(cases.root), "case_id": case_id, "actor": ACTOR,
+              "source_root": str(Path(__file__).resolve().parents[1] / "src"),
               "plan_id": comparison["plans"][1]["plan_id"], "comparison_id": comparison["comparison_id"],
               "selection_revision": comparison["selection_revision"]}
     script = """
 import copy,json,sys
 from pathlib import Path
+cfg=json.loads(sys.argv[1]); sys.path.insert(0,cfg['source_root'])
 from forgeflow.product import local,ProductCaseService
-cfg=json.loads(sys.argv[1]); request=json.loads(Path(cfg['request']).read_text())
+request=json.loads(Path(cfg['request']).read_text())
 local.SCENARIOS=copy.deepcopy(local.SCENARIOS)
 local.SCENARIOS['B'].update(product_code=request['target_product_code'],disruption=request['disruption'])
 executor=local.LocalProductExecutor(**{key:cfg[key] for key in ('socket_path','store','approvals','request')},

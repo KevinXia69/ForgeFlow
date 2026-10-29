@@ -12,7 +12,7 @@ from types import SimpleNamespace
 
 import pytest
 import test_product_versions as root_tests
-from test_recovery_change_set import fixture
+from test_recovery_change_set import fixture, stock_margin_fixture
 
 from forgeflow.executor.handlers import RecoveryHandlers
 from forgeflow.executor.protocol import ProtocolError
@@ -64,6 +64,28 @@ def test_canonical_units_and_decimal_boundary():
     assert check_product_margin(Decimal("69.99"), Decimal("100"), constraints, request)["product_margin_satisfied"]
     with pytest.raises(ConstraintError, match="^product_constraint_not_satisfied$"):
         check_product_margin(Decimal("69.991"), Decimal("100"), constraints, request)
+
+
+def test_tightened_floor_uses_only_nonstock_coverage():
+    request, snapshot, _, plan = stock_margin_fixture()
+    constraints = {"minimum_margin_pct": 95}
+    blueprint = constrained_blueprint(snapshot, request, constraints)
+    plan["blueprint_sha256"] = canonical_hash(blueprint)
+    # Cost 35 / backed sales 500 is 93%; full sales would falsely give 96.5%.
+    with pytest.raises(ConstraintError, match="product_constraint_not_satisfied"):
+        build_change_set(request, snapshot, blueprint, plan, product_constraints=constraints)
+
+
+def test_zero_spend_zero_coverage_satisfies_tightened_inequality_without_percentage():
+    request, snapshot, _, plan = stock_margin_fixture(stock=10)
+    constraints = {"minimum_margin_pct": 95}
+    blueprint = constrained_blueprint(snapshot, request, constraints)
+    plan["blueprint_sha256"] = canonical_hash(blueprint)
+    result = build_change_set(request, snapshot, blueprint, plan, product_constraints=constraints)
+    checks = result["projected_state"]["checks"]
+    assert checks["product_margin_satisfied"] is True
+    assert checks["combined_new_spend_margin"] is None
+    assert checks["new_spend_revenue"] == "0"
 
 
 def test_tightened_blueprint_keeps_request_and_checks_actual_document_costs():
@@ -149,6 +171,33 @@ print(json.dumps({"checks": checks, "solver": plan["solver"], "trace": plan["tra
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout)["impossible_fixture"] == "INFEASIBLE"
     assert not list(Path(bundle).rglob("__pycache__"))
+
+
+def test_actual_pinned_solver_rejects_stock_denominator_counterexample(system, tmp_path):
+    bundle = system[2]["bundle"].resolve()
+    input_file = tmp_path / "stock-margin-inputs.json"
+    input_file.write_text(json.dumps(stock_margin_fixture(unit_cost=76, floor=0.5)[:2]))
+    script = """
+import json, sys
+from pathlib import Path
+root = Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(root))
+from forgeflow.planning.tool import SolverFailure, solve_blueprint
+from forgeflow.recovery.product_constraints import constrained_blueprint
+request, snapshot = json.loads(Path(sys.argv[2]).read_text())
+try:
+    solve_blueprint(constrained_blueprint(snapshot, request), root / 'upstream')
+except SolverFailure as error:
+    assert str(error) == 'planning_model_infeasible'
+    assert error.trace['solve_calls'][-1]['status'] == 'INFEASIBLE'
+    print('INFEASIBLE')
+else:
+    raise AssertionError('Stock revenue incorrectly made the real solver feasible')
+"""
+    result = subprocess.run([sys.executable, "-I", "-B", "-c", script, str(bundle), str(input_file)],
+                            cwd=tmp_path, capture_output=True, text=True, timeout=45)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "INFEASIBLE"
 
 
 @pytest.mark.parametrize("phase,status,fixed_spend,infeasible", [

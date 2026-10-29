@@ -104,7 +104,7 @@ test("source details resolve only own published fields with a closed record gram
 });
 test("impact intent does not steal ordinary order budget, cost or readiness requests", () => {
   for (const q of ["budget for each order", "which purchase order costs the most", "per-order readiness", "客户订单预算", "采购成本是多少"]) assert.equal(helpers.impactIntent(q), false, q);
-  for (const q of ["supply path for S00001", "why was S00001 affected", "which purchase order supplies this sales order", "why is this manufacturing order linked", "为何 S00001 受影响", "哪个采购单供应该订单"]) assert.equal(helpers.impactIntent(q), true, q);
+  for (const q of ["supply path for S00001", "why was S00001 affected", "which purchase order supplies this sales order", "why is this manufacturing order linked", ...(translations.zh ? ["为何 S00001 受影响", "哪个采购单供应该订单"] : [])]) assert.equal(helpers.impactIntent(q), true, q);
 });
 for (const lang of Object.keys(translations)) {
   const t = translator(lang);
@@ -143,3 +143,37 @@ for (const lang of Object.keys(translations)) {
     assert.ok(mixed.includes(t("impact.qaTitle"))); assert.ok(mixed.includes("95.18"));
   });
 }
+
+
+test("disruption scope follows baseline links and keeps failed SKU quantity separate", () => {
+  const plan = examplePlan();
+  assert.deepEqual(helpers.disruptionScope(plan), { orders: 1, units: 5, demands: [{ product: "FIN", orders: 1, units: 5 }],
+    supplies: [{ product: "RAW", documents: 1, units: 12 }] });
+  // Planned replenishment and a second unrelated sales order do not expand direct baseline scope.
+  const before = structuredClone(plan);
+  for (const lang of Object.keys(translations)) {
+    const t = translator(lang), answer = localCaseAnswer(caseRecord(plan), "delivery risk", t).text;
+    assert.ok(answer.includes(lang === "zh" ? "全案规划" : "Total planning scope"));
+    assert.ok(answer.includes(lang === "zh" ? "直接关联订单：1 张，共 5" : "directly linked orders: 1, totaling 5"));
+    assert.ok(answer.includes("12") && answer.includes("RAW"));
+    assert.ok(!answer.includes("10 units of FIN across 2 sales orders are affected"));
+    const missing = localCaseAnswer(caseRecord(null), "delivery risk", t).text;
+    assert.ok(missing.includes(lang === "zh" ? "尚未记录" : "not recorded"));
+  }
+  assert.deepEqual(plan, before);
+  const missing = examplePlan(); missing.impact_chain.edges = missing.impact_chain.edges.filter(edge => edge.relation !== "disruption_scope");
+  // A chain with dangling index references is rejected, rather than yielding invented zero impact.
+  assert.equal(helpers.disruptionScope(missing), null);
+  assert.equal(helpers.disruptionScope(null), null);
+});
+
+test("bilingual candidate descriptions disclose policy priority and unchanged original scoring", () => {
+  for (const lang of Object.keys(translations)) {
+    const t = translator(lang);
+    assert.ok(t("candidate.basis", { count: 3 }).includes(lang === "zh" ? "不同优化优先级" : "different optimization priorities"));
+    for (const key of ["candidate.costBody", "candidate.capacityBody"]) {
+      assert.ok(lang === "zh" ? t(key).includes("改变原题") : /chang(?:es|ing) the original/.test(t(key)));
+    }
+    assert.ok(t("candidate.preferenceNote").includes(lang === "zh" ? "原始验收" : "Original verification"));
+  }
+});

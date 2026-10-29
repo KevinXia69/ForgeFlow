@@ -1,19 +1,11 @@
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
 
-import pytest
-
 from forgeflow.api.assistant import SYSTEM_PROMPT
+from forgeflow.vps_runtime import dsh_patch
 
 ROOT = Path(__file__).resolve().parents[1]
-if not (ROOT / "scripts" / "setup_dsh_harness.py").is_file():
-    pytest.skip("DSH persona source is local-runtime only", allow_module_level=True)
-SPEC = importlib.util.spec_from_file_location("setup_dsh_harness", ROOT / "scripts" / "setup_dsh_harness.py")
-assert SPEC is not None and SPEC.loader is not None
-setup = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(setup)
 
 
 def test_fallback_prompt_has_first_time_contract() -> None:
@@ -23,7 +15,9 @@ def test_fallback_prompt_has_first_time_contract() -> None:
 
 
 def test_dsh_persona_has_first_time_contract() -> None:
-    persona = " ".join(f"{setup.PERSONA_PREFIX}\n{setup.PERSONA_SUFFIX}".lower().split())
+    patch = dsh_patch({"python": "/test/python", "repo_root": str(ROOT)}, "test-model", "https://test.invalid/v1")
+    prompt = next(row["config"] for row in patch if row.get("id") == "system-prompt")
+    persona = " ".join(prompt["personaPrefix"].lower().split())
     for phrase in ("knows nothing", "first sentence", "two or three", "at most two decision", "never open with an id", "planned, applied, verified, and unknown", "at most one natural next question"):
         assert phrase in persona, phrase
 

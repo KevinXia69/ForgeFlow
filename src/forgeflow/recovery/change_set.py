@@ -16,6 +16,13 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from forgeflow.planning.objectives import objective_matches
+from forgeflow.recovery.margin import (
+    MARGIN_BASIS,
+    decimal_amount,
+    decimal_text,
+    margin_ratio,
+    margin_satisfied,
+)
 from forgeflow.recovery.product_constraints import check_product_margin, constrained_blueprint
 
 CHANGE_SET_REASONS = frozenset({
@@ -1549,13 +1556,31 @@ def validate_projection(result, request, snapshot, blueprint, fresh_plan, *, pro
             supplied[f"stock:{sku}"] if sku in component_need else finished_used[f"stock:{sku}"]
         )
         need(observed == qty <= blueprint["product_stock_units"][sku], "Stock double allocation")
-    expected_spend = Decimal(str(fresh_plan["plan"]["expected_new_spend"]))
-    actual_spend = sum(Decimal(str(x["unit_price"])) * x["quantity"] for x in pos) + sum(
-        Decimal(str(standards[x["workcenter_code"]]["unit_cost_dollars"])) * x["quantity"]
-        for x in mos
-    )
+    try:
+        expected_spend = decimal_amount(fresh_plan["plan"]["expected_new_spend"])
+        actual_spend = sum((decimal_amount(x["unit_price"], cents=True) * x["quantity"]
+                            for x in pos), Decimal(0)) + sum(
+            (decimal_amount(standards[x["workcenter_code"]]["unit_cost_dollars"], cents=True)
+             * x["quantity"] for x in mos), Decimal(0))
+    except ValueError as error:
+        raise ChangeSetError(str(error)) from None
     need(abs(expected_spend - actual_spend) <= Decimal("0.02"), "Aggregate new spend changed")
-    revenue = Decimal("0")
+    # These flows have already passed document identity, source dates, quantity
+    # conservation and stock checks above. Count only actual finished supply
+    # through purchasing/manufacturing, never the solver's claimed margin.
+    backed_by_order, stock_by_order = Counter(), Counter()
+    for flow in proj["sales_order_flows"]:
+        source = flow["source_token"]
+        quantity = integer(flow["quantity"], "Margin finished quantity", 1)
+        if source == f"stock:{request['target_product_code']}":
+            stock_by_order[flow["sales_order"]["name"]] += quantity
+        else:
+            supply = docs[source]
+            need(supply["product_code"] == request["target_product_code"]
+                 and (supply in mos or supply.get("supply_role") == "finished"),
+                 "Margin coverage requires finished purchased or manufactured supply")
+            backed_by_order[flow["sales_order"]["name"]] += quantity
+    revenue = Decimal(0)
     for sid in request["sales_order_ids"]:
         lines = [
             line
@@ -1564,17 +1589,23 @@ def validate_projection(result, request, snapshot, blueprint, fresh_plan, *, pro
         ]
         need(len(lines) == 1, "SO financial scope ambiguous")
         line = lines[0]
-        amount = Decimal(str(line["product_uom_qty"])) * Decimal(str(line["price_unit"]))
+        try:
+            price = decimal_amount(line["price_unit"], cents=True)
+            amount = decimal_amount(line["product_uom_qty"]) * price
+        except ValueError as error:
+            raise ChangeSetError(str(error)) from None
         need(
             amount <= Decimal(str(request["sales_order_budget_caps"][str(sid)])),
             "Preserved sales order exceeds explicit customer budget cap",
         )
-        revenue += amount
+        name = tables["sale.order"][sid]["name"]
+        revenue += backed_by_order[name] * price
     need(
-        revenue > 0 and actual_spend <= revenue * (Decimal("1") - Decimal(str(request["margin"]))),
+        margin_satisfied(actual_spend, revenue, request["margin"]),
         "Projected combined new-spend margin is below explicit requirement",
     )
     product_checks = check_product_margin(actual_spend, revenue, product_constraints, request)
+    ratio = margin_ratio(revenue, actual_spend)
     return {
         "quantity_conservation": True,
         "target_bucket_conservation": True,
@@ -1590,7 +1621,11 @@ def validate_projection(result, request, snapshot, blueprint, fresh_plan, *, pro
         "active_operation_coverage": True,
         "live_id_bindings": True,
         "sales_order_budget_caps": True,
-        "combined_new_spend_margin": float((revenue - actual_spend) / revenue),
+        "margin_basis": MARGIN_BASIS,
+        "new_spend_units": sum(backed_by_order.values()),
+        "new_spend_revenue": decimal_text(revenue),
+        "stock_units": sum(stock_by_order.values()),
+        "combined_new_spend_margin": None if ratio is None else float(ratio),
         "required_margin": request["margin"],
         **product_checks,
         "capacity_minutes": {

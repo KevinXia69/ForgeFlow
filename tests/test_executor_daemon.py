@@ -375,6 +375,9 @@ def test_socket_mode_and_chown_flag(serve) -> None:
 
 
 def test_strict_socket_rejects_permission_fallback(workspace, handlers, monkeypatch):
+    # Isolate the ownership failure after the Linux peer-credential prerequisite;
+    # unsupported-platform rejection is tested separately.
+    monkeypatch.setattr(daemon.socket, "SO_PEERCRED", 17, raising=False)
     monkeypatch.setattr(daemon.os, "geteuid", lambda: 0)
     monkeypatch.setattr(daemon.os, "chown", lambda *_: (_ for _ in ()).throw(PermissionError()))
     monkeypatch.setattr(daemon.pwd, "getpwuid", lambda _uid: type("User", (), {"pw_gid": 10001})())

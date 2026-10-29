@@ -2,6 +2,17 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { stripTypeScriptTypes } from "node:module";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+const cache = new Map();
+function moduleUrl(path) {
+  if (cache.has(path)) return cache.get(path);
+  let source = stripTypeScriptTypes(readFileSync(path, "utf8"));
+  source = source.replace(/from\s+(["'])(\.\.?\/[^"']+)\1/g, (_match, _quote, relative) =>
+    "from " + JSON.stringify(moduleUrl(resolve(dirname(path), relative + ".ts"))));
+  const url = "data:text/javascript;base64," + Buffer.from(source).toString("base64");
+  cache.set(path, url); return url;
+}
 const caseFile = {
   case_id: "a".repeat(32), scenario: "A", state: "succeeded", synthetic: true,
   order: { ref: "SO-1042..1046", product: "Clean Room Fixture", units: 50, due_days: 8, customer: "Northwind" },
@@ -19,10 +30,20 @@ const caseFile = {
 };
 
 for (const bundle of ["web", "web-public"]) {
-  const source = readFileSync(new URL(`../../${bundle}/src/receipt.ts`, import.meta.url), "utf8");
-  const url = "data:text/javascript;base64," + Buffer.from(stripTypeScriptTypes(source)).toString("base64");
+  const url = moduleUrl(fileURLToPath(new URL(`../../${bundle}/src/receipt.ts`, import.meta.url)));
   const { receiptMarkdown, receiptFilename } = await import(url);
   const languages = bundle === "web" ? ["en", "zh"] : ["en"];
+  test(`${bundle}: receipt separates plan scope, legacy margin and execution steps`, () => {
+    const record = structuredClone(caseFile); record.plan.margin = 80;
+    const before = structuredClone(record), md = receiptMarkdown(record, "en");
+    assert.match(md, /Total planning scope: 50 units/);
+    assert.match(md, /Directly linked demand and failed supply: unknown/);
+    assert.match(md, /Recorded margin \(legacy basis\): 80.00%/);
+    assert.match(md, /Business document actions: 2; verified execution steps: 7/);
+    assert.doesNotMatch(md, /- Impact: 50/);
+    assert.deepEqual(record, before);
+  });
+
 
   test(`${bundle}: receipt is shareable and does not include private fields`, () => {
     const privateFields = structuredClone(caseFile);

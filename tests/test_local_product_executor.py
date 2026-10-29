@@ -1,12 +1,21 @@
 from __future__ import annotations
 
+import copy
 import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
+from recovery_synthetic import inputs
+from test_recovery_change_set import stock_margin_fixture
 
+from forgeflow.planning.live import build_blueprint
+from forgeflow.product import local
+from forgeflow.product.executor import ProductExecutionError
 from forgeflow.product.local import LocalProductExecutor
+from forgeflow.recovery.change_set import build_change_set, canonical_hash
+from forgeflow.recovery.margin import MARGIN_BASIS
+from forgeflow.recovery.product_costs import build_cost_report
 from forgeflow.recovery.product_versions import owner_scope
 from forgeflow.recovery.storage import digest
 
@@ -20,18 +29,22 @@ def _binding(case_id="2" * 32, actor="test-owner"):
             "inputs_sha256": "d" * 64}}
 
 
-def _executor(tmp_path: Path, monkeypatch) -> LocalProductExecutor:
+def _inputs():
+    request, snapshot, _, wrapped = inputs("origin_only")
+    request["margin"] = 0.275
+    blueprint = build_blueprint(snapshot, request)
+    wrapped["blueprint_sha256"] = canonical_hash(blueprint)
+    return request, snapshot, blueprint, wrapped
+
+
+def _executor(tmp_path: Path, monkeypatch, *, values=None) -> LocalProductExecutor:
+    values = values or _inputs()
+    scenarios = copy.deepcopy(local.SCENARIOS)
+    scenarios["A"].update(product_code=values[0]["target_product_code"],
+                          disruption=values[0]["disruption"])
+    monkeypatch.setattr(local, "SCENARIOS", scenarios)
     request = tmp_path / "request.json"
-    request.write_text(json.dumps({
-        "target_product_code": "P27637E67E7-LED-CRS-009",
-        "disruption": {"kind": "supplier_cancellation", "vendor_ref": "r27637E67E7_q02"},
-        "margin": 0.275,
-        "sales_order_budget_caps": {"1": 4000, "2": 2000},
-        "customers": [
-            {"ref": "c1", "demand": 30},
-            {"ref": "c2", "demand": 20},
-        ],
-    }))
+    request.write_text(json.dumps(values[0]))
     return LocalProductExecutor(
         socket_path="/tmp/unused.sock", store=tmp_path / "store",
         approvals=tmp_path / "approvals", request=request, container="sandbox",
@@ -42,52 +55,40 @@ def _artifacts(
     store: Path,
     plan_id: str,
     *,
-    margin: float = 0.275,
-    expected_new_spend: float | None = 4794.94,
+    margin: float | None = 0.275,
     objective_kind: str | None = "repair_plan",
-    first_sales_value: float = 3000,
+    values=None,
+    mutate=None,
 ) -> str:
-    request = {"sales_order_ids": [1, 2], "sales_order_budget_caps": {"1": 4000, "2": 2000}}
-    snapshot = {"models": {"sale.order": [{"id": 1, "name": "SO1"}, {"id": 2, "name": "SO2"}],
-                          "sale.order.line": [
-                              {"order_id": [1, "SO1"], "display_type": False, "product_uom_qty": 1, "price_unit": first_sales_value},
-                              {"order_id": [2, "SO2"], "display_type": False, "product_uom_qty": 1, "price_unit": 2000},
-                          ]}}
+    # Bind genuine ERP flows and independently recomputed costs. Corruption tests
+    # may change evidence only after a valid change-set has been constructed.
+    request, snapshot, blueprint, wrapped = copy.deepcopy(values or _inputs())
+    changes = build_change_set(request, snapshot, blueprint, wrapped)
+    wrapped["plan"].update(margin=margin, objective_kind=objective_kind)
+    if mutate is not None:
+        mutate(request, snapshot, blueprint, wrapped)
+    changes["source_sha256"] = {name: canonical_hash(value) for name, value in (
+        ("request", request), ("snapshot", snapshot), ("blueprint", blueprint), ("plan", wrapped))}
+    costs = build_cost_report(request, snapshot, blueprint, changes)
     snapshot_sha = digest(snapshot)
     prepared = {
         "policy_sha256": SHA, "snapshot_sha256": snapshot_sha,
         "prepared_at": "2026-10-22T00:00:00+00:00",
     }
-    plan: dict[str, object] = {
-        "objective_kind": objective_kind,
-        "margin": margin,
-        "new_spend_units": 50,
-        "allocations": [
-            {"demand": 30, "fulfilled_demand": 30},
-            {"demand": 20, "fulfilled_demand": 20},
-        ],
-    }
-    if expected_new_spend is not None:
-        plan["expected_new_spend"] = expected_new_spend
-    changes = {
-        "operations": [
-            {"action": "keep", "kind": "purchase_order",
-             "target": {"name": "P00001"}, "after": {"quantity": 15}},
-            {"action": "cancel", "kind": "purchase_order",
-             "target": {"name": "P00006"}, "before": {"quantity": 3}},
-            {"action": "create", "kind": "purchase_order",
-             "target": {"token": "new:purchase_order:0006"},
-             "after": {"quantity": 3}},
-        ],
-    }
-    plan = {"plan": plan}
-    manifest = {"artifacts": {"snapshot": snapshot_sha, "request": digest(request), "plan": digest(plan), "change-set": digest(changes)},
-                "product": _binding()["product"], "policy_sha256": SHA, "synthetic_id": plan_id}
+    product = _binding()["product"]
+    product["inputs_sha256"] = digest({"request": request, "policy_sha256": SHA, "constraints": {}})
+    artifacts = {"snapshot": snapshot, "request": request, "plan": wrapped,
+                 "change-set": changes, "blueprint": blueprint}
+    manifest = {"artifacts": {name: digest(value) for name, value in artifacts.items()},
+                "product": product, "policy_sha256": SHA, "synthetic_id": plan_id,
+                "margin_basis": MARGIN_BASIS, "product_constraints_sha256": digest({}),
+                "product_costs_sha256": digest(costs)}
     plan_id = digest(manifest)
     directory = store / plan_id
     directory.mkdir(parents=True, exist_ok=True)
-    for name, value in (("plan", plan), ("change-set", changes), ("manifest", manifest), ("prepared", prepared),
-                        ("request", request), ("snapshot", snapshot)):
+    artifacts.update(manifest=manifest, prepared=prepared,
+                     **{"product-constraints": {}, "product-costs": costs})
+    for name, value in artifacts.items():
         (directory / f"{name}.json").write_text(json.dumps(value))
     return plan_id
 
@@ -103,15 +104,17 @@ def test_default_prepare_refuses_missing_or_unbound_objective(tmp_path, monkeypa
 
 
 def _prepare(executor: LocalProductExecutor, monkeypatch, plan_id: str) -> dict:
-    snapshot_sha = json.loads((executor.store / plan_id / "manifest.json").read_text())["artifacts"]["snapshot"]
+    manifest = json.loads((executor.store / plan_id / "manifest.json").read_text())
+    snapshot_sha = manifest["artifacts"]["snapshot"]
     monkeypatch.setattr(
         "forgeflow.product.local.client.product",
         lambda socket, run_id, action, payload, timeout: {"decision": {
             "selected_plan_id": plan_id, "state": "selected", "revision": 2,
-            "plans": {plan_id: {"product": _binding()["product"], "state": "selected",
+            "plans": {plan_id: {"product": manifest["product"], "state": "selected",
                                 "policy_sha256": SHA, "snapshot_sha256": snapshot_sha}}}},
     )
-    return executor.prepare({"case_id": "2" * 32, "scenario": "A", "_owner_sha256": owner_scope("test-owner")})
+    return executor.prepare({"case_id": "2" * 32, "scenario": "A", "order": {"units": 10},
+                             "_owner_sha256": owner_scope("test-owner")})
 
 
 def _checks(plan: dict) -> dict[str, dict]:
@@ -140,29 +143,33 @@ def test_prepare_reads_artifacts_and_builds_real_actions(tmp_path, monkeypatch):
 
     plan = _prepare(executor, monkeypatch, plan_id)
     assert plan["plan_id"] == plan_id
-    assert plan["margin"] == 27.5
-    assert plan["new_spend"] == 4794.94
+    assert plan["margin"] == 93
+    assert plan["margin_basis"] == MARGIN_BASIS
+    assert plan["new_spend"] == 70
     assert plan["cost_delta"] is None
     assert plan["policy_sha256"] == SHA
     assert plan["snapshot_sha256"] == digest(json.loads((executor.store / plan_id / "snapshot.json").read_text()))
-    assert [a["kind"] for a in plan["actions"]] == ["cancel_po", "create_po"]
-    assert plan["actions"][0]["document"] == "P00006"
-    assert plan["actions"][0]["before"] == {"quantity": 3}
+    assert [a["kind"] for a in plan["actions"]] == ["cancel_mo", "adjust_mo", "update_po", "create_mo"]
+    assert plan["actions"][0]["document"] == "MO1"
+    assert plan["actions"][0]["before"]["quantity"] == 4
     assert plan["actions"][0]["after"] is None
-    assert plan["actions"][1]["before"] is None
-    assert plan["actions"][1]["after"] == {"quantity": 3}
+    assert plan["actions"][2]["document"] == "PO1"
+    assert plan["actions"][2]["before"]["quantity"] == 12
+    assert plan["actions"][2]["after"]["quantity"] == 20
+    assert plan["actions"][3]["before"] is None
+    assert plan["actions"][3]["after"]["quantity"] == 4
 
     checks = _checks(plan)
     assert set(checks) == {"margin", "budget", "demand", "policy", "on_time"}
-    assert plan["on_time"] is None
-    assert checks["on_time"]["status"] == "unknown"
+    assert plan["on_time"] is True
+    assert checks["on_time"]["status"] == "pass"
     assert checks["margin"] == {
         "code": "margin",
-        "label": "Planned margin floor",
+        "label": "New-spend margin floor",
         "status": "pass",
-        "actual": "27.5%",
+        "actual": "93%",
         "threshold": "27.5%",
-        "source": "solver planned purchasing and manufacturing cost, including retained documents; local request margin; not measured accounting margin",
+        "source": "independent new-spend coverage check; original floor 27.5%; effective floor 27.5%; excludes finished stock revenue",
     }
     assert checks["budget"]["status"] == "pass"
     assert checks["budget"]["label"] == "Sales-order values within individual customer caps"
@@ -172,8 +179,8 @@ def test_prepare_reads_artifacts_and_builds_real_actions(tmp_path, monkeypatch):
         "plan_id": plan_id, "snapshot_sha256": plan["snapshot_sha256"]}
     assert checks["demand"]["label"] == "Demand coverage"
     assert checks["demand"]["status"] == "pass"
-    assert checks["demand"]["actual"] == "50 units"
-    assert checks["demand"]["threshold"] == "50 units"
+    assert checks["demand"]["actual"] == "10 units"
+    assert checks["demand"]["threshold"] == "10 units"
     assert checks["policy"]["status"] == "pass"
     assert checks["policy"]["actual"] == SHA
     for check in checks.values():
@@ -183,24 +190,25 @@ def test_prepare_reads_artifacts_and_builds_real_actions(tmp_path, monkeypatch):
 
 def test_prepare_blocks_individual_overcap_even_when_planning_cost_is_below_sum_caps(tmp_path, monkeypatch):
     executor = _executor(tmp_path, monkeypatch)
-    plan_id = "6" * 64
-    plan_id = _artifacts(executor.store, plan_id, expected_new_spend=1000.0, first_sales_value=4001)
+    def over_cap(request, snapshot, blueprint, wrapped):
+        request["sales_order_budget_caps"]["1"] = 399  # SO1 = 4 × 100; planned cost = 70.
+        blueprint.update(build_blueprint(snapshot, request))
+        wrapped["blueprint_sha256"] = canonical_hash(blueprint)
 
-    plan = _prepare(executor, monkeypatch, plan_id)
-
-    budget = _checks(plan)["budget"]
-    assert budget["status"] == "block"
-    assert budget["actual"] == 1
-    assert budget["threshold"] == 2
-    assert plan["new_spend"] == 1000.0
+    plan_id = _artifacts(executor.store, "6" * 64, mutate=over_cap)
+    executor.request = json.loads((executor.store / plan_id / "request.json").read_text())
+    with pytest.raises(ProductExecutionError, match="plan_not_bound"):
+        _prepare(executor, monkeypatch, plan_id)
 
 
-def test_default_profile_keeps_missing_bound_sales_amount_unknown(tmp_path, monkeypatch):
+def test_default_profile_refuses_missing_bound_sales_amount(tmp_path, monkeypatch):
     executor = _executor(tmp_path, monkeypatch)
-    plan_id = _artifacts(executor.store, "7" * 64, first_sales_value=None)
-    budget = _checks(_prepare(executor, monkeypatch, plan_id))["budget"]
-    assert budget["status"] == "unknown"
-    assert budget["actual"] is None and budget["threshold"] == 2
+    def missing_price(request, snapshot, blueprint, wrapped):
+        snapshot["models"]["sale.order.line"][0]["price_unit"] = None
+
+    plan_id = _artifacts(executor.store, "7" * 64, mutate=missing_price)
+    with pytest.raises(ProductExecutionError, match="plan_not_bound"):
+        _prepare(executor, monkeypatch, plan_id)
 
 
 @pytest.mark.parametrize("artifact", ["request", "snapshot"])
@@ -217,39 +225,39 @@ def test_default_profile_refuses_unbound_budget_inputs(tmp_path, monkeypatch, ar
         _prepare(executor, monkeypatch, plan_id)
 
 
-def test_prepare_blocks_every_margin_below_the_hard_request_threshold(
-    tmp_path, monkeypatch,
-):
+@pytest.mark.parametrize("solver_margin", [None, 0.265, 0.240, 0.99])
+def test_prepare_derives_margin_independently_of_solver_margin(tmp_path, monkeypatch, solver_margin):
     executor = _executor(tmp_path, monkeypatch)
-    plan_id = "7" * 64
-    plan_id = _artifacts(executor.store, plan_id, margin=0.265)
-
-    warning = _checks(_prepare(executor, monkeypatch, plan_id))["margin"]
-    assert warning["status"] == "block"
-    assert warning["actual"] == "26.5%"
-    assert warning["threshold"] == "27.5%"
-
-    plan_id = _artifacts(executor.store, plan_id, margin=0.240)
-    blocked = _checks(_prepare(executor, monkeypatch, plan_id))["margin"]
-    assert blocked["status"] == "block"
-    assert blocked["actual"] == "24%"
-    assert blocked["threshold"] == "27.5%"
+    plan_id = _artifacts(executor.store, "7" * 64, margin=solver_margin)
+    check = _checks(_prepare(executor, monkeypatch, plan_id))["margin"]
+    assert check["status"] == "pass"
+    assert check["actual"] == "93%"
+    assert check["threshold"] == "27.5%"
 
 
-def test_prepare_keeps_new_spend_null_when_the_solver_does_not_report_it(
-    tmp_path, monkeypatch,
-):
+def test_prepare_rejects_stock_revenue_false_pass_under_the_hard_request_floor(tmp_path, monkeypatch):
+    values = stock_margin_fixture(unit_cost=76, floor=0.2)
+    executor = _executor(tmp_path, monkeypatch, values=values)
+    def raised_floor(request, snapshot, blueprint, wrapped):
+        request["margin"] = 0.5
+        blueprint.update(build_blueprint(snapshot, request))
+        wrapped["blueprint_sha256"] = canonical_hash(blueprint)
+
+    # 400 cost / 500 non-stock sales = 20%; full sales would falsely report 60%.
+    plan_id = _artifacts(executor.store, "7" * 64, values=values, margin=0.6, mutate=raised_floor)
+    executor.request = json.loads((executor.store / plan_id / "request.json").read_text())
+    with pytest.raises(ProductExecutionError, match="plan_not_bound"):
+        _prepare(executor, monkeypatch, plan_id)
+
+
+def test_prepare_refuses_unreported_solver_cost_instead_of_hiding_it(tmp_path, monkeypatch):
     executor = _executor(tmp_path, monkeypatch)
-    plan_id = "8" * 64
-    plan_id = _artifacts(executor.store, plan_id, expected_new_spend=None)
+    def missing_cost(request, snapshot, blueprint, wrapped):
+        del wrapped["plan"]["expected_new_spend"]
 
-    plan = _prepare(executor, monkeypatch, plan_id)
-
-    assert plan["new_spend"] is None
-    assert plan["cost_delta"] is None
-    budget = _checks(plan)["budget"]
-    assert budget["status"] == "pass"
-    assert budget["actual"] == budget["threshold"] == 2
+    plan_id = _artifacts(executor.store, "8" * 64, mutate=missing_cost)
+    with pytest.raises(ProductExecutionError, match="plan_not_bound"):
+        _prepare(executor, monkeypatch, plan_id)
 
 
 def test_prepare_maps_executor_failure_to_stable_code(tmp_path, monkeypatch):
@@ -272,6 +280,7 @@ def test_apply_uses_exact_root_approval_and_maps_verifier(tmp_path, monkeypatch)
     plan = {
         "plan_id": "4" * 64, "policy_sha256": SHA, "snapshot_sha256": SHA2,
         "actions": [{"kind": "cancel_po", "document": "P00006", "quantity": 3}],
+        "margin_basis": MARGIN_BASIS,
         "executor_binding": _binding("5" * 32),
     }
     seen = {}
@@ -325,6 +334,7 @@ def test_apply_refuses_an_unbound_approval(tmp_path, monkeypatch):
     plan = {
         "plan_id": "4" * 64, "policy_sha256": SHA, "snapshot_sha256": SHA2,
         "actions": [],
+        "margin_basis": MARGIN_BASIS,
         "executor_binding": _binding("5" * 32),
     }
     called = []
@@ -394,15 +404,17 @@ def test_on_time_is_derived_from_bound_allocation_flow_dates():
     assert LocalProductExecutor._on_time(plan, changes) is None
 
 
-def test_missing_margin_and_cost_are_unknown_and_zero_remains_zero(tmp_path, monkeypatch):
-    executor = _executor(tmp_path, monkeypatch)
-    plan_id = "9" * 64
-    plan_id = _artifacts(executor.store, plan_id, margin=None, expected_new_spend=0)
+@pytest.mark.parametrize("stock,expected_margin,actual", [(10, None, "not applicable"), (0, 100, "100%")])
+def test_zero_cost_uses_actual_stock_coverage_for_margin(tmp_path, monkeypatch, stock, expected_margin, actual):
+    values = stock_margin_fixture(stock=stock, unit_cost=0, raw_price=0)
+    executor = _executor(tmp_path, monkeypatch, values=values)
+    plan_id = _artifacts(executor.store, "9" * 64, margin=None, values=values)
     plan = _prepare(executor, monkeypatch, plan_id)
-    assert plan["margin"] is None
+    assert plan["margin"] == expected_margin
     assert plan["cost_delta"] is None
     assert plan["new_spend"] == 0
-    assert _checks(plan)["margin"]["status"] == "unknown"
+    assert _checks(plan)["margin"]["status"] == "pass"
+    assert _checks(plan)["margin"]["actual"] == actual
     assert _checks(plan)["budget"]["status"] == "pass"
 
 
@@ -458,6 +470,7 @@ def test_lost_verifier_response_is_unknown_and_only_recovers_bound_receipt(tmp_p
 
     executor = _executor(tmp_path, monkeypatch)
     plan = {"plan_id": SHA, "policy_sha256": SHA, "snapshot_sha256": SHA2, "actions": []}
+    plan["margin_basis"] = MARGIN_BASIS
     plan["executor_binding"] = _binding("b" * 32, "owner")
     issued = datetime.now(UTC)
     case = {"case_id": "b" * 32, "scenario": "A", "_owner_sha256": owner_scope("owner"), "approval": {

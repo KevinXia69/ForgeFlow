@@ -10,6 +10,8 @@ from .evidence import public_evidence
 from .impact_context import IMPACT_CONTEXT_RULE, impact_summary
 
 MAX_CONTEXT_CHARS = 6000
+MARGIN_CONTEXT_RULE = ("Recorded margin checks may be historical. Only new_spend_coverage_v2 establishes the corrected basis; "
+    "legacy margins and headroom cannot establish current-floor compliance. Zero revenue and zero cost means ratio not applicable.")
 
 
 def answer_context(case: dict[str, Any]) -> dict[str, Any]:
@@ -40,7 +42,7 @@ def _scalars(value: Any, keys: tuple[str, ...] | None = None) -> dict:
 def _plan(value: Any) -> dict | None:
     if not isinstance(value, dict):
         return None
-    result = _scalars(value, ("plan_id", "objective", "margin", "on_time", "new_spend", "cost_delta",
+    result = _scalars(value, ("plan_id", "objective", "margin", "margin_basis", "on_time", "new_spend", "cost_delta",
                               "policy_sha256", "snapshot_sha256", "prepared_at"))
     actions = value.get("actions")
     result["action_count"] = len(actions) if isinstance(actions, list) else None
@@ -68,7 +70,7 @@ def _plan_reference(value: Any, *, selected: bool = False) -> dict | None:
     """Keep every candidate's decision facts before adding document details."""
     if not isinstance(value, dict):
         return None
-    result = _scalars(value, ("plan_id", "objective", "margin", "on_time", "new_spend"))
+    result = _scalars(value, ("plan_id", "objective", "margin", "margin_basis", "on_time", "new_spend"))
     actions = value.get("actions")
     result["action_count"] = len(actions) if isinstance(actions, list) else None
     if selected:
@@ -141,6 +143,7 @@ def case_context(case: dict[str, Any]) -> str:
 
     plan_rows = [public.get("plan"), *((public.get("comparison") or {}).get("plans") or [])]
     has_budget = any(isinstance(plan, dict) and plan.get("budget_check") is not None for plan in plan_rows)
+    public["margin_check_interpretation"] = MARGIN_CONTEXT_RULE
     if has_budget:
         public["budget_check_interpretation"] = BUDGET_CONTEXT_RULE
     if has_impact:
@@ -151,7 +154,8 @@ def case_context(case: dict[str, Any]) -> str:
         return full
     # Reserve the complete bounded candidate set and execution outcome before
     # optional lifecycle text, cost breakdowns or receipt hashes can crowd them out.
-    facts = {"context_projection": "summary; omitted fields are unknown here, not absent or zero"}
+    facts = {"context_projection": "summary; omitted fields are unknown here, not absent or zero",
+             "margin_check_interpretation": MARGIN_CONTEXT_RULE}
     if has_budget:
         facts["budget_check_interpretation"] = "Check counts include recorded historical statuses; only explicit bound per_order budget_check establishes individual sales-value compliance."
     omitted = ["detailed_actions", "detailed_cost_documents", "detailed_policy_checks", "history", "audit", "detailed_order_readiness"]
@@ -218,6 +222,8 @@ def case_context(case: dict[str, Any]) -> str:
     metrics = selected.get("decision_metrics") if isinstance(selected, dict) else None
     if isinstance(metrics, dict):
         add("selected_decision_metrics", {"margin": _scalars(metrics.get("margin")),
+            "schema_version": metrics.get("schema_version"),
+            "margin_basis": (metrics.get("basis") or {}).get("margin_basis", "legacy_unverified"),
             "readiness": _scalars(metrics.get("readiness")),
             "basis": "same selected plan; planning values, not actual funds, daily calendar or risk probabilities",
             "detail": "per-workcenter and per-order headroom omitted; consult case details"})

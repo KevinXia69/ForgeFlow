@@ -1,3 +1,5 @@
+import { hasNewSpendBasis, currentDecisionMetrics } from "./decisionSummary";
+import { disruptionScope } from "./impactFacts";
 import type { CaseFile } from "./types";
 
 function short(value: string | null | undefined, length = 12): string {
@@ -63,6 +65,28 @@ function verifierStatus(caseFile: CaseFile): string {
 export function receiptMarkdown(caseFile: CaseFile, _lang: "zh" | "en", deployment = "local"): string {
   const plan = caseFile.plan;
   const approval = caseFile.approval;
+  const metrics = currentDecisionMetrics(plan), impact = disruptionScope(plan), unknown = "unknown";
+  const margin = metrics?.margin.new_spend_revenue === "0" && metrics.margin.planned_cost === "0"
+    ? "not applicable (all stock and zero planned cost)"
+    : typeof plan?.margin === "number" && Number.isFinite(plan.margin) ? `${plan.margin.toFixed(2)}%` : unknown;
+  const objectives = { preserve_quantities: "Minimize path quantity deviations, then cost",
+    min_planned_cost: "Minimize planned cost; changes the original preservation priority",
+    preserve_capacity: "Minimize standard manufacturing minutes; changes the original preservation priority" };
+  const objective = plan?.objective ? objectives[plan.objective] : unknown;
+  const retention = plan?.retention_refinement;
+  const retentionNames = { improved: "improved", unchanged: "unchanged", fallback: "incomplete; original plan retained", skipped: "skipped" };
+  const retentionLine = retention?.profile === "fixed-totals-retention-v1" && retention.status in retentionNames
+    ? `- Optional retention experiment: ${retentionNames[retention.status]}; ${retention.retained_before} → ${retention.retained_after} retained units. Original repair/cost optima and totals are fixed; no global minimum ERP-write claim.` : null;
+
+  const impactLines = impact ? [
+    ...impact.demands.map(row => `- Recorded directly linked demand: ${row.orders} orders, ${row.units ?? unknown} units of ${row.product ?? unknown}`),
+    ...impact.supplies.map(row => `- Identified failed supply: ${row.documents} documents, ${row.units ?? unknown} units of ${row.product ?? unknown}`),
+  ] : ["- Directly linked demand and failed supply: unknown; total planning scope is not a substitute."];
+  const marginLines = hasNewSpendBasis(plan) ? [
+    `- New-spend margin: ${margin}`,
+    `- Purchase/manufacturing coverage revenue: ${metrics?.margin.new_spend_revenue ?? unknown} USD; finished-stock coverage: ${metrics?.margin.stock_units ?? unknown} units`,
+    `- Effective floor: ${metrics?.margin.effective_floor_pct ?? unknown}%; cost headroom: ${metrics?.margin.cost_headroom ?? unknown} USD`,
+  ] : [`- Recorded margin (legacy basis): ${margin}; not rechecked against new-spend coverage revenue and cannot establish current floor compliance.`];
   const execution = caseFile.execution;
   const executionStatus = recordedStatus(execution?.status, caseFile.result?.execution_status);
   const simulated = execution?.verifier?.source === "synthetic_executor";
@@ -81,7 +105,8 @@ export function receiptMarkdown(caseFile: CaseFile, _lang: "zh" | "en", deployme
     "",
     "## Exception",
     `- Product: ${caseFile.order.product}`,
-    `- Impact: ${caseFile.order.units} units, ${caseFile.order.ref}`,
+    `- Total planning scope: ${caseFile.order.units} units, ${caseFile.order.ref}`,
+    ...impactLines,
     `- Customer: ${caseFile.order.customer}`,
     `- Disruption: ${caseFile.disruption.kind}`,
     `- Case state: ${caseFile.state}`,
@@ -90,11 +115,17 @@ export function receiptMarkdown(caseFile: CaseFile, _lang: "zh" | "en", deployme
     `- Version: ${caseFile.revision?.version ?? 1}`,
     `- Plan: ${short(plan?.plan_id)}`,
     `- Approval scope: ${scope}`,
+    `- Selected objective: ${objective}`,
+    ...marginLines,
+    ...(retentionLine ? [retentionLine] : []),
+    `- Planned purchase and manufacturing cost: ${plan?.costs?.planned.total ?? plan?.new_spend ?? unknown} USD (includes retained documents; not a cost delta)`,
+    simulated ? "- Simulated checks do not establish task acceptance or a real ERP outcome." : "- Original verification still scores the repair objective; meeting business constraints does not guarantee full marks.",
     "",
     "## Approval and execution",
     `- Approver: ${approval?.approver_label ?? "not recorded"}`,
     `- Approved at: ${approval?.issued_at ?? "not recorded"}`,
     `- Execution: ${executionStatus}`,
+    `- Business document actions: ${execution?.writes?.length ?? unknown}; verified execution steps: ${execution?.readback?.verified_steps ?? unknown} (neither is a database write count)`,
     `- ${simulated ? "Simulated readback" : "Readback"}: ${readback}`,
     `- ${simulated ? "Simulated checks" : original ? "Original verification" : "Verification"}: ${verifier}`,
     "",

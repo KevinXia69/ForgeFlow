@@ -62,7 +62,7 @@ def _contents():
     names |= set(planner_bundle.UPSTREAM_FILES.values())
     names |= {f"forgeflow/recovery/{name}.py" for name in (
         "__init__", "service", "compiler", "readback", "scope_guard", "change_set",
-        "journal", "odoo", "storage", "client", "index",
+        "journal", "odoo", "storage", "client", "index", "margin", "compatibility",
     )}
     names |= {f"forgeflow/executor/{name}.py" for name in (
         "__init__", "bootstrap", "daemon", "handlers", "main", "peer", "protocol",

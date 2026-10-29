@@ -77,6 +77,7 @@ CITATION_FIELDS = {
     "order.units",
     "order.customer",
     "order.due_days",
+    "order.due_days_max",
     "disruption.vendor",
     "plan.new_spend",
     "plan.margin",
@@ -208,7 +209,7 @@ def test_create_prepares_a_case_and_awaits_approval(tmp_path: Path) -> None:
         assert case["approval"] is None
         assert case["execution"] is None
         assert case["reason"] is None
-        assert set(case["order"]) == {"ref", "product", "units", "due_days", "customer"}
+        assert set(case["order"]) == {"ref", "product", "units", "due_days", "due_days_max", "customer"}
         assert set(case["disruption"]) == {"kind", "vendor"}
         assert case["order"]["units"] > 0
         assert case["order"]["due_days"] > 0
@@ -744,6 +745,7 @@ def test_ask_answers_impact_plan_and_execution_from_the_case_file(
             "order.units",
             "order.customer",
             "order.due_days",
+            "order.due_days_max",
             "disruption.vendor",
         }
 
@@ -755,7 +757,8 @@ def test_ask_answers_impact_plan_and_execution_from_the_case_file(
         assert_case_answer(plan_body, case)
         assert "$420.00" in plan_body["answer"]
         assert "31.4%" in plan_body["answer"]
-        assert "27.5%" in plan_body["answer"]
+        assert "Historical margin" in plan_body["answer"]
+        assert "27.5%" not in plan_body["answer"]
         assert "policy" in plan_body["answer"]
         assert {c["field"] for c in plan_body["citations"]} == {
             "plan.new_spend",
@@ -816,7 +819,8 @@ def test_ask_answers_in_chinese_and_keeps_citation_labels_localized(
         assert impact.status_code == 200, impact.text
         impact_body = impact.json()
         assert_case_answer(impact_body, case)
-        assert "订单 SO-1..5" in impact_body["answer"]
+        assert "全案规划范围 SO-1..5" in impact_body["answer"]
+        assert "直接关联订单和失效供给数量未知" in impact_body["answer"]
         assert "50 件" in impact_body["answer"]
         assert "Stonewall Components" in impact_body["answer"]
         assert {c["label"] for c in impact_body["citations"]} >= {

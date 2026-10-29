@@ -48,6 +48,8 @@ ERROR_CODES: dict[str, tuple[str, int, bool]] = {
     "execution_already_running": ("executor_busy", 503, True),
     "plan_preparation_incomplete": ("plan_not_ready", 409, False),
     "original_source_binding_changed": ("plan_binding_changed", 409, False),
+    "margin_basis_requires_reprepare": ("plan_binding_changed", 409, False),
+    "legacy_recovery_authorization_required": ("plan_binding_changed", 409, False),
     "original_execution_binding_changed": ("plan_binding_changed", 409, False),
     "source_bytes_changed": ("plan_binding_changed", 409, False),
     "source_file_missing": ("plan_binding_changed", 409, False),

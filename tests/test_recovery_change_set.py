@@ -273,6 +273,66 @@ def bind(request, snapshot, quantity=10):
     return request, snapshot, blueprint, wrapped
 
 
+def stock_margin_fixture(*, stock=5, unit_cost=3, raw_price=2, raw_stock=0, floor=0.2):
+    """A complete ten-unit demand, partly stocked; all non-stock supply is built."""
+    request, snapshot, _, wrapped = fixture()
+    request["margin"] = floor
+    snapshot["collected_at_utc"] = "2026-01-01T10:00:00+00:00"
+    snapshot["models"]["stock.quant"][0]["quantity"] = stock
+    snapshot["models"]["stock.quant"][1]["quantity"] = raw_stock
+    center = snapshot["models"]["mrp.workcenter"][1]
+    prefix, metadata = center["note"].split(MARKER, 1)
+    values = json.loads(metadata)
+    values["unit_cost"] = unit_cost
+    center["note"] = prefix + MARKER + "\n" + json.dumps(values)
+    snapshot["models"]["product.supplierinfo"][0]["price"] = raw_price
+    snapshot["models"]["purchase.order.line"][0]["price_unit"] = raw_price
+    blueprint = build_blueprint(snapshot, request)
+    plan = wrapped["plan"]
+    built = 10 - stock
+    raw_needed = max(0, built * 2 - raw_stock)
+    plan["expected_new_spend"] = built * unit_cost + raw_needed * raw_price
+    plan["manufacturing_orders"][0].update(quantity=built, unit_cost=unit_cost)
+    plan["purchase_orders"][0].update(quantity=raw_needed, unit_cost=raw_price,
+        offer_key=f"V1|RAW|1|{float(raw_price)}|1")
+    if not built:
+        plan["manufacturing_orders"] = []
+    if not raw_needed:
+        plan["purchase_orders"] = []
+    plan["allocations"][0].update(stock_allocated=stock, assembly_units=built)
+    plan["stock_report"][0]["used"] = stock
+    plan["stock_report"][1]["used"] = min(raw_stock, built * 2)
+    wrapped["blueprint_sha256"] = canonical_hash(blueprint)
+    return request, snapshot, blueprint, wrapped
+
+
+def test_margin_denominator_excludes_finished_stock_and_rejects_previous_false_pass():
+    # Demand sales=1000; spend-backed sales=500; cost=400. The old independent
+    # checker returned 60% and passed a 50% floor; the actual margin is 20%.
+    with pytest.raises(ChangeSetError, match="new-spend margin"):
+        build_change_set(*stock_margin_fixture(unit_cost=76, floor=0.5))
+
+
+def test_margin_checks_publish_the_independently_verified_denominator():
+    result = build_change_set(*stock_margin_fixture(unit_cost=76, floor=0.2))
+    checks = result["projected_state"]["checks"]
+    assert checks["margin_basis"] == "new_spend_coverage_v2"
+    assert checks["new_spend_units"] == checks["stock_units"] == 5
+    assert checks["new_spend_revenue"] == "500"
+    assert checks["projected_new_spend"] == 400
+    assert checks["combined_new_spend_margin"] == 0.2
+
+
+@pytest.mark.parametrize("stock,unit_cost,raw_price,ratio", [(10, 3, 2, None), (5, 0, 0, 1.0)])
+def test_margin_zero_cases_do_not_divide_by_zero_or_invent_coverage(stock, unit_cost, raw_price, ratio):
+    result = build_change_set(*stock_margin_fixture(stock=stock, unit_cost=unit_cost,
+                                                   raw_price=raw_price, floor=0.5))
+    checks = result["projected_state"]["checks"]
+    assert checks["projected_new_spend"] == 0
+    assert checks["combined_new_spend_margin"] == ratio
+    assert checks["stock_units"] == stock and checks["new_spend_units"] == 10 - stock
+
+
 def test_synthetic_all_actions_and_ids():
     inputs = fixture()
     original = copy.deepcopy(inputs)

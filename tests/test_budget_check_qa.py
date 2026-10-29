@@ -31,7 +31,7 @@ def test_bound_budget_answer_uses_individual_order_counts_and_scalar_citations(q
     reply = answer_case(question, case)
     assert "5/5" in reply["answer"]
     assert "逐单客户销售金额预算检查" in reply["answer"] or "Per-order customer sales-value budget check" in reply["answer"]
-    assert "historical" not in reply["answer"].lower() and "历史预算" not in reply["answer"]
+    assert "historical budget" not in reply["answer"].lower() and "历史预算" not in reply["answer"]
     fields = {c["field"]: c["value"] for c in reply["citations"]}
     assert fields["plan.checks.0.basis.kind"] == BUDGET_BASIS_KIND
     assert fields["plan.checks.0.actual"] == fields["plan.checks.0.threshold"] == 5

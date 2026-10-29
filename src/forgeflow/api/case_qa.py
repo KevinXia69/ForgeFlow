@@ -12,9 +12,11 @@ import math
 import re
 from typing import Any
 
+from forgeflow.recovery.margin import MARGIN_BASIS
+
 from ..product.state import execution_result
 from .budget_context import BUDGET_CONTEXT_RULE, budget_statement
-from .impact_context import IMPACT_CONTEXT_RULE, chain_intent, impact_text
+from .impact_context import IMPACT_CONTEXT_RULE, chain_intent, impact_scope_text, impact_text
 
 MODE = "case"
 
@@ -22,8 +24,12 @@ PLANNED_COST_CONTEXT = (
     "For ForgeFlow case facts, plan.new_spend is a legacy field for planned cost: "
     "the proposal's purchasing and manufacturing cost, including retained existing "
     "documents, with existing stock treated as sunk cost. It is not newly created "
-    "purchase value or a cost increase. plan.margin uses that planning-cost basis; "
-    "it is not measured post-execution accounting margin. Customer sales-order "
+    "purchase value or a cost increase. Only plan.margin_basis=new_spend_coverage_v2 "
+    "identifies a corrected new-spend margin: exclude finished-stock revenue from "
+    "its denominator. Legacy margin values and checks cannot establish current "
+    "floor compliance; preserve their historical labels. A zero/zero coverage "
+    "has no percentage, while the zero-spend inequality can pass. None is measured "
+    "post-execution accounting margin. Customer sales-order "
     "budget caps are not a new-purchase authorization limit. Keep cost_delta "
     "unknown without a measured baseline, and do not infer an increment from action kinds. "
 ) + BUDGET_CONTEXT_RULE + IMPACT_CONTEXT_RULE
@@ -142,7 +148,7 @@ _STATE_ZH = {
 }
 _STATUS_ZH = {"pass": "通过", "warn": "警告", "block": "阻断", "unknown": "未知"}
 _CHECK_ZH = {
-    "margin": "规划毛利率",
+    "margin": "新增支出利润率",
     "budget": "历史预算检查",
     "budget_policy": "预算/政策",
     "demand": "需求覆盖",
@@ -172,7 +178,7 @@ _IMPACT_CITATIONS = (
 _PLAN_CITATIONS = (
     ("plan.objective", "Planning preference", "规划偏好"),
     ("plan.new_spend", "Planned cost", "方案规划成本"),
-    ("plan.margin", "Planned margin (%)", "规划毛利率（%）"),
+    ("plan.margin", "Recorded margin (%)", "记录的利润率（%）"),
     ("plan.actions", "Planned changes", "计划变更数"),
     ("plan.policy_sha256", "Policy binding", "策略绑定"),
     ("plan.costs.baseline.total", "Original arrangement planned cost", "原安排规划成本"),
@@ -325,6 +331,10 @@ def _checks_summary(checks: list[dict[str, Any]], lang: str, plan: dict[str, Any
         if code == "budget":
             parts.append(budget_statement(plan, lang, check))
             continue
+        if code == "margin" and plan.get("margin_basis") != MARGIN_BASIS:
+            parts.append("历史利润率检查：旧口径，不证明当前合规" if lang == "zh" else
+                         "Historical margin check: legacy basis; current compliance unverified")
+            continue
         status = check.get("status")
         status_text = _STATUS_ZH.get(status, _text(status)) if lang == "zh" else _text(status)
         separator = "：" if lang == "zh" else ": "
@@ -431,6 +441,10 @@ def _missing_plan(case: dict[str, Any], lang: str) -> dict[str, Any]:
 def _impact_answer(case: dict[str, Any], lang: str, question: str = "") -> dict[str, Any]:
     if chain_intent(question) or isinstance(case.get("plan"), dict) and case["plan"].get("impact_chain") is not None:
         answer, specs = impact_text(case.get("plan"), question, lang)
+        if not chain_intent(question):
+            scope, scope_specs = impact_scope_text(case.get("plan"), lang)
+            answer = scope + "\n\n" + answer
+            specs = scope_specs + specs
         return {"answer": answer, "mode": MODE, "citations": _citations(case, specs + _STATE_CITATIONS, lang)}
     order = case.get("order") if isinstance(case.get("order"), dict) else {}
     disruption = (
@@ -451,17 +465,17 @@ def _impact_answer(case: dict[str, Any], lang: str, question: str = "") -> dict[
         units_text = f"{_number_text(units)} 件" if units is not None else "—"
         disruption_text = f"停机工作中心为 {workcenter}" if outage else f"受影响供应商为 {vendor}"
         answer = (
-            f"订单 {ref} 包含 {units_text} {product}，客户为 {customer}，"
+            f"全案规划范围 {ref} 包含 {units_text} {product}，客户为 {customer}，"
             f"距交付还有 {due_days} 天。{disruption_text}；"
-            "若不采取恢复计划，该客户订单可能延迟。"
+            "缺少可核对的供给关系，直接关联订单和失效供给数量未知；规划总量不代表直接受影响数量。"
         )
     else:
         units = _units(order.get("units")) or _text(order.get("units"))
         disruption_text = f"The unavailable workcenter is {workcenter}" if outage else f"The disrupted supplier is {vendor}"
         answer = (
-            f"Order {ref} covers {units} of {product} for {customer}, "
+            f"The full planning scope {ref} covers {units} of {product} for {customer}, "
             f"due in {due_days} days. {disruption_text}; "
-            "without a recovery plan the customer order may ship late."
+            "without verifiable supply relationships, directly associated orders and failed supply quantities are unknown. Planning totals do not establish direct impact."
         )
     return {
         "answer": answer,
@@ -615,20 +629,27 @@ def _headroom(plan, lang, base="plan"):
     if data is None:
         return (["约束余量记录不足，风险高低未知。" if lang == "zh" else
                  "Constraint headroom is unrecorded; risk level is unknown."], ())
+    if data.get("schema_version") != 2 or data.get("basis", {}).get("margin_basis") != MARGIN_BASIS:
+        return (["历史余量采用旧利润率口径，不能用于当前门槛判断；需要重新准备方案。" if lang == "zh" else
+                 "Historical headroom uses a legacy margin basis; prepare a new plan before comparing with the current floor."], ())
     unknown = "未知" if lang == "zh" else "unknown"
     def money(value):
         return unknown if value is None else f"USD {Decimal(value):,.2f}"
     margin, dates = data["margin"], data["readiness"]
+    no_spend = margin.get("new_spend_revenue") == "0" and margin.get("planned_cost") in ("0", "0.00")
+    ratio = margin["planned_margin_pct"]
+    ratio_text = f"{ratio}%" if ratio is not None else ("不适用" if lang == "zh" else "not applicable") if no_spend else unknown
+    headroom = margin["headroom_pp"] if margin["headroom_pp"] is not None else ("不适用" if lang == "zh" else "not applicable") if no_spend else unknown
     if lang == "zh":
-        lines = [f"规划毛利率 {margin['planned_margin_pct'] or unknown}%，最低要求 {margin['effective_floor_pct']}%，余量 {margin['headroom_pp'] or unknown} 个百分点；毛利约束下的规划成本余量为 {money(margin['cost_headroom'])}。",
+        lines = [f"新增支出利润率 {ratio_text}，最低要求 {margin['effective_floor_pct']}%，余量 {headroom} 个百分点；该约束下的规划成本余量为 {money(margin['cost_headroom'])}。",
             f"{dates['order_count']} 单中，{dates['zero_buffer_orders']} 单无日期缓冲、{dates['late_orders']} 单供应晚于截止、{dates['uncovered_orders']} 单未覆盖需求、{dates['unknown_ready_orders']} 单齐货日期未知。"]
     else:
-        lines = [f"Planned margin {margin['planned_margin_pct'] or unknown}%; required floor {margin['effective_floor_pct']}%; headroom {margin['headroom_pp'] or unknown} percentage points. Planning-cost headroom under that floor: {money(margin['cost_headroom'])}.",
+        lines = [f"New-spend margin {ratio_text}; required floor {margin['effective_floor_pct']}%; headroom {headroom} percentage points. Planning-cost headroom under that floor: {money(margin['cost_headroom'])}.",
             f"Of {dates['order_count']} orders, {dates['zero_buffer_orders']} have no date buffer, {dates['late_orders']} have late supply, {dates['uncovered_orders']} have uncovered demand and {dates['unknown_ready_orders']} have unknown readiness dates."]
     specs = tuple((f"{base}.decision_metrics.{field}", en, zh) for field, en, zh in (
-        ("margin.planned_margin_pct", "Planned margin (%)", "规划毛利率（%）"),
-        ("margin.effective_floor_pct", "Effective margin floor (%)", "有效毛利率门槛（%）"),
-        ("margin.headroom_pp", "Margin headroom (percentage points)", "毛利率余量（百分点）"),
+        ("margin.planned_margin_pct", "New-spend margin (%)", "新增支出利润率（%）"),
+        ("margin.effective_floor_pct", "Effective new-spend margin floor (%)", "有效新增支出利润率门槛（%）"),
+        ("margin.headroom_pp", "New-spend margin headroom (percentage points)", "新增支出利润率余量（百分点）"),
         ("margin.cost_headroom", "Planning-cost headroom", "规划成本余量"),
         ("readiness.order_count", "Recorded orders", "记录订单数"),
         ("readiness.zero_buffer_orders", "Orders without date buffer", "无日期缓冲订单数"),
@@ -754,6 +775,7 @@ def _plan_answer(case: dict[str, Any], lang: str) -> dict[str, Any]:
     count = len(actions) if isinstance(actions, list) else 0
     new_spend = _money(plan.get("new_spend"))
     margin = _percent(plan.get("margin"))
+    corrected_margin = plan.get("margin_basis") == MARGIN_BASIS
     policy = plan.get("policy_sha256")
     policy_text = (
         f"{policy[:12]}…" if isinstance(policy, str) and len(policy) > 12 else policy
@@ -777,11 +799,19 @@ def _plan_answer(case: dict[str, Any], lang: str) -> dict[str, Any]:
                 f"方案规划成本为 {new_spend}，包含规划采购与制造成本以及保留的既有单据；"
                 "这不是相对原方案的成本增量。"
             )
-        if margin is not None:
+        if margin is not None and not corrected_margin:
+            parts.append(f"历史利润率记录为 {margin}，口径尚未统一；不能据此判断当前新增支出利润率门槛，也不是执行后实际毛利率。")
+        elif margin is not None:
             if threshold is not None:
-                parts.append(f"同一规划成本口径的规划毛利率为 {margin}，门槛为 {threshold}；不是执行后实际毛利率。")
+                parts.append(f"新增支出利润率为 {margin}，门槛为 {threshold}；分母不含现有成品库存覆盖的销售收入。")
             else:
-                parts.append(f"同一规划成本口径的规划毛利率为 {margin}；不是执行后实际毛利率。")
+                parts.append(f"新增支出利润率为 {margin}；分母不含现有成品库存覆盖的销售收入。")
+        if corrected_margin:
+            if margin is None:
+                parts.append("新增支出利润率不适用：覆盖收入与计划费用均为零。"
+                             if margin_check and margin_check.get("actual") == "not applicable" else
+                             "新增支出利润率未知，不能从缺失值推断合规。")
+            parts.append("该指标不是执行后实际毛利率。")
         if isinstance(policy_text, str) and policy_text:
             parts.append(f"计划绑定策略 {policy_text}。")
         if any(check.get("code") in ("budget", "budget_policy") for check in checks):
@@ -796,17 +826,24 @@ def _plan_answer(case: dict[str, Any], lang: str) -> dict[str, Any]:
                 f"Planned cost is {new_spend}, covering planned purchasing and manufacturing "
                 "including retained existing documents; it is not an increase over the original plan."
             )
-        if margin is not None:
+        if margin is not None and not corrected_margin:
+            parts.append(f"Historical margin is {margin} on a legacy basis; it does not establish compliance with the current new-spend floor and is not measured post-execution accounting margin.")
+        elif margin is not None:
             if threshold is not None:
                 parts.append(
-                    f"Planned margin is {margin} against a {threshold} threshold on the same "
-                    "planning-cost basis, not measured post-execution accounting margin."
+                    f"New-spend margin is {margin} against a {threshold} threshold; "
+                    "its denominator excludes sales covered by finished stock."
                 )
             else:
                 parts.append(
-                    f"Planned margin is {margin} on the same planning-cost basis, "
-                    "not measured post-execution accounting margin."
+                    f"New-spend margin is {margin}; its denominator excludes sales covered by finished stock."
                 )
+        if corrected_margin:
+            if margin is None:
+                parts.append("New-spend margin is not applicable: covered revenue and planned cost are both zero."
+                             if margin_check and margin_check.get("actual") == "not applicable" else
+                             "New-spend margin is unknown; missing values cannot establish compliance.")
+            parts.append("This is not measured post-execution accounting margin.")
         if isinstance(policy_text, str) and policy_text:
             parts.append(f"The plan is bound to policy {policy_text}.")
         if any(check.get("code") in ("budget", "budget_policy") for check in checks):

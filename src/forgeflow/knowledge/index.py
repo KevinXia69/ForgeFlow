@@ -34,6 +34,8 @@ _SKIP_DOC_NAMES = frozenset({
     "对标研究计划.md",
     "国内赛与黑客松提交要求对照.md",
     "NEXT_PHASE_DSH_REUSE.md",
+    "NEXT_PHASE_DEVELOPMENT_PLAN.md",
+    "RECORDING_CORRECTIONS.md",
 })
 _WORD = re.compile(r"[a-z0-9]+")
 _CJK = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]+")

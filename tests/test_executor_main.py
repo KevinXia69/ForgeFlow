@@ -150,6 +150,7 @@ def test_build_server_wires_handlers(tmp_path: Path, monkeypatch: pytest.MonkeyP
         "store": tmp_path / "store", "bundle": tmp_path / "bundle",
         "approval_store": tmp_path / "approvals", "require_grant": False,
         "policy_file": tmp_path / "policy.json",
+        "retention_profile": None,
     }
     assert server.handlers == Handlers(recovery.prepare, recovery.apply, recovery.status)
     assert server.handlers.health is None

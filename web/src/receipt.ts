@@ -1,3 +1,5 @@
+import { hasNewSpendBasis, currentDecisionMetrics } from "./decisionSummary";
+import { disruptionScope } from "./impactFacts";
 import type { CaseFile } from "./types";
 
 type Lang = "zh" | "en";
@@ -83,6 +85,39 @@ function verifierStatus(caseFile: CaseFile, lang: Lang): string {
 export function receiptMarkdown(caseFile: CaseFile, lang: Lang, deployment = "local"): string {
   const plan = caseFile.plan;
   const approval = caseFile.approval;
+  const metrics = currentDecisionMetrics(plan);
+  const impact = disruptionScope(plan);
+  const unknown = lang === "zh" ? "未知" : "unknown";
+  const margin = metrics?.margin.new_spend_revenue === "0" && metrics.margin.planned_cost === "0"
+    ? lang === "zh" ? "不适用（全现货且计划费用为零）" : "not applicable (all stock and zero planned cost)"
+    : typeof plan?.margin === "number" && Number.isFinite(plan.margin) ? `${plan.margin.toFixed(2)}%` : unknown;
+  const objectives = {
+    preserve_quantities: lang === "zh" ? "先最小化路径数量偏移，再降低费用" : "Minimize path quantity deviations, then cost",
+    min_planned_cost: lang === "zh" ? "优先降低计划费用；改变原题保留优先级" : "Minimize planned cost; changes the original preservation priority",
+    preserve_capacity: lang === "zh" ? "优先减少标准制造工时；改变原题保留优先级" : "Minimize standard manufacturing minutes; changes the original preservation priority",
+  };
+  const objective = plan?.objective ? objectives[plan.objective] : unknown;
+  const retention = plan?.retention_refinement;
+  const retentionNames = lang === "zh" ? { improved: "已改进", unchanged: "未改进", fallback: "未完成，沿用原方案", skipped: "已跳过" }
+    : { improved: "improved", unchanged: "unchanged", fallback: "incomplete; original plan retained", skipped: "skipped" };
+  const retentionLine = retention?.profile === "fixed-totals-retention-v1" && retention.status in retentionNames
+    ? lang === "zh" ? `- 可选保留实验：${retentionNames[retention.status]}；保留量 ${retention.retained_before} → ${retention.retained_after} 件。固定原修复目标、费用及总量，不保证全局最少 ERP 写入。`
+      : `- Optional retention experiment: ${retentionNames[retention.status]}; ${retention.retained_before} → ${retention.retained_after} retained units. Original repair/cost optima and totals are fixed; no global minimum ERP-write claim.` : null;
+
+  const impactLines = impact ? [
+    ...impact.demands.map(row => lang === "zh" ? `- 已记录直接关联需求：${row.orders} 张订单，${row.units ?? unknown} 件 ${row.product ?? unknown}`
+      : `- Recorded directly linked demand: ${row.orders} orders, ${row.units ?? unknown} units of ${row.product ?? unknown}`),
+    ...impact.supplies.map(row => lang === "zh" ? `- 已识别失效供给：${row.documents} 张单据，${row.units ?? unknown} 件 ${row.product ?? unknown}`
+      : `- Identified failed supply: ${row.documents} documents, ${row.units ?? unknown} units of ${row.product ?? unknown}`),
+  ] : [lang === "zh" ? "- 直接关联需求与失效供给：未知；不能用全案规模代替。" : "- Directly linked demand and failed supply: unknown; total planning scope is not a substitute."];
+  const marginLines = hasNewSpendBasis(plan) ? [
+    lang === "zh" ? `- 新增支出利润率：${margin}` : `- New-spend margin: ${margin}`,
+    lang === "zh" ? `- 采购／制造覆盖收入：${metrics?.margin.new_spend_revenue ?? unknown} USD；现货覆盖：${metrics?.margin.stock_units ?? unknown} 件`
+      : `- Purchase/manufacturing coverage revenue: ${metrics?.margin.new_spend_revenue ?? unknown} USD; finished-stock coverage: ${metrics?.margin.stock_units ?? unknown} units`,
+    lang === "zh" ? `- 有效下限：${metrics?.margin.effective_floor_pct ?? unknown}%；费用余量：${metrics?.margin.cost_headroom ?? unknown} USD`
+      : `- Effective floor: ${metrics?.margin.effective_floor_pct ?? unknown}%; cost headroom: ${metrics?.margin.cost_headroom ?? unknown} USD`,
+  ] : [lang === "zh" ? `- 历史记录利润率（旧口径）：${margin}；未按新增支出覆盖收入复核，不能用于当前门槛判断。`
+    : `- Recorded margin (legacy basis): ${margin}; not rechecked against new-spend coverage revenue and cannot establish current floor compliance.`];
   const execution = caseFile.execution;
   const executionStatus = recordedStatus(execution?.status, caseFile.result?.execution_status, lang);
   const simulated = execution?.verifier?.source === "synthetic_executor";
@@ -103,7 +138,8 @@ export function receiptMarkdown(caseFile: CaseFile, lang: Lang, deployment = "lo
     "",
     "## 异常",
     `- 产品：${caseFile.order.product}`,
-    `- 影响：${caseFile.order.units} 台，${caseFile.order.ref}`,
+    `- 全案规划范围：${caseFile.order.units} 件，${caseFile.order.ref}`,
+    ...impactLines,
     `- 客户：${caseFile.order.customer}`,
     `- 异常：${caseFile.disruption.kind}`,
     `- 案例状态：${caseFile.state}`,
@@ -112,11 +148,17 @@ export function receiptMarkdown(caseFile: CaseFile, lang: Lang, deployment = "lo
     `- 版本：${caseFile.revision?.version ?? 1}`,
     `- 方案标识：${short(plan?.plan_id)}`,
     `- 批准范围：${scope}`,
+    `- 选定目标：${objective}`,
+    ...marginLines,
+    ...(retentionLine ? [retentionLine] : []),
+    `- 计划采购与制造费用：${plan?.costs?.planned.total ?? plan?.new_spend ?? unknown} USD（包含保留单据，不是费用增量）`,
+    simulated ? "- 模拟检查不证明任务真实通过或 ERP 真实执行。" : "- 原始验收仍按修复目标评分；满足业务约束不保证原题满分。",
     "",
     "## 批准与执行",
     `- 批准主体：${actorName(approval?.approver_label, "zh")}`,
     `- 批准时间：${approval?.issued_at ?? "未记录"}`,
     `- 执行状态：${executionStatus}`,
+    `- 业务单据动作：${execution?.writes?.length ?? unknown}；已确认执行步骤：${execution?.readback?.verified_steps ?? unknown}（均不代表数据库写入次数）`,
     `- ${simulated ? "模拟回读" : "回读"}：${readback}`,
     `- ${simulated ? "模拟检查" : original ? "原始验收" : "验收"}：${verifier}`,
     "",
@@ -140,7 +182,8 @@ export function receiptMarkdown(caseFile: CaseFile, lang: Lang, deployment = "lo
     "",
     "## Exception",
     `- Product: ${caseFile.order.product}`,
-    `- Impact: ${caseFile.order.units} units, ${caseFile.order.ref}`,
+    `- Total planning scope: ${caseFile.order.units} units, ${caseFile.order.ref}`,
+    ...impactLines,
     `- Customer: ${caseFile.order.customer}`,
     `- Disruption: ${caseFile.disruption.kind}`,
     `- Case state: ${caseFile.state}`,
@@ -149,11 +192,17 @@ export function receiptMarkdown(caseFile: CaseFile, lang: Lang, deployment = "lo
     `- Version: ${caseFile.revision?.version ?? 1}`,
     `- Plan: ${short(plan?.plan_id)}`,
     `- Approval scope: ${scope}`,
+    `- Selected objective: ${objective}`,
+    ...marginLines,
+    ...(retentionLine ? [retentionLine] : []),
+    `- Planned purchase and manufacturing cost: ${plan?.costs?.planned.total ?? plan?.new_spend ?? unknown} USD (includes retained documents; not a cost delta)`,
+    simulated ? "- Simulated checks do not establish task acceptance or a real ERP outcome." : "- Original verification still scores the repair objective; meeting business constraints does not guarantee full marks.",
     "",
     "## Approval and execution",
     `- Approver: ${actorName(approval?.approver_label, "en")}`,
     `- Approved at: ${approval?.issued_at ?? "not recorded"}`,
     `- Execution: ${executionStatus}`,
+    `- Business document actions: ${execution?.writes?.length ?? unknown}; verified execution steps: ${execution?.readback?.verified_steps ?? unknown} (neither is a database write count)`,
     `- ${simulated ? "Simulated readback" : "Readback"}: ${readback}`,
     `- ${simulated ? "Simulated checks" : original ? "Original verification" : "Verification"}: ${verifier}`,
     "",

@@ -21,12 +21,12 @@ def test_read_only_key_403_evidence() -> None:
 
 
 def test_hundred_point_run_evidence() -> None:
-    result = answer("100.0 workflow-a-off-20261020-01", ROOT)
+    result = answer("execution.verifier.score 100.00", ROOT)
     assert result["found"]
     text = "\n".join(
         line for citation in result["citations"] for line in evidence_lines(ROOT, citation)
     )
-    assert "100.0" in text or "workflow-a-off-20261020-01" in text
+    assert "execution.verifier.score" in text and "100.00" in text
 
 
 def test_nonsense_query_returns_nothing() -> None:
@@ -68,7 +68,7 @@ def test_symlinked_document_is_skipped(tmp_path: Path) -> None:
 def test_internal_workbench_backlogs_are_not_shipped_capability_evidence(tmp_path: Path) -> None:
     docs = tmp_path / "docs"
     docs.mkdir()
-    for name in ("ForgeFlow_下一阶段开发方案_v9.md", "ForgeFlow_下一阶段开发方案_v10.md", "V9_实施记录.md"):
+    for name in ("ForgeFlow_下一阶段开发方案_v9.md", "ForgeFlow_下一阶段开发方案_v10.md", "V9_实施记录.md", "NEXT_PHASE_DEVELOPMENT_PLAN.md", "RECORDING_CORRECTIONS.md"):
         (docs / name).write_text("# Proposed\n\nUnimplemented future automatic approvals.")
     (docs / "verified.md").write_text("# Verified\n\nApprovals remain required.")
     assert {p.path for p in DocumentIndex(tmp_path).passages()} == {"docs/verified.md"}

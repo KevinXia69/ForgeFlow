@@ -9,7 +9,7 @@ IMPACT_CONTEXT_RULE = (
     "Impact-chain baseline edges establish recorded association scope, not allocated quantities or certain delay. "
     "Planned edges describe product-specific allocations, not physical receipts or delivery. Component quantities "
     "belong to the entire manufacturing order, not its allocation to an individual sales order. "
-    "Missing relationships are unknown, not absent. Actual execution and original verification remain separate. "
+    "Total planning demand must not be called directly affected demand. Direct scope follows baseline disruption links, with failed supply and linked full order demand grouped separately by SKU. Missing relationships are unknown, not absent. Actual execution and original verification remain separate. "
 )
 
 
@@ -34,15 +34,100 @@ def checked_chain(plan):
         return None
 
 
+def _direct_scope(chain):
+    """Aggregate distinct baseline nodes reached from recorded disruption links."""
+    roots = {node["key"] for node in chain["nodes"] if node["kind"] == "disruption"}
+    initial = [(index, edge) for index, edge in enumerate(chain["edges"])
+               if edge["phase"] == "baseline" and edge["relation"] == "disruption_scope"
+               and edge["from"] in roots]
+    broken = {edge["to"] for _, edge in initial}
+    if not broken:
+        return None, (), (), ()
+    reached = set(broken)
+    used_edges = {index for index, _ in initial}
+    changed = True
+    while changed:
+        changed = False
+        for index, edge in enumerate(chain["edges"]):
+            if edge["phase"] != "baseline" or edge["from"] not in reached:
+                continue
+            used_edges.add(index)
+            if edge["to"] not in reached:
+                reached.add(edge["to"])
+                changed = True
+    nodes = {node["key"]: node for node in chain["nodes"]}
+    orders = [(index, row) for index, row in enumerate(chain["orders"])
+              if row["node_key"] in reached]
+    supplies = [(index, node) for index, node in enumerate(chain["nodes"]) if node["key"] in broken]
+
+    def groups(rows, kind):
+        result = {}
+        for _, row in rows:
+            node = nodes[row["node_key"]] if kind == "demand" else row
+            product = node["product_code"]
+            group = result.setdefault(product, {"product_code": product, "count": 0, "units": 0})
+            quantity = row["readiness"]["demand_units"] if kind == "demand" else row["quantity"]
+            group["count"] += 1
+            if quantity is None or group["units"] is None:
+                group["units"] = None
+            else:
+                group["units"] += quantity
+        return sorted(result.values(), key=lambda row: row["product_code"] or "")
+
+    return {"status": "recorded", "direct_order_count": len(orders) or None,
+            "linked_demand_by_product": groups(orders, "demand"),
+            "failed_supply_by_product": groups(supplies, "supply")}, \
+        tuple(index for index, _ in orders), tuple(index for index, _ in supplies), tuple(sorted(used_edges))
+
+
+def impact_scope_text(plan, lang):
+    """Return direct-scope aggregates and the scalar facts used to derive them."""
+    zh = lang == "zh"
+    chain = checked_chain(plan)
+    specs = [("plan.plan_id", "Selected plan", "当前方案")]
+    scope, order_indices, supply_indices, edge_indices = _direct_scope(chain) if chain else (None, (), (), ())
+    if scope is None:
+        return (("直接关联订单需求和失效供给数量尚未记录；全案规划规模不能代替直接受影响范围。" if zh else
+                 "Directly linked order demand and failed supply quantities are not recorded; total planning scope cannot substitute for direct disruption scope."), tuple(specs))
+    unknown = "未知" if zh else "unknown"
+    lines = []
+    if not scope["linked_demand_by_product"]:
+        lines.append("直接关联订单需求未知。" if zh else "Directly linked order demand is unknown.")
+    for row in scope["linked_demand_by_product"]:
+        units = row["units"] if row["units"] is not None else unknown
+        product = row["product_code"] or unknown
+        lines.append(f"已记录直接关联需求：{row['count']} 张订单，共 {units} 件 {product}。" if zh else
+                     f"Recorded directly linked demand: {row['count']} orders, {units} units of {product}.")
+    for row in scope["failed_supply_by_product"]:
+        units = row["units"] if row["units"] is not None else unknown
+        product = row["product_code"] or unknown
+        lines.append(f"已识别失效供给：{row['count']} 张单据，{units} 件 {product}。" if zh else
+                     f"Identified failed supply: {row['count']} documents, {units} units of {product}.")
+    lines.append("关联订单的完整需求不等于失效供给；没有直接关联记录也不代表绝无间接影响。" if zh else
+                 "Linked orders show their full demand, not failed supply. Missing direct links do not rule out indirect effects.")
+    for index in order_indices:
+        for field in ("order_ref", "node_key", "readiness.demand_units"):
+            specs.append((f"plan.impact_chain.orders.{index}.{field}", "Linked order evidence", "关联订单依据"))
+    for index in supply_indices:
+        for field in ("key", "kind", "product_code", "quantity"):
+            specs.append((f"plan.impact_chain.nodes.{index}.{field}", "Failed supply evidence", "失效供给依据"))
+    for index in edge_indices:
+        for field in ("from", "to", "relation", "phase"):
+            specs.append((f"plan.impact_chain.edges.{index}.{field}", "Direct scope relationship", "直接影响关系"))
+    return " ".join(lines), tuple(specs)
+
+
 def impact_summary(plan):
     if not isinstance(plan, dict) or plan.get("impact_chain") is None:
         return None
     data = checked_chain(plan)
     if data is None:
         return {"status": "invalid; no relationship claims supported"}
+    direct, _, _, _ = _direct_scope(data)
     return {"status": "recorded", "order_count": len(data["orders"]),
             "orders_with_baseline_relationship": sum(bool(row["baseline_edge_keys"]) for row in data["orders"]),
-            "detail": "Detailed paths omitted. Counts do not establish individual relationships, allocations or actual delivery."}
+            "direct_scope": direct or {"status": "unknown"},
+            "detail": "Direct scope follows recorded baseline disruption-to-supply-to-order paths. Linked demand and failed supply are separate SKU-specific quantities; neither establishes delay or actual delivery."}
 
 
 def _matches(question, label):

@@ -17,6 +17,45 @@ export function boundImpactChain(plan: ProductPlan | null | undefined): ProductI
   return chain;
 }
 
+/** Follow only recorded baseline relationships, never use the whole case as disruption scope. */
+export function disruptionScope(plan: ProductPlan | null | undefined) {
+  const chain = boundImpactChain(plan);
+  if (!chain) return null;
+  const roots = new Set(chain.nodes.filter(node => node.kind === "disruption").map(node => node.key));
+  const brokenKeys = new Set(chain.edges.filter(edge => edge.phase === "baseline"
+    && edge.relation === "disruption_scope" && roots.has(edge.from)).map(edge => edge.to));
+  if (!brokenKeys.size) return null;
+  const reached = new Set(brokenKeys);
+  for (let changed = true; changed;) {
+    changed = false;
+    for (const edge of chain.edges) if (edge.phase === "baseline" && reached.has(edge.from) && !reached.has(edge.to)) {
+      reached.add(edge.to); changed = true;
+    }
+  }
+  const orders = chain.orders.filter(order => reached.has(order.node_key));
+  const demands = [...new Set(orders.map(order => chain.nodes.find(node => node.key === order.node_key)?.product_code))].map(product => {
+    const rows = orders.filter(order => chain.nodes.find(node => node.key === order.node_key)?.product_code === product);
+    const quantities = rows.map(order => order.readiness?.demand_units);
+    return { product: product ?? null, orders: rows.length, units: quantities.every(value => typeof value === "number" && Number.isFinite(value))
+      ? quantities.reduce((total, value) => total + value, 0) : null };
+  });
+  const supplies = chain.nodes.filter(node => brokenKeys.has(node.key));
+  const products = [...new Set(supplies.map(node => node.product_code))];
+  return { orders: orders.length || null, units: demands.length === 1 ? demands[0].units : null, demands,
+    supplies: products.map(product => {
+      const rows = supplies.filter(node => node.product_code === product);
+      return { product, documents: rows.length, units: rows.every(row => typeof row.quantity === "number" && Number.isFinite(row.quantity))
+        ? rows.reduce((total, row) => total + row.quantity!, 0) : null };
+    }) };
+}
+export function disruptionScopeLines(plan: ProductPlan | null | undefined, t: Translate): string[] {
+  const scope = disruptionScope(plan), unknown = t("v9.unknown");
+  if (!scope) return [t("scope.unknown")];
+  return [...(scope.demands.length ? scope.demands.map(row => t("scope.linked", { orders: row.orders, units: row.units ?? unknown, product: row.product ?? unknown })) : [t("scope.unknown")]),
+    ...scope.supplies.map(row => t("scope.supply", { documents: row.documents, units: row.units ?? unknown, product: row.product ?? unknown })),
+    t("scope.note")];
+}
+
 export function impactScope(chain: ProductImpactChain, order: ImpactOrder, phase: "baseline" | "planned") {
   const nodeKeys = new Set(phase === "baseline" ? order.baseline_node_keys : order.planned_node_keys);
   const edgeKeys = new Set(phase === "baseline" ? order.baseline_edge_keys : order.planned_edge_keys);

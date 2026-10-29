@@ -7,15 +7,15 @@ HTTPS Host/Origin; this verifies the backends, not the external HTTPS gateway.
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from contextlib import closing
 import hashlib
 import json
 import os
-from pathlib import Path
 import subprocess
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import closing
+from pathlib import Path
 
 import httpx
 

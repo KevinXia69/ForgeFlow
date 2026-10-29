@@ -72,7 +72,10 @@ for (const [lang, locale] of [["zh", "zh-CN"], ["en", "en-US"]]) {
   });
 
   // A case that is otherwise unrecorded in its checks (untranslated labels, hash value).
-  await page.locator('[data-case-row="true"][data-case-state="awaiting_approval"]').first().click();
+  const awaiting = page.locator('[data-case-row="true"][data-case-state="awaiting_approval"]').first();
+  const checksSource = await awaiting.count() ? "recorded-awaiting-case" : "labelled-demo-no-recorded-case";
+  if (checksSource === "recorded-awaiting-case") await awaiting.click();
+  else await page.locator('[data-open-demo]').click();
   await page.locator("[data-case-detail]").waitFor({ timeout: 20000 });
   await page.waitForTimeout(900);
   await page.screenshot({ path: `${out}screens/${lang}-${tag}-case-checks.png`, fullPage: true });
@@ -108,7 +111,7 @@ for (const [lang, locale] of [["zh", "zh-CN"], ["en", "en-US"]]) {
     })(),
   }));
 
-  log.push(`\n===== ${lang} (${tag}) =====\n${JSON.stringify({ login, list, checks, demo }, null, 1)}`);
+  log.push(`\n===== ${lang} (${tag}) =====\n${JSON.stringify({ login, list, checksSource, checks, demo }, null, 1)}`);
   if (errors.length) log.push(`pageerrors: ${errors.join(" | ")}`);
   await context.close();
 }

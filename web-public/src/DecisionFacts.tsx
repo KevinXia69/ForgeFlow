@@ -1,16 +1,17 @@
 import { useI18n } from "./i18n";
 import { costMoney } from "./costAmounts";
-import { decisionFactLines } from "./decisionSummary";
+import { boundDecisionMetrics, decisionFactLines, retentionFactLines } from "./decisionSummary";
 import type { CaseFile, ProductPlan } from "./types";
 
 export function DecisionFacts({ plan }: { plan: ProductPlan }) {
   const { t, lang } = useI18n();
-  const data = plan.decision_metrics;
+  const data = boundDecisionMetrics(plan);
   const unknown = t("v9.unknown");
   const money = (value: string) => costMoney(value, lang, unknown);
   return <section className="case-section decision-facts" data-decision-facts={plan.plan_id}>
     <h3>{t("decisionFacts.title")}</h3>
     {decisionFactLines(plan, t, lang).map((line, index) => <p key={index}>{line}</p>)}
+    {retentionFactLines(plan, t).map((line, index) => <p className="decision-note" data-retention-refinement="true" key={`retention-${index}`}>{line}</p>)}
     {data && <>
       <p className="decision-note">{t("decisionFacts.note")}</p>
       <details>

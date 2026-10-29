@@ -20,6 +20,24 @@ customer's production ERP. The assistant uses NVIDIA Nemotron through Nebius
 Token Factory. Constraint planning uses CP-SAT, and execution requires your
 explicit approval of the displayed plan.
 
+## Read the quantities and margin correctly
+
+The A case covers 5 orders and 50 units due in 8–10 days. One failed 3-unit
+finished-goods purchase is directly linked to Alpine Theater's 13-unit order,
+due in 10 days. The case total is not the failed supply quantity.
+
+Builds using `new_spend_coverage_v2` show new-spend margin on purchased/manufactured
+coverage revenue, excluding finished stock. For the unchanged A plan this is
+76.7498%, using $20,623.23 revenue and $4,794.94 planned cost. A legacy margin
+label means the old value has not been corrected or newly verified. Historical
+receipts remain original; new source changes need separate deployment acceptance.
+
+Cost/capacity alternatives change the original preservation priority. The
+selected objective appears with the approval scope; original verification still
+scores the repair task. A feasible alternative need not obtain full marks.
+Document actions and verified execution steps are shown separately, and neither
+is a count of database writes. See [current capabilities](current-capabilities.md).
+
 ## Try a complete case
 
 1. Open **New case** and select the supported supplier-cancellation scenario.

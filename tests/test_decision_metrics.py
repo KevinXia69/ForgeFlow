@@ -2,7 +2,7 @@
 import copy
 
 import pytest
-from test_recovery_change_set import fixture
+from test_recovery_change_set import fixture, stock_margin_fixture
 
 from forgeflow.product.capacity import build_capacity_summary
 from forgeflow.product.decision_metrics import build_decision_metrics, project_decision_metrics
@@ -12,8 +12,8 @@ from forgeflow.recovery.product_costs import build_cost_report
 from forgeflow.recovery.storage import digest
 
 
-def facts(*, unknown=False):
-    request, snapshot, blueprint, plan = fixture()
+def facts(*, unknown=False, inputs=None):
+    request, snapshot, blueprint, plan = fixture() if inputs is None else inputs
     snapshot["collected_at_utc"] = "2026-01-01T10:00:00+00:00"
     changes = build_change_set(request, snapshot, blueprint, plan)
     if unknown:
@@ -33,9 +33,12 @@ def test_margin_customer_cap_and_horizon_are_separate_constraints():
     inputs, keys = facts()
     before = copy.deepcopy(inputs)
     result = build_decision_metrics(*inputs, **keys)
+    assert result["schema_version"] == 2
+    assert result["basis"]["margin_basis"] == "new_spend_coverage_v2"
     assert result["margin"] == {"sales_value": "1000", "planned_cost": "70", "original_floor_pct": "20",
         "effective_floor_pct": "20", "planned_margin_pct": "93", "headroom_pp": "73",
-        "max_planning_cost": "800", "cost_headroom": "730"}
+        "max_planning_cost": "800", "cost_headroom": "730", "new_spend_revenue": "1000",
+        "new_spend_units": 10, "stock_units": 0}
     assert result["order_budgets"] == [{"order_ref": "SO1", "sales_value": "1000", "customer_cap": "2000", "headroom": "1000"}]
     center = result["workcenters"][0]
     assert center["used_standard_minutes"] == "30"
@@ -53,6 +56,62 @@ def test_tightened_floor_reduces_headroom_without_changing_original_contract():
     assert result["margin"]["original_floor_pct"] == "20"
     assert result["margin"]["cost_headroom"] == "630"
     assert inputs[0]["margin"] == 0.2
+
+
+def test_stock_changes_margin_denominator_but_not_customer_budget():
+    inputs, keys = facts(inputs=stock_margin_fixture(unit_cost=76))
+    result = build_decision_metrics(*inputs, **keys)
+    assert result["margin"] == {"sales_value": "1000", "new_spend_revenue": "500",
+        "new_spend_units": 5, "stock_units": 5, "planned_cost": "400", "original_floor_pct": "20",
+        "effective_floor_pct": "20", "planned_margin_pct": "20", "headroom_pp": "0",
+        "max_planning_cost": "400", "cost_headroom": "0"}
+    assert result["order_budgets"][0]["sales_value"] == "1000"
+    assert project(result, inputs, keys) == result
+
+
+def test_component_stock_cost_does_not_enter_new_spend_even_without_finished_stock():
+    inputs, keys = facts(inputs=stock_margin_fixture(stock=0, raw_stock=20))
+    result = build_decision_metrics(*inputs, **keys)
+    assert result["margin"]["new_spend_revenue"] == result["margin"]["sales_value"] == "1000"
+    assert result["margin"]["planned_cost"] == "30"
+    assert result["margin"]["planned_margin_pct"] == "97"
+    assert result["margin"]["new_spend_units"] == 10
+
+
+@pytest.mark.parametrize("stock,expected", [(10, None), (5, "100")])
+def test_zero_cost_margin_uses_explicit_coverage(stock, expected):
+    inputs, keys = facts(inputs=stock_margin_fixture(stock=stock, unit_cost=0, raw_price=0))
+    result = build_decision_metrics(*inputs, **keys)
+    assert result["margin"]["planned_margin_pct"] == expected
+    assert result["margin"]["headroom_pp"] == (None if expected is None else "80")
+    assert result["margin"]["max_planning_cost"] == ("0" if stock == 10 else "400")
+    assert result["margin"]["cost_headroom"] == ("0" if stock == 10 else "400")
+    assert project(result, inputs, keys) == result
+
+
+def test_historical_v1_is_read_without_relabelling_or_recomputing():
+    inputs, keys = facts(inputs=stock_margin_fixture(unit_cost=76))
+    legacy = build_decision_metrics(*inputs, **keys)
+    legacy["schema_version"] = 1
+    legacy["basis"].pop("margin_basis")
+    legacy["margin"] = {"sales_value": "1000", "planned_cost": "400", "original_floor_pct": "20",
+        "effective_floor_pct": "20", "planned_margin_pct": "60", "headroom_pp": "40",
+        "max_planning_cost": "800", "cost_headroom": "400"}
+    original = copy.deepcopy(legacy)
+    assert project(legacy, inputs, keys) == original and legacy == original
+    legacy["schema_version"] = 2
+    with pytest.raises(ValueError, match="invalid_decision_metrics"):
+        project(legacy, inputs, keys)
+
+
+@pytest.mark.parametrize("field,value", [("new_spend_revenue", "1000"), ("new_spend_units", 10),
+                                        ("stock_units", False), ("planned_margin_pct", "60")])
+def test_corrected_projection_rejects_changed_coverage_or_legacy_ratio(field, value):
+    inputs, keys = facts(inputs=stock_margin_fixture(unit_cost=76))
+    result = build_decision_metrics(*inputs, **keys)
+    result["margin"][field] = value
+    with pytest.raises(ValueError, match="invalid_decision_metrics"):
+        project(result, inputs, keys)
 
 
 def test_unknown_cost_or_capacity_does_not_become_zero_headroom():

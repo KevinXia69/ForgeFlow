@@ -2,17 +2,35 @@
 
 ForgeFlow separates four concerns that are easy to mix in an agent demo:
 
-1. The **agent** investigates and decides what business change is needed.
+1. The **assistant** investigates through scoped read-only tools; product planning uses CP-SAT and a person chooses and approves the plan.
 2. The **root executor** is the only component allowed to write to Odoo.
 3. The **original verifier** decides whether the business task passed.
-4. The **product API** exposes recorded evidence and approvals without holding
-   ERP or model credentials.
+4. The **product API** exposes evidence, preparation, selection and approval routes; a separately controlled executor owns ERP writes.
 
 Keeping those boundaries explicit is the main architectural choice. A successful
 model response is not treated as task success; only the external verifier can
 produce a score.
 
-## Runtime flow
+Current boundaries and metric versions are defined in [current capabilities](current-capabilities.md).
+The hosted human-approved product path is:
+
+```text
+Case facts → CP-SAT candidates → versioned plan → user choice and approval
+ → controlled ERP executor → journal/readback → original verifier → receipt
+```
+
+Candidate priorities can differ while hard constraints stay fixed. New-spend
+margin uses purchase/manufacturing coverage revenue, excluding finished stock.
+Old metric versions remain historical and cannot authorize a new execution.
+Complete execution supports one finished product and a single-level BoM;
+read-only collection supports deeper acyclic material relationships.
+
+## Autonomous research runtime flow
+
+The research runtime layers run from the agent to the original verifier:
+Harbor starts the Odoo task and Pi agent; the root executor prepares and applies
+recovery plans; the original verifier reads the resulting ERP state and writes
+its acceptance score. The human-approved product workflow above is separate.
 
 ```text
 ERP-Bench task (2280, 2299, held-out, or G4)
@@ -60,8 +78,8 @@ control that shows the environment and verifier chain are alive.
 | Recovery planner | Builds a CP-SAT plan over live Odoo data and maps it to a change set | `plan.json`, `change-set.json` |
 | Root executor | Validates policy, collects the snapshot, prepares, applies, and stores plans | Unix socket protocol, `recovery/` artifacts |
 | Original verifier | Computes the 0-100 score and per-rule results | `verifier/reward.json`, `rule_results.tsv` |
-| Product API | Read-only runs, plans, approvals, knowledge Q&A, settings | `src/forgeflow/api/` |
-| React workbench | Review surface over the API; no ERP write path | `web/` |
+| Product API | Case preparation, candidate selection, approval orchestration, recorded runs and scoped Q&A | `src/forgeflow/api/` |
+| React workbench | Plan review and explicit approval through the API; no direct ERP credential | `web/` |
 | Knowledge index | Offline BM25 retrieval over project Markdown with line citations | `src/forgeflow/knowledge/` |
 
 ## Agent and executor boundary
@@ -137,17 +155,17 @@ security profiles or planner configurations into one success number.
 
 ## Product layer
 
-`forgeflow api` is a FastAPI application. It reads recorded run directories,
-serves the React workbench, manages invite-code sessions, exposes plans and
-one-time approvals, and answers project questions from the knowledge index. It
-does not need `NEBIUS_API_KEY`, does not read `/etc/odoo/api_key`, and has no code
-path that writes to Odoo.
+`forgeflow api` is a FastAPI application. Deployment capabilities determine
+whether it permits reading, preparation, selection and approval. The hosted
+Scenario A installation has persistent per-reviewer APIs, assistants and Odoo
+sandboxes behind an HTTPS gateway. A separate executor applies approved plans;
+the assistant's generated text is never write authorization. See the
+[judge workflow](judge-guide.md) and [deployment guide](deployment.md).
 
-The review deployment is a container that runs as uid/gid 10001, mounts recorded
-runs read-only, stores approvals in a separate writable volume, drops all Linux
-capabilities, uses `no-new-privileges`, and publishes only a local port behind a
-TLS proxy. The public Render instance runs in review mode with the runner
-disabled.
+The earlier Render deployment served recorded runs in read-only review mode.
+That remains a valid review-only configuration, but it does not describe the
+current hosted judge workflow. Historical deployment evidence retains its
+original source and data-profile binding.
 
 ## Knowledge index
 
@@ -176,5 +194,4 @@ and rejects absolute paths, `..`, symlinks, and out-of-range line numbers.
 
 ForgeFlow does not replace ERP-Bench, does not let the agent read reference
 solutions, does not add human approvals to autonomous benchmark runs, does not
-claim that model self-reports are evidence, and does not expose the ERP write path
-through the product API.
+claim that model self-reports are evidence, and does not give the assistant or browser a direct ERP write credential. The product API may dispatch an explicitly approved plan to the controlled executor.

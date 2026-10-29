@@ -60,18 +60,25 @@ ForgeFlow is built for that hour. It does one thing:
 
 ## One case, end to end
 
-A supplier cancels a confirmed purchase order: **5 orders, 50 units, due in 8
-days**.
+The Scenario A planning scope covers **5 orders and 50 units, due in 8–10 days**.
+The disruption is one failed **3-unit finished-goods purchase** linked to Alpine
+Theater's 13-unit order, due in 10 days. Total demand, linked order demand and
+failed supply are separate quantities.
 
-The workbench reads the ERP and solves inside the task's policy contract, which
-sets the budget, the margin floor and the supplier limits. The plan it produces
-costs **$4,794.94**, holds **80% margin against a 27.5% floor**, and changes 2
-documents.
+The historical plan costs **$4,794.94**, including retained purchasing and
+manufacturing commitments. Its 43 purchased/manufactured finished units represent
+**$20,623.23** of coverage revenue: the corrected **new-spend margin is 76.7498%**,
+against a 27.5% floor. The 7 units covered by finished stock are excluded from
+that revenue denominator. The old 80% display used all sales revenue and must
+not be used to establish compliance with this floor.
 
-Nothing is written yet. When you approve, that approval binds this plan version.
-
-Then it writes the 2 documents, reads them back, and the task's acceptance
-program scores **51 out of 51 rules, 100.00 out of 100**.
+The archived execution records **two purchase-document actions** and **seven
+verified execution steps**. Those are distinct counts; neither establishes the
+number of database writes. Its original acceptance passed **51/51 rules and
+100/100 overall**. These are [historical results](./docs/evidence/2026-10-25-vps/README.md),
+not a fresh execution of the corrected version. Original receipts, hashes,
+screenshots and recordings remain unchanged; see the [presentation correction
+checklist](./docs/RECORDING_CORRECTIONS.md) before reusing them.
 
 Three questions to try:
 
@@ -87,6 +94,13 @@ Chat answers questions; writes start only after your approval, and the approval
 expires. The product covers two kinds of disruption, supplier cancellations and
 workcenter outages, on one task family. When the outcome of a write is unknown,
 the case says so and waits for a person.
+
+Complete execution currently supports one finished product and a single-level
+BoM; read-only collection can follow deeper material relationships. The
+`planning-metadata-v1` profile exposes existing manufacturing time, cost and lead
+time in workcenter notes without changing those values. Its visibility is
+enhanced compared with the original task input. See [current capabilities and
+metric definitions](./docs/en/current-capabilities.md).
 
 ## How it differs
 
@@ -175,7 +189,7 @@ Every claim below points at something you can run.
 | How each interface claim is verified | [`web/e2e/`](./web/e2e/) holds six acceptance harnesses, plus contrast and accessibility checks |
 | Whether the two front ends tell one story | `uv run python scripts/check_web_parity.py` compares them |
 | Whether the product still works end to end | `bash scripts/first_look_audit.sh` starts its own read-only API and runs 11 checks |
-| What a finished run looks like | the Evidence screen in the running product, or [`docs/CAPABILITY_MATRIX_EN.md`](./docs/CAPABILITY_MATRIX_EN.md) |
+| What a finished run looks like | the Evidence screen and [current capabilities](./docs/en/current-capabilities.md) |
 | What is simulated and what is real | [`docs/EVIDENCE.md`](./docs/EVIDENCE.md) explains the split |
 
 ## Status

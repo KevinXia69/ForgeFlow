@@ -1,3 +1,5 @@
+import { hasNewSpendBasis, marginLabel, marginValue } from "./decisionSummary";
+import { disruptionScopeLines } from "./impactFacts";
 import { originalScoreThresholdMiss } from "./verificationExplanation";
 import { RecordedRules, productRuleEvaluation } from "./RecordedRules";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
@@ -21,7 +23,7 @@ import { OrderReadiness } from "./OrderReadiness";
 import { ImpactChain } from "./ImpactChain";
 import { downloadReceipt } from "./receipt";
 import { environmentAccessNotice } from "./environmentAccess";
-import { CandidateComparison, candidateName } from "./CandidateComparison";
+import { CandidateComparison, candidateName, candidateExplanation } from "./CandidateComparison";
 import { canContinuePreparation, preparationFailure, preparationMessage, revisionFloor, suggestedRevisionMargin, validRevisionMargin } from "./casePreparation";
 import {
   actionKindClass,
@@ -51,7 +53,6 @@ import {
   formatCheckValue,
   formatCurrency,
   formatDateTime,
-  formatPercent,
   formatQuantity,
   friendlyDocument,
   marginFloor,
@@ -143,6 +144,7 @@ function DecisionSummary({ caseFile, onEvidence }: { caseFile: CaseFile; onEvide
         orders: orders ?? "?",
         units: formatQuantity(caseFile.order.units),
       })}</p>
+      {disruptionScopeLines(caseFile.plan, t).map((line, index) => <p className="decision-note" data-disruption-scope="true" key={index}>{line}</p>)}
       {conclusion ? <p className="case-conclusion" data-case-conclusion="true">{conclusion}</p> : null}
       <div className="case-decision-facts">
         <span><strong>{orders ?? "?"}</strong> {t("v11.decisionOrders")}</span>
@@ -949,6 +951,7 @@ function DecisionPanel({
   return (
     <div className="decision-panel" data-decision-panel="true">
       {plan.objective && <p data-selected-candidate="true">{caseFile.decision?.selection_pending ? `${t("candidate.lastConfirmed")}: ${candidateName(plan, t)}` : t("candidate.selectedScope", { name: candidateName(plan, t) })}</p>}
+      {plan.objective && <p className="decision-note" data-selected-objective="true">{candidateExplanation(plan, t)} {t("candidate.preferenceNote")}</p>}
       {caseFile.decision?.revision_pending && <p className="decision-note" data-displayed-plan="true">{t("v10.oldPlanVersion", { version: caseFile.revision?.version ?? 1 })}</p>}
       <div className="kpi-grid">
         <div className="kpi" data-kpi="new-spend">
@@ -956,9 +959,9 @@ function DecisionPanel({
           <strong className="kpi-value">{formatCurrency(spend)}</strong>
           <span className="kpi-note">{t("decision.newSpendNote")}</span>
         </div>
-        <div className="kpi" data-kpi="margin" data-margin-verified={checksInfo.checks.some(check => check.code.includes("margin") && check.status === "pass") ? "true" : "false"}>
-          <span className="kpi-label">{t("decision.margin")}</span>
-          <strong className="kpi-value">{formatPercent(plan.margin)}</strong>
+        <div className="kpi" data-kpi="margin" data-margin-verified={hasNewSpendBasis(plan) && checksInfo.checks.some(check => check.code.includes("margin") && check.status === "pass") ? "true" : "false"}>
+          <span className="kpi-label">{marginLabel(plan, t)}</span>
+          <strong className="kpi-value">{marginValue(plan, t)}</strong>
           {floor !== null ? (
             <span className="kpi-note">
               {t("decision.marginFloor", { floor })}
@@ -968,7 +971,7 @@ function DecisionPanel({
               {t("decision.marginPlanned")}
             </span>
           )}
-          <span className="kpi-note">{t("decision.marginBasis")}</span>
+          <span className="kpi-note">{t(hasNewSpendBasis(plan) ? "decision.marginBasis" : "decision.marginLegacyNote")}</span>
         </div>
         <div className="kpi" data-kpi="due">
           <span className="kpi-label">{t("decision.due")}</span>

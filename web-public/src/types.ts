@@ -177,10 +177,11 @@ export type ProductCosts = {
 };
 
 export type DecisionMetrics = {
-  schema_version: 1;
+  schema_version: 1 | 2;
   basis: { plan_id: string; snapshot_sha256: string; currency: string; pricing_sha256: string;
+    margin_basis?: "new_spend_coverage_v2";
     cost_basis: "recorded_unit_price_and_manufacturing_standard"; capacity_basis: "planning_horizon_standard_minutes" };
-  margin: { sales_value: string; planned_cost: string | null; original_floor_pct: string; effective_floor_pct: string;
+  margin: { sales_value: string; new_spend_revenue?: string; new_spend_units?: number; stock_units?: number; planned_cost: string | null; original_floor_pct: string; effective_floor_pct: string;
     planned_margin_pct: string | null; headroom_pp: string | null; max_planning_cost: string; cost_headroom: string | null };
   order_budgets: { order_ref: string; sales_value: string; customer_cap: string; headroom: string }[];
   workcenters: { code: string; used_standard_minutes: string | null; horizon_limit_minutes: string | null; headroom_minutes: string | null }[];
@@ -229,6 +230,9 @@ export type ProductImpactChain = {
 };
 
 export type ProductPlan = {
+  retention_refinement?: { profile: "fixed-totals-retention-v1"; status: "improved" | "unchanged" | "fallback" | "skipped";
+    retained_before: number; retained_after: number; reason: string } | null;
+  margin_basis?: "new_spend_coverage_v2" | null;
   decision_metrics?: DecisionMetrics | null;
   plan_id: string;
   order_readiness?: OrderReadinessData | null;

@@ -60,7 +60,9 @@ def load_local_comparison(executor, case, decision, constraints):
                 or context.get("comparison_id") != comparison_id
                 or context["inputs_sha256"] != digest({"request": executor.request,
                     "policy_sha256": plans[0]["policy_sha256"], "constraints": constraints,
-                    "product_objectives": objectives})):
+                    "product_objectives": objectives,
+                    **({"retention_profile": plans[0]["retention_refinement"]["profile"]}
+                       if "retention_refinement" in plans[0] else {})})):
             raise ValueError
         facts = [(plan["policy_sha256"], plan["snapshot_sha256"],
                   digest(plan["costs"]["basis"])) for plan in plans]

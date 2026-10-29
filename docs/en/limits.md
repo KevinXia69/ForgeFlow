@@ -4,7 +4,21 @@ ForgeFlow keeps failed runs and missing measurements in the record. The purpose
 of this document is to make the boundaries explicit so that a successful run is
 not mistaken for a general capability.
 
-## Current v9 validation boundary (2026-10-23)
+## Current scope and historical records
+
+Use [current capabilities](current-capabilities.md) for supported execution scope,
+margin versioning, candidate priorities and current deployment entry points.
+Complete execution supports one finished product and a single-level BoM.
+Default preservation is optimized within a quantity plan, not guaranteed to
+minimize all ERP writes. Cost/capacity preferences change the original
+preservation priority, while the original verifier keeps scoring the repair task.
+Historical margins below retain their original semantics; version 2 uses
+purchase/manufacturing coverage revenue and excludes finished stock.
+
+## Historical v9 validation boundary (2026-10-23)
+
+The following dated observations are retained as history. They are not current
+hosted deployment status or proof of acceptance for a later code revision.
 
 The Ask start page is the default entry in the ForgeFlow React workbench; Cases keeps its own route. DSH SDK/CLI is a
 read-only question-answering bridge, not an approval executor. Native Web is no

@@ -31,6 +31,7 @@ from forgeflow.planning.objectives import (
 )
 from forgeflow.recovery import client
 from forgeflow.recovery.failure import failure_projection
+from forgeflow.recovery.margin import MARGIN_BASIS
 from forgeflow.recovery.product_constraints import (
     ConstraintError,
     canonical_constraints,
@@ -226,6 +227,8 @@ class LocalProductExecutor:
 
     @staticmethod
     def can_execute_plan(case: dict[str, Any], plan: dict[str, Any] | None) -> bool:
+        if (plan or {}).get("margin_basis") != MARGIN_BASIS:
+            return False
         binding = (plan or {}).get("executor_binding")
         if not isinstance(binding, dict) or set(binding) != {"revision", "product"}:
             return False
@@ -432,6 +435,7 @@ class LocalProductExecutor:
         policy: str,
         on_time: bool | None = None,
         constraints: dict[str, Any] | None = None,
+        margin_projection: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         checks: list[dict[str, Any]] = []
 
@@ -439,7 +443,14 @@ class LocalProductExecutor:
         original_floor = threshold_pct
         if constraints and threshold_pct is not None:
             threshold_pct = max(threshold_pct, constraints["minimum_margin_pct"])
-        if margin_pct is None:
+        if margin_projection is not None:
+            if margin_projection.get("margin_basis") != MARGIN_BASIS:
+                raise ProductExecutionError("plan_not_bound")
+            # validate_projection has already applied the exact monetary
+            # inequality. Formatting a rounded percentage cannot change it.
+            margin_status = "pass"
+            margin_actual = "not applicable" if margin_pct is None else _percent_text(margin_pct)
+        elif margin_pct is None:
             margin_status = "unknown"
             margin_actual = None
         elif threshold_pct is None:
@@ -453,13 +464,16 @@ class LocalProductExecutor:
                 margin_status = "block"
         checks.append({
             "code": "margin",
-            "label": "Planned margin floor",
+            "label": "New-spend margin floor",
             "status": margin_status,
             "actual": margin_actual,
             "threshold": (
                 None if threshold_pct is None else _percent_text(threshold_pct)
             ),
-            "source": (f"independent document-cost check; original floor {original_floor:g}%; "
+            "source": (f"independent new-spend coverage check; original floor {original_floor:g}%; "
+                       f"effective floor {threshold_pct:g}%; excludes finished stock revenue"
+                       if margin_projection is not None and original_floor is not None else
+                       f"independent document-cost check; original floor {original_floor:g}%; "
                        f"additional floor {threshold_pct:g}%; not measured accounting margin"
                        if constraints and original_floor is not None else
                        "solver planned purchasing and manufacturing cost, including retained documents; local request margin; not measured accounting margin"),
@@ -622,7 +636,9 @@ class LocalProductExecutor:
                 "request_sha256": digest(self.request), "constraints": constraints,
                 **self._objective_fields(),
                 "inputs_sha256": digest({"request": self.request, "constraints": constraints,
-                                         "policy_sha256": plan["policy_sha256"], **self._objective_fields()})}
+                                         "policy_sha256": plan["policy_sha256"], **self._objective_fields(),
+                                         **({"retention_profile": plan["retention_refinement"]["profile"]}
+                                            if "retention_refinement" in plan else {})})}
 
     def continue_revision(self, case):
         saved = case.get("_preparation") or {}
@@ -801,7 +817,8 @@ class LocalProductExecutor:
         selection_valid = (decision.get("state") in {"prepared", "selected"}
                            and row.get("state") == ("selected" if selected else "candidate")
                            and (candidate_id is not None or selected))
-        if (not self.can_execute_plan(case, {"executor_binding": binding})
+        if (not self.can_execute_plan(case, {"executor_binding": binding,
+                                           "margin_basis": manifest.get("margin_basis")})
                 or not selection_valid
                 or row.get("product") != binding["product"] or digest(manifest) != plan_id
                 or manifest.get("artifacts", {}).get("plan") != digest(plan_record)
@@ -818,6 +835,9 @@ class LocalProductExecutor:
                 or row.get("policy_sha256") != policy or row.get("snapshot_sha256") != snapshot):
             raise ProductExecutionError("plan_not_bound")
         try:
+            from forgeflow.recovery.service import _check_retention_binding
+
+            _check_retention_binding(manifest.get("retention_profile"), plan_record)
             objective = bound_objective(manifest, plan_record)
             if constraints and "product_constraints_sha256" not in manifest:
                 raise ValueError
@@ -837,14 +857,6 @@ class LocalProductExecutor:
         HUB.emit(case["case_id"], "read", "done")
         HUB.emit(case["case_id"], "plan", "done")
         HUB.emit(case["case_id"], "policy", "done")
-        raw_margin = _finite_number(plan.get("margin"))
-        if constraints:
-            checked = (changes.get("projected_state") or {}).get("checks") or {}
-            if (checked.get("product_margin_satisfied") is not True
-                    or checked.get("product_minimum_margin_pct") != constraints["minimum_margin_pct"]):
-                raise ProductExecutionError("plan_not_bound")
-            raw_margin = _finite_number(checked.get("combined_new_spend_margin"))
-        margin_pct = None if raw_margin is None else round(raw_margin * 100, 2)
         # Legacy wire name: the solver includes all projected POs and MO standard
         # manufacturing costs, including retained documents. This is not a delta
         # or the value of newly created purchase orders.
@@ -859,6 +871,18 @@ class LocalProductExecutor:
         bound_snapshot = self._json(directory / "snapshot.json")
         if digest(bound_request) != artifacts.get("request") or digest(bound_snapshot) != snapshot:
             raise ProductExecutionError("plan_not_bound")
+        blueprint = self._json(directory / "blueprint.json")
+        if digest(blueprint) != artifacts.get("blueprint"):
+            raise ProductExecutionError("plan_not_bound")
+        from forgeflow.recovery.change_set import validate_projection
+
+        try:
+            checked = validate_projection(changes, bound_request, bound_snapshot, blueprint,
+                plan_record, product_constraints=constraints, product_objective=objective)
+        except (KeyError, ValueError):
+            raise ProductExecutionError("plan_not_bound") from None
+        raw_margin = _finite_number(checked.get("combined_new_spend_margin"))
+        margin_pct = None if raw_margin is None else round(raw_margin * 100, 2)
         try:
             budget_check = build_budget_check(bound_request, bound_snapshot,
                 plan_id=plan_id, snapshot_sha256=snapshot)
@@ -887,16 +911,22 @@ class LocalProductExecutor:
                     snapshot_sha256=snapshot, product_constraints=constraints, product_objective=objective)
             except (ValueError, KeyError, TypeError):
                 raise ProductExecutionError("plan_not_bound") from None
+        refinement = plan_record.get("retention_refinement")
         return {
             **capacity,
+            **({"retention_refinement": {key: refinement[key] for key in (
+                "profile", "status", "retained_before", "retained_after", "reason") if key in refinement}}
+               if refinement is not None else {}),
             "plan_id": plan_id,
             "actions": self._plan_actions(changes),
             "margin": margin_pct,
+            "margin_basis": MARGIN_BASIS,
             "on_time": on_time,
             "new_spend": new_spend,
             "checks": self._checks(
                 case=case, plan=plan, margin_pct=margin_pct,
                 budget_check=budget_check, policy=policy, on_time=on_time, constraints=constraints,
+                margin_projection=checked,
             ),
             "cost_delta": None,
             "costs": costs,

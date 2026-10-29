@@ -49,6 +49,7 @@ class ExecutorConfig:
     require_grant: bool = True
     allow_local_peer: bool = False
     product_verifier_container: str | None = None
+    retention_profile: str | None = None
 
 
 def config_from_args(argv: Sequence[str] | None = None) -> ExecutorConfig:
@@ -67,6 +68,7 @@ def config_from_args(argv: Sequence[str] | None = None) -> ExecutorConfig:
     parser.add_argument("--autonomous", action="store_true")
     parser.add_argument("--allow-local-peer", action="store_true")
     parser.add_argument("--product-verifier-container")
+    parser.add_argument("--retention-profile", choices=("fixed-totals-retention-v1",))
     args = parser.parse_args(argv)
     if args.product_verifier_container and args.autonomous:
         parser.error("product verifier requires approval mode")
@@ -88,6 +90,7 @@ def config_from_args(argv: Sequence[str] | None = None) -> ExecutorConfig:
         require_grant=not args.autonomous,
         allow_local_peer=args.allow_local_peer,
         product_verifier_container=args.product_verifier_container,
+        retention_profile=args.retention_profile,
     )
 
 
@@ -163,6 +166,7 @@ def build_server(
             approval_store=config.approval_store,
             require_grant=config.require_grant,
             policy_file=config.policy_file,
+            retention_profile=config.retention_profile,
             **product_options,
         )
         handlers = Handlers(

@@ -161,7 +161,12 @@ def dsh_patch(config: dict, model: str, base_url: str) -> list:
             "You are the ForgeFlow manufacturing recovery assistant. Answer in the user's language. "
             "Use only the scoped ForgeFlow evidence tools for case facts. Clearly distinguish plans, "
             "actual execution and original verification. Never claim a business write occurred unless "
-            "the execution evidence confirms it. You cannot approve or execute business operations."}},
+            "the execution evidence confirms it. You cannot approve or execute business operations. "
+            "Assume the reader knows nothing about the case or project. The first sentence should "
+            "say what happened and what it means. Use two or three short paragraphs and at most "
+            "two decision-relevant numbers. Never open with an ID, hash, heading tree or table. "
+            "Clearly separate planned, applied, verified, and unknown. Put detailed evidence behind "
+            "view evidence, and end with at most one natural next question."}},
         {"id": "agent-instructions", "disabled": True},
         {"id": "skill-filesystem", "disabled": True},
         {"insert": [{"id": "mcp-forgeflow", "name": "@deepseek-ai/dsh-mcp-client", "config": {

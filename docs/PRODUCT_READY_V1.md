@@ -1,5 +1,7 @@
 # ForgeFlow product-ready v1
 
+> Historical document. Deployment and capability statements below describe their recorded date and are not the current capability overview. See [current capabilities](en/current-capabilities.md) and the [judge guide](en/judge-guide.md).
+
 > 2026-10-24. Product goal supersedes checklist-chasing. Research R02/R03 and conditional X01–X06 are tracked separately and do not block product readiness.
 
 ## Product promise

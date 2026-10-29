@@ -70,6 +70,7 @@ SCENARIO_A_ORDER: dict[str, Any] = {
     "product": "Clean Room Sealed Fixture",
     "units": 50,
     "due_days": 8,
+    "due_days_max": 10,
     "customer": "5 confirmed sales orders",
 }
 SCENARIO_A_DISRUPTION: dict[str, Any] = {
@@ -224,7 +225,25 @@ def _project_plan(plan: dict[str, Any]) -> dict[str, Any]:
         **({"decision_metrics": _bound_decision_metrics(plan)} if "decision_metrics" in plan else {}),
         **({"impact_chain": _bound_impact_chain(plan)} if "impact_chain" in plan else {}),
         **({"objective": plan["objective"]} if "objective" in plan else {}),
+        **({"margin_basis": plan["margin_basis"]} if "margin_basis" in plan else {}),
+        **({"retention_refinement": _project_retention(plan["retention_refinement"])}
+           if "retention_refinement" in plan else {}),
     }
+
+
+def _project_retention(value):
+    from forgeflow.planning.retention import RETENTION_PROFILE
+
+    if (not isinstance(value, dict) or value.get("profile") != RETENTION_PROFILE
+            or value.get("status") not in {"improved", "unchanged", "fallback", "skipped"}
+            or any(type(value.get(key)) is not int or value[key] < 0
+                   for key in ("retained_before", "retained_after"))
+            or "reason" in value and (not isinstance(value["reason"], str) or len(value["reason"]) > 120)
+            or value["retained_after"] < value["retained_before"]
+            or (value["status"] == "improved") != (value["retained_after"] > value["retained_before"])):
+        raise ValueError("invalid_retention_refinement")
+    return {key: value[key] for key in ("profile", "status", "retained_before", "retained_after", "reason")
+            if key in value}
 
 
 def _bound_checks(plan):
@@ -259,9 +278,25 @@ def _bound_costs(plan):
 
 
 def _bound_decision_metrics(plan):
-    return project_decision_metrics(plan.get("decision_metrics"), plan_id=plan["plan_id"],
+    from forgeflow.recovery.margin import MARGIN_BASIS, margin_ratio
+
+    result = project_decision_metrics(plan.get("decision_metrics"), plan_id=plan["plan_id"],
         snapshot_sha256=plan["snapshot_sha256"], costs=plan.get("costs"),
         capacity=plan.get("capacity"), readiness=plan.get("order_readiness"))
+    if result is not None:
+        current = plan.get("margin_basis") == MARGIN_BASIS
+        if (result["schema_version"] == 2) != current:
+            raise ValueError("decision_metrics_margin_basis_mismatch")
+        if current:
+            from decimal import Decimal
+
+            margin = result["margin"]
+            ratio = (None if margin["planned_cost"] is None else margin_ratio(
+                Decimal(margin["new_spend_revenue"]), Decimal(margin["planned_cost"])))
+            expected = None if ratio is None else round(float(ratio) * 100, 2)
+            if plan.get("margin") != expected:
+                raise ValueError("decision_metrics_margin_value_mismatch")
+    return result
 
 
 def _bound_impact_chain(plan):
@@ -476,6 +511,14 @@ def normalize_plan(case: "ProductCase", value: Any) -> dict[str, Any]:
     }
     if "executor_binding" in value:
         result["executor_binding"] = normalize_executor_binding(case, value["executor_binding"])
+    if "margin_basis" in value:
+        from forgeflow.recovery.margin import MARGIN_BASIS
+
+        if value["margin_basis"] != MARGIN_BASIS:
+            raise ValueError("invalid_margin_basis")
+        result["margin_basis"] = MARGIN_BASIS
+    if "retention_refinement" in value:
+        result["retention_refinement"] = _project_retention(value["retention_refinement"])
     if "objective" in value:
         if type(value["objective"]) is not str or value["objective"] not in PRODUCT_OBJECTIVE_KINDS:
             raise ValueError("invalid_product_objective")

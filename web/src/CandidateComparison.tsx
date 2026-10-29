@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import type { CaseFile, ProductPlan } from "./types";
 import { useI18n, type Translate } from "./i18n";
-import { formatPercent, formatDateTime, shortId } from "./caseUi";
+import { formatDateTime, shortId } from "./caseUi";
 import { costMoney } from "./costAmounts";
+import { marginLabel, marginValue } from "./decisionSummary";
 import { CostBreakdown } from "./CostBreakdown";
 import { DecisionFacts } from "./DecisionFacts";
 import { OrderReadiness } from "./OrderReadiness";
@@ -11,6 +12,11 @@ import { ImpactChain } from "./ImpactChain";
 export function candidateName(plan: Pick<ProductPlan, "objective">, t: Translate): string {
   return t(plan.objective === "preserve_quantities" ? "candidate.quantity" : plan.objective === "min_planned_cost"
     ? "candidate.cost" : plan.objective === "preserve_capacity" ? "candidate.capacity" : "candidate.plan");
+}
+
+export function candidateExplanation(plan: Pick<ProductPlan, "objective">, t: Translate): string {
+  return t(plan.objective === "preserve_quantities" ? "candidate.quantityBody" : plan.objective === "min_planned_cost"
+    ? "candidate.costBody" : plan.objective === "preserve_capacity" ? "candidate.capacityBody" : "candidate.preferenceNote");
 }
 
 export function CandidateComparison({ caseFile, disabled, readOnly = false, onSelect, onResume, onReject, renderPlan }: {
@@ -45,14 +51,14 @@ export function CandidateComparison({ caseFile, disabled, readOnly = false, onSe
           data-candidate={plan.plan_id} data-candidate-selected={selected ? "true" : "false"}>
           <h3>{candidateName(plan, t)}</h3>
           {selected && <p className="candidate-selected" role="status">{t(pending ? "candidate.lastConfirmed" : "candidate.selected")}</p>}
-          <p>{t(plan.objective === "preserve_quantities" ? "candidate.quantityBody" : plan.objective === "min_planned_cost" ? "candidate.costBody" : plan.objective === "preserve_capacity" ? "candidate.capacityBody" : "candidate.preferenceNote")}</p>
+          <p>{candidateExplanation(plan, t)}</p>
           <dl className="candidate-facts">
             <div><dt>{t("candidate.manufactured")}</dt><dd>{plan.capacity?.manufactured_units ?? t("v9.unknown")}</dd></div>
             <div><dt>{t("candidate.finishedPurchase")}</dt><dd>{plan.capacity?.finished_purchase_units ?? t("v9.unknown")}</dd></div>
             <div><dt>{t("candidate.standardMinutes")}</dt><dd data-standard-minutes={plan.plan_id}>{plan.capacity?.standard_minutes == null ? t("v9.unknown") : new Intl.NumberFormat(lang, { maximumFractionDigits: 2 }).format(plan.capacity.standard_minutes)}</dd></div>
             <div><dt>{t("decision.newSpend")}</dt><dd>{money(plan.costs?.planned.total)}</dd></div>
             <div><dt>{t("cost.delta")}</dt><dd>{money(plan.costs?.known_delta)}</dd></div>
-            <div><dt>{t("decision.margin")}</dt><dd>{formatPercent(plan.margin)}</dd></div>
+            <div><dt>{marginLabel(plan, t)}</dt><dd>{marginValue(plan, t)}</dd></div>
             <div><dt>{t("candidate.changes")}</dt><dd>{plan.actions.length}</dd></div>
             <div><dt>{t("decision.due")}</dt><dd>{t(plan.on_time === true ? "case.onTimePlanned" : plan.on_time === false ? "v9.onTimeFailed" : "v9.unknown")}</dd></div>
           </dl>

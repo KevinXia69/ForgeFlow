@@ -9,7 +9,7 @@ const PLAN_IDS = ["a".repeat(64), "b".repeat(64), "c".repeat(64)];
 const stamp = "2026-10-23T12:00:00Z";
 const permissions = { can_approve: true, can_reject: true, can_request_changes: true,
   can_reconcile: false, reason: null, revision_reason: null, blocked_checks: [], unknown_checks: [], warnings: [] };
-const plan = version => ({ plan_id: PLAN_IDS[version - 1], margin: 93, on_time: true, new_spend: 70,
+const plan = version => ({ plan_id: PLAN_IDS[version - 1], margin_basis: "new_spend_coverage_v2", margin: 93, on_time: true, new_spend: 70,
   cost_delta: null, policy_sha256: "d".repeat(64), snapshot_sha256: "e".repeat(64), prepared_at: stamp,
   actions: [{ kind: "cancel_po", document: "PO-FIXTURE", quantity: 10, summary: "Cancel disrupted supply" }],
   checks: [{ code: "margin", label: "Planning margin", status: "pass", actual: "93%", threshold: version === 1 ? "20%" : "90%" }] });

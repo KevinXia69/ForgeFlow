@@ -1,3 +1,4 @@
+import { hasNewSpendBasis } from "./decisionSummary";
 import type { Translate } from "./i18n";
 import type { CaseFile } from "./types";
 import { marginFloor, preparationPending } from "./caseUi";
@@ -35,6 +36,7 @@ export function preparationMessage(caseFile: CaseFile, t: Translate): string {
 }
 
 export function revisionFloor(caseFile: CaseFile): number | null {
+  if (!hasNewSpendBasis(caseFile.plan)) return null;
   const value = caseFile.revision_limits?.effective_margin_pct ?? marginFloor(caseFile.plan);
   return typeof value === "number" && Number.isFinite(value) && value >= 0 && value < 100 ? value : null;
 }

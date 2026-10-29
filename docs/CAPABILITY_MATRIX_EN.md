@@ -1,5 +1,7 @@
 # ForgeFlow Capability Matrix (Public-Safe)
 
+> Historical document. Deployment and capability statements below describe their recorded date and are not the current capability overview. See [current capabilities](en/current-capabilities.md) and the [judge guide](en/judge-guide.md).
+
 Status as of 2026-10-22. Scope: synthetic ERP-Bench repair-plan tasks, single-level BoM, 600-second agent budget. This matrix contains no customer data, credentials, or endorsement claims.
 
 | Capability | Status | Evidence | User-visible label |

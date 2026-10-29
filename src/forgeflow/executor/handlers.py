@@ -61,6 +61,7 @@ class RecoveryHandlers:
         require_grant: bool = True,
         policy_file: Path | None = None,
         product_verifier=None,
+        retention_profile=None,
     ) -> None:
         self.connection_factory = connection_factory
         self.store = Path(store)
@@ -71,6 +72,7 @@ class RecoveryHandlers:
         self.require_grant = require_grant
         self.policy_file = Path(policy_file) if policy_file is not None else self.store.parent / "policy.json"
         self.product_verifier = product_verifier
+        self.retention_profile = service._retention_profile(retention_profile)
 
     def _record_failure(self, op: str, reason: str, detail: str | None = None) -> None:
         """Keep the unmapped service reason for the trial log, never on the wire."""
@@ -139,6 +141,7 @@ class RecoveryHandlers:
                 result = service.prepare_product(
                     None, payload["request"], run_id=run_id, connection_factory=self.connection_factory,
                     store=self.store, bundle=self.bundle, contract=self._contract(),
+                    retention_profile=self.retention_profile,
                     **{k: v for k, v in payload.items() if k != "request"},
                 )
             return {"decision": result}
@@ -257,6 +260,7 @@ class RecoveryHandlers:
         try:
             summary = service.prepare(
                 connection, request, store=self.store, bundle=self.bundle, contract=contract,
+                retention_profile=self.retention_profile,
             )
         except service.RecoveryError as error:
             self._record_failure("prepare", str(error))

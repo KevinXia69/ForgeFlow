@@ -183,9 +183,14 @@ def test_provider_patch_refuses_unreviewed_source():
 
 def test_provider_patch_is_only_in_build_archive_and_after_existing_payload_hook(tmp_path):
     root = OUTPUT_POLICY_SOURCE.parents[3]
-    source = root / "vendor/pi-mono"
+    pinned_path = root / "vendor/pi-mono" / PROVIDER_SOURCE
+    original = pinned_path.read_bytes()
+    # Worktrees may share the pinned checkout through a directory symlink.
+    # Archive a regular test source tree; keep the production symlink rejection.
+    source = tmp_path / "pi-source"
     path = source / PROVIDER_SOURCE
-    original = path.read_bytes()
+    path.parent.mkdir(parents=True)
+    path.write_bytes(original)
     modified, record = patch_provider_source(original)
     assert modified.index(b"const forgeflowPayloadPolicy") > modified.index(
         b"const nextParams = await options?.onPayload"
@@ -203,6 +208,7 @@ def test_provider_patch_is_only_in_build_archive_and_after_existing_payload_hook
     assert archived_record == record
     assert hashlib.sha256(modified).hexdigest() == record["execution_sha256"]
     assert path.read_bytes() == original
+    assert pinned_path.read_bytes() == original
 
 
 @pytest.mark.parametrize("value", [0, -1, True, 1.5, "32768", MODEL_CONTEXT_WINDOW])

@@ -1,5 +1,5 @@
-import { planningAttention, decisionFactLines } from "./decisionSummary";
-import { impactAnswer, impactIntent } from "./impactFacts";
+import { planningAttention, decisionFactLines, hasNewSpendBasis, marginLabel, marginValue } from "./decisionSummary";
+import { impactAnswer, impactIntent, disruptionScopeLines } from "./impactFacts";
 import { recordedDueRange } from "./orderReadinessDates";
 import { originalScoreThresholdMiss } from "./verificationExplanation";
 import { ApiError } from "./api";
@@ -370,7 +370,7 @@ export function normalizeCheckStatus(
 }
 
 export function marginFloor(plan: ProductPlan | null | undefined): number | null {
-  if (!plan?.checks) return null;
+  if (!plan?.checks || !hasNewSpendBasis(plan)) return null;
   for (const check of plan.checks) {
     if (!check.code.includes("margin")) continue;
     if (typeof check.threshold === "number" && Number.isFinite(check.threshold)) {
@@ -439,8 +439,17 @@ export function budgetCheckSummary(plan: ProductPlan | null, t: Translate): stri
   return `${check.label}: ${label}; ${policyCheckValue(check, t)}. ${check.source ?? ""}`;
 }
 
-/** Translate known server descriptions without changing measured values or status. */
+/** Keep recorded values; legacy margin passes cannot establish current compliance. */
 function presentedCheck(check: ProductPlanCheck, t: Translate, plan: ProductPlan | null): PresentedPlanCheck {
+  if (check.code.includes("margin")) {
+    const current = hasNewSpendBasis(plan);
+    const measured = /^independent new-spend coverage check; original floor ([0-9]+(?:\.[0-9]+)?)%; effective floor ([0-9]+(?:\.[0-9]+)?)%; excludes finished stock revenue$/.exec(check.source ?? "");
+    return { ...check, label: t(current ? "v10.checkMargin" : "decision.marginLegacy"),
+      status: current ? check.status : "unknown", threshold: current ? check.threshold : null,
+      source: !current ? t("decision.marginLegacyNote") : measured
+        ? t("v10.sourceRevisedMargin", { original: measured[1], effective: measured[2] }) : t("v10.sourceMargin"),
+    };
+  }
   const budgetBasis = budgetCheckBasis(check, plan);
   if (budgetBasis) return { ...check, budgetBasis,
     label: t(budgetBasis === "per_order" ? "budgetCheck.perOrder" : budgetBasis === "legacy_total" ? "budgetCheck.legacy" : "budgetCheck.unrecorded"),
@@ -501,10 +510,10 @@ export function effectiveChecks(
   if (!plan) return { checks: [], derived: false };
   if (plan.checks && plan.checks.length > 0) {
     return {
-      checks: plan.checks.map((check) => ({
-        ...presentedCheck(check, t, plan),
-        status: normalizeCheckStatus(check.status),
-      })),
+      checks: plan.checks.map((check) => {
+        const presented = presentedCheck(check, t, plan);
+        return { ...presented, status: normalizeCheckStatus(presented.status) };
+      }),
       derived: false,
     };
   }
@@ -530,9 +539,9 @@ export function effectiveChecks(
       },
       {
         code: "margin",
-        label: t("decision.checkMargin"),
+        label: marginLabel(plan, t),
         status: "unknown",
-        actual: formatPercent(plan.margin),
+        actual: marginValue(plan, t),
         threshold: null,
         source: t("case.checkSourcePolicy"),
       },
@@ -1314,6 +1323,7 @@ export function localCaseAnswer(
     return {
       text: `${planIntent || executionIntent ? t("caseChat.answerNoPlan") : t("caseChat.answerCaseFacts", {
         disruption: exceptionText(caseFile, t),
+        impact: disruptionScopeLines(plan, t).join(" "),
         product: caseFile.order.product,
         units: formatQuantity(caseFile.order.units),
         orders: orders ?? t("v9.unknown"),
@@ -1339,6 +1349,7 @@ export function localCaseAnswer(
       text: `${t("caseChat.answerExecution", {
         writes: execution.writes.length,
         records: execution.readback?.records?.length ?? t("runs.notRecorded"),
+        steps: execution.readback?.verified_steps ?? t("runs.notRecorded"),
         verifier,
         plan: shortId(plan.plan_id),
       })}${originalScoreThresholdMiss(execution) ? " " + t("case.scoreThresholdFailure") : ""}${demoLine}`,
@@ -1352,7 +1363,9 @@ export function localCaseAnswer(
       text: `${plan.objective ? t("candidate.selectedScope", { name: candidateLabel(plan) }) + " \n\n" : ""}${t("caseChat.answerPlan", {
         actions: actionCountsLabel(plan.actions, t),
         spend: formatCurrency(spend),
-        margin: formatPercent(plan.margin),
+        margin: marginValue(plan, t),
+        marginLabel: marginLabel(plan, t),
+        marginNote: t(hasNewSpendBasis(plan) ? "decision.marginBasis" : "decision.marginLegacyNote"),
         checks: checksLine,
       })}${demoLine}`,
       citations,
@@ -1364,6 +1377,7 @@ export function localCaseAnswer(
     return {
       text: `${t("caseChat.answerImpact", {
         disruption: exceptionText(caseFile, t),
+        impact: disruptionScopeLines(plan, t).join(" "),
         product: caseFile.order.product,
         units: formatQuantity(caseFile.order.units),
         orders: orders ?? t("v9.unknown"),
@@ -1379,6 +1393,7 @@ export function localCaseAnswer(
     text: `${t("caseChat.answerSummary", {
       caseId: shortId(caseFile.case_id),
       disruption: exceptionText(caseFile, t),
+      impact: disruptionScopeLines(plan, t).join(" "),
       product: caseFile.order.product,
       units: formatQuantity(caseFile.order.units),
       due: dueWindow(caseFile, t),
