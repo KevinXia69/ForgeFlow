@@ -1,6 +1,6 @@
 # 下一阶段开发与验收证据
 
-最终业务代码为 `bf880f2f1a8881809a6da2d89bcd3ba6724f4f81`，ERP-Bench 固定为 `ceba3880af555129b5278e056a0c20f2fb5a0ba9`。后续提交只追加验证工具、文档和公开证据。交付见 [PR #2](https://github.com/KevinXia69/ForgeFlow/pull/2)，运维步骤见 [发布与恢复手册](../../NEXT_PHASE_RELEASE.md)。本轮没有合并主分支或更新公开部署。
+最终业务代码为 `bf880f2f1a8881809a6da2d89bcd3ba6724f4f81`，ERP-Bench 固定为 `ceba3880af555129b5278e056a0c20f2fb5a0ba9`。后续提交只追加验证工具、文档和公开证据。按用户要求直接提交至仓库 `main` 分支，运维步骤见 [发布与恢复手册](../../NEXT_PHASE_RELEASE.md)。本轮没有更新公开部署。
 
 ## 最终默认路径
 
