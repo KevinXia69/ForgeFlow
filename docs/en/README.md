@@ -16,4 +16,7 @@ This folder holds the English reference material that is not part of the product
 
 ## Current UI evidence
 
-The [local sandbox UI screenshots](../media/next-phase/README.md) show the corrected margin and scope definitions. Their source commit and case identities are recorded alongside the files. They do not establish an upgrade of the public deployment. New slides and videos are outside this revision’s delivery scope at the user’s request.
+The [local sandbox UI screenshots](../media/next-phase/README.md) show the corrected margin and scope definitions. Their source commit and case identities are recorded alongside the files. They do not establish an upgrade of the public deployment.
+
+[Watch the two-minute product demo](https://youtu.be/M-sxPCUOrYI) for an approved
+Scenario A sandbox workflow and a separately recorded historical Scenario B result.

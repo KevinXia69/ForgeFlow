@@ -13,6 +13,7 @@ on Nebius Token Factory** explains scoped case and execution evidence. In Pi
 research runs with recovery tools enabled, the agent can request plan preparation
 and execution. **CP-SAT** computes the recovery plans.
 
+[Watch the video](https://youtu.be/M-sxPCUOrYI) ·
 [Two execution modes](#two-execution-modes) · [Try the demo](#try-the-demo) ·
 [Follow one case](#one-case-from-disruption-to-verified-result) ·
 [Scope and evidence](#scope-and-evidence) · [Run locally](#run-the-product-locally) ·
@@ -126,6 +127,11 @@ actions and seven verified execution steps**; neither is a database-write count.
 [Original reward](./docs/evidence/2026-10-28-next-phase/A-final/original-reward.raw.json).
 
 ## Try the demo
+
+**[Watch the two-minute product demo](https://youtu.be/M-sxPCUOrYI).**
+Follow a supplier-recovery plan through review, approval, execution and ERP
+readback in a synthetic Odoo sandbox. The video also shows a separately recorded
+historical workcenter-outage result.
 
 Open [the hosted workbench](https://forgeflowagent.com/app/) with the private judge
 invite supplied with the submission. Follow the [judge guide](./docs/en/judge-guide.md)
