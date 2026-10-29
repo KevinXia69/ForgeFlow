@@ -8,10 +8,13 @@ and presents the original task verifier's result.
 
 Built on two [ERP-Bench](https://github.com/agentic-labs/erp-bench) recovery tasks,
 it reuses their synthetic business data, Odoo environments, planning reference
-solver and acceptance programs. **NVIDIA Nemotron on Nebius Token Factory**
-answers questions from case evidence; **CP-SAT** handles product planning.
+solver and acceptance programs. In the product workbench, **NVIDIA Nemotron
+on Nebius Token Factory** explains scoped case and execution evidence. In Pi
+research runs with recovery tools enabled, the agent can request plan preparation
+and execution. **CP-SAT** computes the recovery plans.
 
-[Try the demo](#try-the-demo) · [Follow one case](#one-case-from-disruption-to-verified-result) ·
+[Two execution modes](#two-execution-modes) · [Try the demo](#try-the-demo) ·
+[Follow one case](#one-case-from-disruption-to-verified-result) ·
 [Scope and evidence](#scope-and-evidence) · [Run locally](#run-the-product-locally) ·
 [Product docs](./docs/en/README.md)
 
@@ -52,14 +55,39 @@ workflow:
 | What am I authorizing? | An expiring approval bound to the selected plan and captured ERP state |
 | What actually happened? | Controlled execution, a persistent journal, ERP readback and a case-bound original-verifier receipt |
 
-**Case → plan and checks → explicit approval → execution → ERP readback → original acceptance.**
+The default product objective minimizes quantity deviations on existing
+supply paths, then planned cost. Alternative product candidates prioritize
+planned cost or manufacturing minutes; equivalent candidates are deduplicated.
 
-The default objective minimizes quantity deviations on existing supply paths,
-then planned cost. Alternatives prioritize planned cost or manufacturing minutes;
-equivalent candidates are deduplicated. The assistant explains the
-case through scoped tools and does not approve or execute writes.
+## Two execution modes
+
+![Product approval and autonomous research paths with shared planning and execution components](docs/media/forgeflow-execution-modes.png)
+
+*The modes reuse planning and execution components, with distinct authorization
+paths and separately identified results.*
+
+- **Product workbench.** The DSH assistant explains scoped case and run evidence
+  through read-only tools. A person reviews and approves a specific plan; the
+  product API validates that approval and initiates controlled execution.
+- **Autonomous research.** In Pi runs with recovery tools enabled, the agent
+  can call `prepare_recovery` and then `execute_recovery(plan_id)`. The research
+  configuration authorizes autonomous execution without per-plan human approval.
+
+Both paths reuse the pinned ERP-Bench CP-SAT reference planner, with ForgeFlow's
+ERP mapping, independent checks and controlled executor. ERP readback records
+what execution changed; the subsequent original ERP-Bench verifier determines
+the task's acceptance result.
+
+The product assistant reads case records and authorized run records exposed to
+its deployment. Product acceptance and autonomous research results remain
+separately identified.
+
+[Architecture](./docs/en/architecture.md) ·
+[Autonomous research results](./docs/en/evaluation.md)
 
 ## One case, from disruption to verified result
+
+This example follows the product approval path in a local Scenario A sandbox.
 
 **1. Existing commitments.** Scenario A contains **5 orders and 50 units**, due
 in **8–10 days**, with 7 finished units in stock. Alpine Theater's order is
@@ -126,9 +154,10 @@ entry points, invitation isolation and preservation of existing state.
 | Historical hosted A | Earlier deployment; real sandbox writes, model calls and separately scoped recovery/concurrency checks | [VPS record](./docs/evidence/2026-10-25-vps/README.md), [reviewer record](./docs/evidence/2026-10-26-reviewers/README.md) |
 | Autonomous research | Separate model-driven trials, with retained passes, failures, timeouts and configuration limits | [Recorded results](./docs/en/evaluation.md), [limits](./docs/en/limits.md) |
 
-The current A/B runs use authorized HTTP approval drivers. The original tasks
-request autonomous execution; passing their business verifier through the
-product workflow is not evidence of autonomous model completion.
+Product acceptance and autonomous research results are reported separately.
+The current local A/B runs use authorized HTTP approval drivers. The original
+tasks request autonomous execution; passing their business verifier through
+the product workflow is not evidence of autonomous model completion.
 
 Complete product execution supports **one finished product and a single-level
 BoM**. The `planning-metadata-v1` profile makes existing manufacturing time,
@@ -173,16 +202,11 @@ stop/resume and troubleshooting; the launcher is for local development.
 
 ## Architecture and development
 
-- **Assistant:** NVIDIA Nemotron 3.5 Super VL (`nvidia/Nemotron-3.5-Super-VL`)
-  via Nebius Token Factory, using scoped case/evidence tools through DSH.
-  [Model settings](./docs/en/model-settings.md).
-- **Planner:** the pinned ERP-Bench CP-SAT reference solver, integrated with
-  live snapshots, candidate objectives and independently checked change sets.
-- **Executor:** ForgeFlow owns approval validation, scoped ERP operations,
-  journaling and readback. Uncertain execution follows controlled recovery.
-- **Verifier:** the original ERP-Bench acceptance programs supply the task result.
-
-See [architecture](./docs/en/architecture.md) and [release/recovery instructions](./docs/NEXT_PHASE_RELEASE.md).
+See [architecture and execution boundaries](./docs/en/architecture.md)
+for the product and research runtimes,
+[model settings](./docs/en/model-settings.md) for Nemotron and DSH
+configuration, and [release and recovery instructions](./docs/NEXT_PHASE_RELEASE.md)
+for operating the controlled executor.
 
 ```text
 src/forgeflow/   API, cases, planning, approval, recovery, verification and Q&A
