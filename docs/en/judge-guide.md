@@ -1,6 +1,8 @@
 # Judge walkthrough
 
-Open [ForgeFlow](https://168.144.242.231/app/) in a current desktop browser.
+Open [ForgeFlow](https://forgeflowagent.com/app/) in a current desktop browser.
+If you previously used the IP address, sign in again with the same invite;
+your workspace and existing cases stay the same.
 Enter the private invite supplied in the competition's testing instructions and
 select **Enter workbench**. Judges do not need a model account, API key, payment,
 software installation, or access to the operator's computer.

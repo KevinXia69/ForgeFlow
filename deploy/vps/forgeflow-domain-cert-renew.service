@@ -1,0 +1,8 @@
+[Unit]
+Description=Renew the ForgeFlow public domain certificate
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/forgeflow-certbot/bin/certbot renew --cert-name forgeflow-domain --quiet --deploy-hook "/usr/sbin/nginx -t && /usr/bin/systemctl reload nginx"

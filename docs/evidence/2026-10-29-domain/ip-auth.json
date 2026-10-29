@@ -1,0 +1,59 @@
+{
+  "checked_at": "2026-10-29T09:54:43.422192+00:00",
+  "base_url": "https://168.144.242.231",
+  "tested_host": "168.144.242.231",
+  "tested_origin": "https://168.144.242.231",
+  "mode": "fresh_reviewers",
+  "frontend_sha256": "5d182326a28d55c206e39bef9063de0001f59c8cb822d8c5b6ef22b6faefc90c",
+  "instances": [
+    {
+      "instance": "judge1",
+      "generation": "0969c133ca7a470cac764bc120f31d94",
+      "available": true,
+      "owned_by_me": false,
+      "live_executor": true,
+      "authenticated_checks_seconds": 0.072,
+      "cookie_origin_and_route_checks": true
+    },
+    {
+      "instance": "judge2",
+      "generation": "a4cd34a3116c476ea10045395a88ca4e",
+      "available": true,
+      "owned_by_me": false,
+      "live_executor": true,
+      "authenticated_checks_seconds": 0.067,
+      "cookie_origin_and_route_checks": true
+    },
+    {
+      "instance": "judge3",
+      "generation": "b63dc85164db4d8cbea28563da9eff43",
+      "available": true,
+      "owned_by_me": false,
+      "live_executor": true,
+      "authenticated_checks_seconds": 0.068,
+      "cookie_origin_and_route_checks": true
+    },
+    {
+      "instance": "judge4",
+      "generation": "6a13a9775bac4716bd6b102e567776a4",
+      "available": true,
+      "owned_by_me": false,
+      "live_executor": true,
+      "authenticated_checks_seconds": 0.07,
+      "cookie_origin_and_route_checks": true
+    },
+    {
+      "instance": "judge5",
+      "generation": "8386383ffe2141c5bf79962b57710f61",
+      "available": true,
+      "owned_by_me": false,
+      "live_executor": true,
+      "authenticated_checks_seconds": 0.066,
+      "cookie_origin_and_route_checks": true
+    }
+  ],
+  "distinct_generations": true,
+  "cross_workspace_cookie_pair_rejected": true,
+  "business_writes": false,
+  "model_calls": false
+}

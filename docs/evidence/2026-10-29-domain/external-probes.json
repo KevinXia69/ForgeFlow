@@ -1,0 +1,146 @@
+{
+  "checked_at": "2026-10-29T09:52:25.430443+00:00",
+  "vantage": "Mac outside VPS, HTTP CONNECT proxy on 127.0.0.1:7897, TLS verification enabled",
+  "entries": [
+    {
+      "host": "forgeflowagent.com",
+      "paths": [
+        {
+          "path": "/api/health",
+          "status": 200,
+          "sha256": "4062edaf750fb8074e7e83e0c9028c94e32468a8b6f1614774328ef045150f93"
+        },
+        {
+          "path": "/app/",
+          "status": 200,
+          "sha256": "5d182326a28d55c206e39bef9063de0001f59c8cb822d8c5b6ef22b6faefc90c"
+        }
+      ],
+      "certificate": {
+        "not_after": "Jan 27 08:50:27 2027 GMT",
+        "subject_alt_names": [
+          [
+            "DNS",
+            "forgeflowagent.com"
+          ]
+        ],
+        "issuer": [
+          [
+            [
+              "countryName",
+              "US"
+            ]
+          ],
+          [
+            [
+              "organizationName",
+              "Let's Encrypt"
+            ]
+          ],
+          [
+            [
+              "commonName",
+              "YE2"
+            ]
+          ]
+        ]
+      },
+      "assets": [
+        {
+          "path": "/app/assets/index-CLAZmMtz.css",
+          "status": 200,
+          "sha256": "5600f08363d9b6f3a50ed43f35221e5f60c74cc1d9c5819c3be168ca7d76b6cd"
+        },
+        {
+          "path": "/app/assets/index-F9ZVsi_R.js",
+          "status": 200,
+          "sha256": "b433cdc78c6bd55971f31559c1b9c3c5bd9b091f14ea9645d738d850af4f1a39"
+        }
+      ],
+      "http_redirect": {
+        "status": 308,
+        "location": "https://forgeflowagent.com/app/"
+      },
+      "security_headers": {
+        "strict-transport-security": "max-age=31536000, max-age=86400",
+        "x-content-type-options": "nosniff, nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "no-referrer, same-origin"
+      },
+      "root": {
+        "status": 200,
+        "location": null
+      }
+    },
+    {
+      "host": "168.144.242.231",
+      "paths": [
+        {
+          "path": "/api/health",
+          "status": 200,
+          "sha256": "4062edaf750fb8074e7e83e0c9028c94e32468a8b6f1614774328ef045150f93"
+        },
+        {
+          "path": "/app/",
+          "status": 200,
+          "sha256": "5d182326a28d55c206e39bef9063de0001f59c8cb822d8c5b6ef22b6faefc90c"
+        }
+      ],
+      "certificate": {
+        "not_after": "Nov  4 15:12:22 2026 GMT",
+        "subject_alt_names": [
+          [
+            "IP Address",
+            "168.144.242.231"
+          ]
+        ],
+        "issuer": [
+          [
+            [
+              "countryName",
+              "US"
+            ]
+          ],
+          [
+            [
+              "organizationName",
+              "Let's Encrypt"
+            ]
+          ],
+          [
+            [
+              "commonName",
+              "YE2"
+            ]
+          ]
+        ]
+      },
+      "assets": [
+        {
+          "path": "/app/assets/index-CLAZmMtz.css",
+          "status": 200,
+          "sha256": "5600f08363d9b6f3a50ed43f35221e5f60c74cc1d9c5819c3be168ca7d76b6cd"
+        },
+        {
+          "path": "/app/assets/index-F9ZVsi_R.js",
+          "status": 200,
+          "sha256": "b433cdc78c6bd55971f31559c1b9c3c5bd9b091f14ea9645d738d850af4f1a39"
+        }
+      ],
+      "http_redirect": {
+        "status": 308,
+        "location": "https://168.144.242.231/app/"
+      },
+      "security_headers": {
+        "strict-transport-security": "max-age=31536000, max-age=86400",
+        "x-content-type-options": "nosniff, nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "no-referrer, same-origin"
+      },
+      "root": {
+        "status": 200,
+        "location": null
+      }
+    }
+  ]
+}

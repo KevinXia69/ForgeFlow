@@ -99,7 +99,7 @@ actions and seven verified execution steps**; neither is a database-write count.
 
 ## Try the demo
 
-Open [the hosted workbench](https://168.144.242.231/app/) with the private judge
+Open [the hosted workbench](https://forgeflowagent.com/app/) with the private judge
 invite supplied with the submission. Follow the [judge guide](./docs/en/judge-guide.md)
 to prepare Scenario A, inspect the plan, ask about its changes, approve it and
 review the receipt. Judges need no model account or local installation.
@@ -112,6 +112,9 @@ recovery details are in the [VPS guide](./deploy/vps/README.md).
 The hosted service was upgraded to source `a02a197` on October 29. An isolated
 QA workspace passed real HTTPS approval and original acceptance; production
 restart and replay preserved its receipt. See the [upgrade record and access-check limits](./docs/evidence/2026-10-29-public-upgrade/README.md).
+The domain uses automatic HTTPS renewal; the original IP remains available.
+The [domain migration checks](./docs/evidence/2026-10-29-domain/README.md) cover both
+entry points, invitation isolation and preservation of existing state.
 
 ## Scope and evidence
 

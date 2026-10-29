@@ -36,14 +36,23 @@ def run(base, names, *, fresh=False):
     index = trusted_json(Path("/etc/forgeflow/reviewers.json"))
     parsed = urlsplit(base)
     check(parsed.username is None and parsed.password is None
-          and not parsed.query and not parsed.fragment and parsed.path in {"", "/"},
+          and not parsed.query and not parsed.fragment and parsed.path in {"", "/"}
+          and all(not char.isspace() and ord(char) >= 32 and ord(char) != 127 for char in base),
           "invalid_acceptance_base_url")
-    trusted_names = {urlsplit("//" + host).hostname for host in index["trusted_hosts"]}
-    check((parsed.scheme == "https" and parsed.hostname in trusted_names)
+    try:
+        _ = parsed.port  # Reject malformed or out-of-range ports before any HTTP request.
+    except ValueError:
+        raise AcceptanceFailure("invalid_acceptance_base_url") from None
+    authority = parsed.netloc.lower()
+    trusted_authorities = {host.lower() for host in index["trusted_hosts"]}
+    check((parsed.scheme == "https" and authority in trusted_authorities)
           or (parsed.scheme == "http" and parsed.hostname == "127.0.0.1"),
           "trusted_https_or_loopback_required")
-    host = index["trusted_hosts"][0]
-    headers = {"Host": host, "Origin": "https://" + host, "X-Forwarded-Proto": "https"}
+    # Public HTTPS must exercise its own Host/Origin, including an explicitly
+    # trusted port. Loopback operator probes retain their forwarded-host mode.
+    host = authority if parsed.scheme == "https" else index["trusted_hosts"][0]
+    origin = "https://" + host
+    headers = {"Host": host, "Origin": origin, "X-Forwarded-Proto": "https"}
     sessions, results = {}, []
     with httpx.Client(base_url=base, headers=headers, timeout=30, trust_env=False) as client:
         def request(method, path, *, cookie=None, **kwargs):
@@ -108,6 +117,7 @@ def run(base, names, *, fresh=False):
             cookie = "ff_session=" + first["ff_session"] + "; __Host-ff_route=" + second["__Host-ff_route"]
             check(request("GET", "/api/environment", cookie=cookie).status_code == 401, "cross_workspace_cookie_pair_accepted")
     return {"checked_at": datetime.now(UTC).isoformat(), "base_url": base,
+            "tested_host": host, "tested_origin": origin,
             "mode": "fresh_reviewers" if fresh else "read_only_authenticated_gateway",
             "frontend_sha256": hashlib.sha256(page.content).hexdigest(), "instances": results,
             "distinct_generations": True, "cross_workspace_cookie_pair_rejected": len(names) >= 2,

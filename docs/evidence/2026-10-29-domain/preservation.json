@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "differences": [],
+  "checked_existing_instances": 9,
+  "checked_existing_files": 520,
+  "new_files_allowed": true,
+  "activation_records_excluded": true,
+  "all_other_config_values_preserved": true,
+  "business_table_comparisons": 48,
+  "qa_stayed_stopped": true
+}

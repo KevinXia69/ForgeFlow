@@ -63,6 +63,10 @@ operator's verified source address with key authentication.
 
 ## HTTPS and renewals
 
+The current domain entry is [forgeflowagent.com](https://forgeflowagent.com/app/).
+Use [DOMAIN.md](DOMAIN.md) for its separate certificate, renewal timer and
+trusted-host configuration while retaining the original IP entry.
+
 A Let's Encrypt IP certificate avoids a required domain purchase. Use Certbot
 5.4 or later, `--preferred-profile shortlived`, `--ip-address` and HTTP webroot
 validation. Test with the staging CA before requesting a production certificate.

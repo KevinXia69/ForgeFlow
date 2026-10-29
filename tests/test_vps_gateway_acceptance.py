@@ -21,11 +21,20 @@ def test_invalid_reviewer_selection_fails_before_private_reads_or_http(monkeypat
         acceptance.run("https://example.test", names)
 
 
-def test_qa3_fresh_gateway_checks_use_only_its_invite_and_never_write_business_data(monkeypatch):
+@pytest.mark.parametrize(("base", "trusted_hosts", "expected_host"), [
+    ("https://forgeflowagent.com", ["168.144.242.231", "forgeflowagent.com"], "forgeflowagent.com"),
+    ("https://168.144.242.231", ["forgeflowagent.com", "168.144.242.231"], "168.144.242.231"),
+    ("https://example.test:8443", ["168.144.242.231", "example.test:8443"], "example.test:8443"),
+    ("https://EXAMPLE.test:443/", ["example.test:443"], "example.test:443"),
+    ("http://127.0.0.1:8090", ["forgeflowagent.com", "168.144.242.231"], "forgeflowagent.com"),
+])
+def test_gateway_checks_use_actual_https_authority_or_loopback_forwarded_host(
+    monkeypatch, base, trusted_hosts, expected_host,
+):
     private = "private-qa3-credential-do-not-export"
     generation = "3" * 32
     calls = []
-    index = {"trusted_hosts": ["example.test"], "instances": {
+    index = {"trusted_hosts": trusted_hosts, "instances": {
         "qa1": {"invite_code": "untouched-qa1"}, "qa2": {"invite_code": "untouched-qa2"},
         "qa3": {"invite_code": private, "config": "/etc/forgeflow/instances/qa3.json"}}}
     files = {"/etc/forgeflow/reviewers.json": index,
@@ -36,6 +45,10 @@ def test_qa3_fresh_gateway_checks_use_only_its_invite_and_never_write_business_d
     def response(request):
         path, method = request.url.path, request.method
         calls.append((method, path, request.content))
+        assert request.headers["host"] == expected_host
+        assert request.headers["origin"] in {"https://" + expected_host, "https://untrusted.example"}
+        assert (request.url.scheme, request.url.host, request.url.port) == (
+            httpx.URL(base).scheme, httpx.URL(base).host, httpx.URL(base).port)
         if path == "/api/health":
             return httpx.Response(200, json={"ok": True})
         if path == "/app/":
@@ -51,7 +64,7 @@ def test_qa3_fresh_gateway_checks_use_only_its_invite_and_never_write_business_d
                 ("set-cookie", "ff_session=session-qa3-private; Path=/; Secure; HttpOnly; SameSite=Lax"),
                 ("set-cookie", "__Host-ff_route=route-qa3-private; Path=/; Secure; HttpOnly; SameSite=Lax")])
         assert method == "GET", "No business mutation is allowed in gateway acceptance"
-        if request.headers["origin"] != "https://example.test":
+        if request.headers["origin"] != "https://" + expected_host:
             return httpx.Response(403)
         if request.headers.get("cookie") != "ff_session=session-qa3-private; __Host-ff_route=route-qa3-private":
             return httpx.Response(401)
@@ -67,7 +80,9 @@ def test_qa3_fresh_gateway_checks_use_only_its_invite_and_never_write_business_d
     client = httpx.Client
     monkeypatch.setattr(acceptance.httpx, "Client", lambda **kwargs: client(
         **kwargs, transport=httpx.MockTransport(response)))
-    result = acceptance.run("https://example.test", ["qa3"], fresh=True)
+    result = acceptance.run(base, ["qa3"], fresh=True)
+    assert result["tested_host"] == expected_host
+    assert result["tested_origin"] == "https://" + expected_host
     assert result["mode"] == "fresh_reviewers" and result["business_writes"] is False
     assert result["instances"][0]["instance"] == "qa3"
     assert result["instances"][0]["generation"] == generation
@@ -75,3 +90,24 @@ def test_qa3_fresh_gateway_checks_use_only_its_invite_and_never_write_business_d
     assert "private" not in json.dumps(result)
     assert not any(b"untouched-qa" in body for _, _, body in calls)
     assert all(method == "GET" or path == "/api/auth/session" for method, path, _ in calls)
+
+
+@pytest.mark.parametrize(("base", "label"), [
+    ("https://forgeflowagent.com:8443", "trusted_https_or_loopback_required"),
+    ("https://forgeflowagent.com:443", "trusted_https_or_loopback_required"),
+    ("https://example.test", "trusted_https_or_loopback_required"),
+    ("https://example.test:9443", "trusted_https_or_loopback_required"),
+    ("https://untrusted.test", "trusted_https_or_loopback_required"),
+    ("http://forgeflowagent.com", "trusted_https_or_loopback_required"),
+    ("http://localhost:8090", "trusted_https_or_loopback_required"),
+    ("https://user@forgeflowagent.com", "invalid_acceptance_base_url"),
+    ("https://forgeflowagent.com:65536", "invalid_acceptance_base_url"),
+    ("https://forgeflowagent.com:invalid", "invalid_acceptance_base_url"),
+    ("https://forgeflowagent.com\n", "invalid_acceptance_base_url"),
+])
+def test_untrusted_authorities_and_malformed_ports_fail_before_http(monkeypatch, base, label):
+    monkeypatch.setattr(acceptance, "trusted_json", lambda _: {
+        "trusted_hosts": ["forgeflowagent.com", "example.test:8443"]})
+    monkeypatch.setattr(acceptance.httpx, "Client", lambda **_: pytest.fail("Unexpected HTTP client"))
+    with pytest.raises(acceptance.AcceptanceFailure, match=label):
+        acceptance.run(base, ["qa3"])

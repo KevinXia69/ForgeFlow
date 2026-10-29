@@ -1,0 +1,63 @@
+{
+  "checked_at": "2026-10-29T10:00:10.758723+00:00",
+  "domain": "forgeflowagent.com",
+  "public_entry": "https://forgeflowagent.com/app/",
+  "retained_entry": "https://168.144.242.231/app/",
+  "dns": {
+    "dns25.hichina.com": {
+      "A": [
+        "168.144.242.231"
+      ],
+      "AAAA": []
+    },
+    "dns26.hichina.com": {
+      "A": [
+        "168.144.242.231"
+      ],
+      "AAAA": []
+    },
+    "1.1.1.1": {
+      "A": [
+        "168.144.242.231"
+      ],
+      "AAAA": []
+    },
+    "8.8.8.8": {
+      "A": [
+        "168.144.242.231"
+      ],
+      "AAAA": []
+    }
+  },
+  "certificate": {
+    "name": "forgeflow-domain",
+    "authenticator": "webroot",
+    "challenge": "http-01",
+    "certificate_issuance_succeeded": true,
+    "renewal_dry_run_succeeded": true,
+    "deploy_hook_exercised": true
+  },
+  "renewal_timers": {
+    "forgeflow-domain-cert-renew.timer": {
+      "NextElapseUSecRealtime": "Thu 2026-10-29 12:00:37 UTC",
+      "ActiveState": "active"
+    },
+    "forgeflow-cert-renew.timer": {
+      "NextElapseUSecRealtime": "Thu 2026-10-29 12:06:45 UTC",
+      "ActiveState": "active"
+    }
+  },
+  "nginx_syntax_valid": true,
+  "same_backend_generations_on_both_hosts": true,
+  "config_files_changed": 11,
+  "application_logic_changed": false,
+  "business_writes": false,
+  "model_calls": false,
+  "source_before": "100f83ecf1abecbf0093ae01a0b3c6e8fee84861",
+  "applied_file_sha256": {
+    "nginx-domain.conf": "ff58007176f9100256ecdb798faf3cd4d46959063176645f02298d6e13765a73",
+    "forgeflow-domain-cert-renew.service": "bf0228b057e0de8dcf790154e526816c03454b8af76fa0247ea4417bcba2f985",
+    "forgeflow-domain-cert-renew.timer": "274dde20ebe4e87de1bd9b2e61b44e3dd801d26a716eeb41f644710595e06c66",
+    "vps_gateway_acceptance.py": "affdcda71e20358ac8bed89779a8b3e3130108e348b303d0bad31f2f9407f282"
+  }
+}

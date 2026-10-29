@@ -1,7 +1,7 @@
 # Deployment
 
 The current public product runs on a Linux VPS at
-[https://168.144.242.231/app/](https://168.144.242.231/app/). It uses
+[https://forgeflowagent.com/app/](https://forgeflowagent.com/app/). It uses
 `FORGEFLOW_DEPLOYMENT=hosted`, a persistent Odoo/PostgreSQL sandbox, a root
 executor, and separate API/assistant Unix users. It can execute an eligible
 plan after its authenticated owner grants a bound, single-use approval.
@@ -13,6 +13,9 @@ resetting or releasing the previous judge's environment. Read the
 [judge guide](judge-guide.md) and [multi-reviewer installation](../../deploy/vps/REVIEWERS.md).
 The root README records rollout/verification status. Each judge retains their
 own state; a fresh baseline for that same workspace remains an operator action.
+The original IP entry remains available with its own certificate. See the
+[domain and renewal procedure](../../deploy/vps/DOMAIN.md) and
+[domain migration evidence](../evidence/2026-10-29-domain/README.md).
 
 Deployment modes are distinct:
 
