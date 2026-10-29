@@ -87,7 +87,14 @@ def artifact_bindings(sandbox):
             for name in ("task-policy.json", "request.json", "planner/provenance.json")}
 
 
-def require_preserved_artifacts(record, sandbox, workbench):
+def require_preserved_artifacts(record, sandbox, workbench, *, active_bundle=None):
+    if active_bundle is not None:
+        from forgeflow.vps_bundle import activate_bundle
+
+        if record.get("bindings") != artifact_bindings(sandbox):
+            raise RuntimeError("vps_policy_or_planner_binding_changed")
+        activate_bundle(record, sandbox, active_bundle)
+        return
     if not workbench._valid_planner(sandbox / "planner"):
         raise RuntimeError("preserved_planner_invalid")
     if record.get("bindings") != artifact_bindings(sandbox):
@@ -191,6 +198,10 @@ def provision(config):
 
 
 def _locked_provision(config, repo, sandbox, container, port):
+    if "active_bundle" in config:
+        from forgeflow.vps_bundle import configured_bundle
+
+        configured_bundle(config["active_bundle"])
     limits = resource_limits(config)
     record_path = sandbox / "vps-instance.json"
     image_name = config.get("odoo_image", "forgeflow-odoo:vps1")
@@ -209,6 +220,8 @@ def _locked_provision(config, repo, sandbox, container, port):
                 or not isinstance(record.get("generation"), str)
                 or re.fullmatch(r"[a-f0-9]{32}", record["generation"]) is None):
             raise RuntimeError("vps_instance_binding_changed")
+        if "active_bundle" in config and record["phase"] != "ready":
+            raise RuntimeError("active_bundle_requires_ready_instance")
         if record.get("phase") == "ready" or record.get("initialization_started") is True:
             # Validate the volume before Docker can execute its initialization
             # entrypoint, even if that container retained its first-boot flag.
@@ -216,6 +229,8 @@ def _locked_provision(config, repo, sandbox, container, port):
 
             load_state(volume, expected_binding(record["instance_id"], record["generation"]), False)
     else:
+        if "active_bundle" in config:
+            raise RuntimeError("active_bundle_requires_ready_instance")
         leftovers = [item for item in sandbox.iterdir()
                      if item.name not in {".provision.lock", "odoo"}]
         if (config.get("allow_initialize") is not True or leftovers
@@ -231,7 +246,7 @@ def _locked_provision(config, repo, sandbox, container, port):
     volume.mkdir(mode=0o700, exist_ok=True)
     workbench = load_workbench(repo, config)
     if record["phase"] == "ready":
-        require_preserved_artifacts(record, sandbox, workbench)
+        require_preserved_artifacts(record, sandbox, workbench, active_bundle=config.get("active_bundle"))
     info = inspect_container(container)
     if info is None:
         args = ["docker", "create", "--name", container, "--restart", "no",
@@ -290,7 +305,11 @@ def _locked_provision(config, repo, sandbox, container, port):
         with os.fdopen(fd, "wb") as handle:
             handle.write(data)
     os.chmod(key, 0o400)
-    workbench._planner()
+    # A ready instance has already authenticated its original bundle. Rebuilding
+    # it would destroy source identity for historical plans, including when an
+    # explicitly selected execution bundle supplies the current implementation.
+    if record["phase"] != "ready":
+        workbench._planner()
     policy, request = sandbox / "task-policy.json", sandbox / "request.json"
     if not policy.exists():
         if record["phase"] == "ready":

@@ -30,7 +30,7 @@ def check(condition, label):
 
 
 def run(base, names, *, fresh=False):
-    allowed_names = {*("judge" + str(n) for n in range(1, 6)), "qa1", "qa2"}
+    allowed_names = {*("judge" + str(n) for n in range(1, 6)), "qa1", "qa2", "qa3"}
     check(bool(names) and len(set(names)) == len(names)
           and all(name in allowed_names for name in names), "invalid_reviewer_names")
     index = trusted_json(Path("/etc/forgeflow/reviewers.json"))

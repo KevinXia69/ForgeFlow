@@ -98,6 +98,10 @@ def configuration(value: dict) -> dict:
     if "lifecycle_root" in result and (not isinstance(result["lifecycle_root"], str)
                                        or not Path(result["lifecycle_root"]).is_absolute()):
         raise ValueError("runtime_paths_must_be_absolute")
+    if "active_bundle" in result:
+        from forgeflow.vps_bundle import configured_bundle
+
+        configured_bundle(result["active_bundle"])
     return result
 
 
@@ -263,7 +267,7 @@ def api_environment(config: dict, source: dict | None = None) -> dict[str, str]:
 def executor_command(config: dict) -> list[str]:
     root = Path(config["sandbox_root"])
     return [config["python"], "-m", "forgeflow.executor.main", "--socket", config["socket"],
-            "--store", str(root / "store"), "--bundle", str(root / "planner"),
+            "--store", str(root / "store"), "--bundle", config.get("active_bundle", str(root / "planner")),
             "--key", str(root / "api_key"), "--agent-user", config["api_user"],
             "--approval-store", str(root / "approvals"), "--policy-file", str(root / "task-policy.json"),
             "--product-verifier-container", config["container"], "--database", "bench",

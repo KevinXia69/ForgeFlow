@@ -96,3 +96,38 @@ backup receipts explicitly identify archives as local only.
 Retain an independent copy of the backup encryption key. Verify archive staging,
 logical database restoration and a complete isolated application/verifier run
 before claiming the full recovery procedure is proven.
+
+## Upgrading a retained instance
+
+For an existing `ready` instance, the root-owned runtime configuration can select
+an `active_bundle`, for example `/var/lib/forgeflow/bundles/RELEASE/planner`.
+Omitting it retains the original `sandbox_root/planner` behavior. Never replace
+that historical planner, edit its provenance or change `vps-instance.json`
+bindings to make an upgrade pass.
+
+1. Block new work, drain and stop the instance's runtime service, then stop its
+   Odoo container with a 120-second grace period. Create and verify a backup using
+   the matching instance backup configuration; retain the previous installed
+   source, frontend and private runtime configuration for rollback.
+2. Install the new source/dependencies and built frontend. Build a complete new
+   recovery bundle in a separate versioned directory; its files and every parent
+   directory must be root-owned, without group/other write access or symlinks;
+   bundle files must not be hard-linked. Set only the intended `active_bundle`
+   selection in the private runtime configuration. Preserve the generation,
+   container, store, cases, lease, invitations and session secrets; do not rotate
+   or reinitialize the environment. Include the external bundle in an explicit
+   supplemental source backup or a dedicated `extra_state_roots` entry.
+3. Start the runtime service. Provisioning verifies the original bound hashes
+   and the new bundle's current source contract, then appends a separate bundle
+   activation record. A ready instance never rebuilds its historical planner.
+   Complete real HTTPS preparation, approval, verification, replay and model
+   checks on a fresh, isolated QA3; leave old QA cases and judge generations
+   unconsumed. Use read-only checks for the retained public instances.
+
+For rollback, keep writes blocked, stop the runtime and Odoo, and restore the
+previous runtime configuration plus its matching installed source and frontend.
+Retain both bundles, activation records and all execution evidence. Restoring
+code/configuration does not undo ERP writes or make new plans safe for an old
+executor; follow the [margin compatibility procedure](../../docs/NEXT_PHASE_RELEASE.md)
+for any existing plans before reopening writes. These are operating instructions,
+not a claim that a public upgrade or recovery drill has completed.

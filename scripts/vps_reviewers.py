@@ -28,7 +28,8 @@ from forgeflow.vps_runtime import configuration, trusted_json
 CONFIG_ROOT = Path("/etc/forgeflow")
 STATE_ROOT = Path("/var/lib/forgeflow/reviewers")
 INDEX_PATH = CONFIG_ROOT / "reviewers.json"
-NAME = re.compile(r"(?:judge[1-5]|qa[1-2])")
+REVIEWER_NAMES = (*(f"judge{number}" for number in range(1, 6)), "qa1", "qa2", "qa3")
+NAME = re.compile(r"(?:judge[1-5]|qa[1-3])")
 ENV_KEYS = ("FORGEFLOW_MODEL_PROFILE", "FORGEFLOW_MODEL_BASE_URL", "FORGEFLOW_MODEL_NAME",
             "FORGEFLOW_MODEL_API_KEY", "NEBIUS_API_KEY", "FORGEFLOW_SESSION_TTL_SEC")
 
@@ -129,6 +130,28 @@ def load_index() -> dict:
     return value
 
 
+def checked_names(names: list[str]) -> None:
+    if not names or len(set(names)) != len(names) or any(name not in REVIEWER_NAMES for name in names):
+        raise ValueError("invalid_reviewer_names")
+
+
+def check_ports(definitions: dict, base: dict, index: dict) -> None:
+    """Fail before provisioning if a fixed port overlaps another retained instance."""
+    reserved = {base["api_port"]: "legacy", base["odoo_port"]: "legacy"}
+    for name, item in index["instances"].items():
+        for field in ("port", "odoo_port"):
+            port = item[field]
+            if port in reserved and reserved[port] != name:
+                raise ValueError("reviewer_port_conflict")
+            reserved[port] = name
+    for name, config in definitions.items():
+        for field in ("api_port", "odoo_port"):
+            port = config[field]
+            if port in reserved and reserved[port] != name:
+                raise ValueError("reviewer_port_conflict")
+            reserved[port] = name
+
+
 def backup_definition(config: dict, base_backup: dict) -> dict:
     name = config["instance_name"]
     return {
@@ -148,6 +171,7 @@ def backup_definition(config: dict, base_backup: dict) -> dict:
 
 
 def prepare(names: list[str]) -> dict:
+    checked_names(names)
     base = configuration(trusted_json(CONFIG_ROOT / "runtime.json"))
     if re.fullmatch(r"sha256:[0-9a-f]{64}", base.get("odoo_image", "")) is None:
         raise ValueError("legacy_verified_immutable_image_required")
@@ -168,6 +192,7 @@ def prepare(names: list[str]) -> dict:
     if not stat.S_ISREG(info.st_mode) or info.st_uid != 0 or info.st_mode & 0o077 or info.st_size != 32:
         raise ValueError("private_existing_backup_key_required")
     index = load_index()
+    check_ports(definitions, base, index)
     legacy = {"id": "legacy", "port": base["api_port"], "invite_code": codes[0]}
     if index.get("legacy", legacy) != legacy:
         raise ValueError("legacy_invite_binding_changed")
@@ -237,6 +262,7 @@ def prepare(names: list[str]) -> dict:
 def start(names: list[str]) -> dict:
     import httpx
 
+    checked_names(names)
     index = load_index()
     ready = []
     for name in names:
@@ -281,31 +307,80 @@ def start(names: list[str]) -> dict:
     return {"ready": ready, "legacy_unchanged": True}
 
 
+def tenant(item: dict) -> dict:
+    return {"id": item["id"], "port": item["port"],
+            "invite_sha256": [hashlib.sha256(item["invite_code"].encode()).hexdigest()]}
+
+
 def gateway(public_tenant: str, *, include_qa: bool = False) -> dict:
+    from forgeflow.judge_gateway import configuration as gateway_configuration
+
     index = load_index()
-    identity = system_user("forgeflow-gateway")
     path = CONFIG_ROOT / "gateway.json"
     previous = trusted_json(path) if path.exists() else {}
+    if previous:
+        gateway_configuration(previous)
     selected = [index["legacy"], *(item for name, item in sorted(index["instances"].items())
         if name.startswith("judge") or include_qa)]
     if public_tenant not in {item["id"] for item in selected}:
         raise ValueError("public_reviewer_instance_missing")
-    tenants = [{"id": item["id"], "port": item["port"],
-                "invite_sha256": [hashlib.sha256(item["invite_code"].encode()).hexdigest()]}
-               for item in selected]
-    value = {"routing_secret": previous.get("routing_secret") or secrets.token_urlsafe(48),
+    tenants = [tenant(item) for item in selected]
+    value = {**previous, "routing_secret": previous.get("routing_secret") or secrets.token_urlsafe(48),
         "trusted_hosts": index["trusted_hosts"], "public_tenant": public_tenant, "tenants": tenants}
+    if previous and (previous["trusted_hosts"] != value["trusted_hosts"] or any(
+        row not in tenants for row in previous["tenants"]
+    )):
+        raise ValueError("existing_gateway_routes_would_change_use_append")
+    gateway_configuration(value)
+    identity = system_user("forgeflow-gateway")
     write_json(path, value, mode=0o640, gid=identity.pw_gid)
     return {"gateway_config_ready": True, "public_tenant": public_tenant,
             "tenant_ids": [item["id"] for item in tenants], "public_proxy_unchanged": True}
 
 
+def gateway_append(names: list[str]) -> dict:
+    """Append registered routes without replacing existing routing or credentials."""
+    from forgeflow.judge_gateway import configuration as gateway_configuration
+
+    checked_names(names)
+    index = load_index()
+    path = CONFIG_ROOT / "gateway.json"
+    if not path.exists():
+        raise ValueError("existing_gateway_required")
+    previous = trusted_json(path)
+    gateway_configuration(previous)
+    if previous["trusted_hosts"] != index["trusted_hosts"]:
+        raise ValueError("gateway_trusted_hosts_changed")
+    tenants = list(previous["tenants"])
+    existing = {row["id"]: row for row in tenants}
+    added = []
+    for name in names:
+        item = index["instances"][name]
+        if item["id"] != name:
+            raise ValueError("reviewer_route_binding_changed")
+        row = tenant(item)
+        if name in existing:
+            if row != existing[name]:
+                raise ValueError("reviewer_route_binding_changed")
+        else:
+            tenants.append(row)
+            added.append(name)
+    value = {**previous, "tenants": tenants}
+    gateway_configuration(value)
+    if added:
+        identity = system_user("forgeflow-gateway")
+        write_json(path, value, mode=0o640, gid=identity.pw_gid)
+    return {"gateway_config_ready": True, "public_tenant": previous["public_tenant"],
+            "tenant_ids": [row["id"] for row in tenants], "added": added,
+            "changed": bool(added), "public_proxy_unchanged": True}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("prepare", "start"):
+    for name in ("prepare", "start", "gateway-append"):
         child = commands.add_parser(name)
-        child.add_argument("names", nargs="+", choices=[*("judge" + str(n) for n in range(1, 6)), "qa1", "qa2"])
+        child.add_argument("names", nargs="+", choices=REVIEWER_NAMES)
     child = commands.add_parser("gateway")
     child.add_argument("--public-tenant", required=True)
     child.add_argument("--include-qa", action="store_true")
@@ -318,6 +393,8 @@ def main() -> int:
             result = prepare(args.names)
         elif args.command == "start":
             result = start(args.names)
+        elif args.command == "gateway-append":
+            result = gateway_append(args.names)
         else:
             result = gateway(args.public_tenant, include_qa=args.include_qa)
         print(json.dumps(result), flush=True)
