@@ -121,6 +121,58 @@ def test_unknown_operator_profile_rejected_before_preparation(system, monkeypatc
     assert not options["store"].exists()
 
 
+@pytest.mark.parametrize("product", [False, True])
+def test_enabled_profile_requires_refinement_source_in_bundle_manifest(system, monkeypatch, product):
+    connection, request, options, _ = system
+    provenance = options["bundle"] / "provenance.json"
+    sources = read_json(provenance)
+    del sources["files_sha256"]["forgeflow/planning/retention.py"]
+    atomic_json(provenance, sources, replace=True)
+    assert (options["bundle"] / "forgeflow/planning/retention.py").is_file()
+    monkeypatch.setattr(service, "collect_snapshot", lambda *_: pytest.fail("Unexpected ERP read"))
+    with pytest.raises(service.RecoveryError, match="incomplete_source_manifest"):
+        if product:
+            service.prepare_product(connection, request, run_id="local-" + "c" * 32,
+                owner_sha256=owner_scope("retention-test"), expected_revision=0,
+                operation_id="prepare-1", contract=service_tests._contract(),
+                retention_profile=retention.RETENTION_PROFILE,
+                product_objectives=list(PRODUCT_OBJECTIVES), **options)
+        else:
+            service.prepare(connection, request, retention_profile=retention.RETENTION_PROFILE,
+                            **options)
+    assert connection.writes == []
+
+
+def test_default_profile_accepts_bundle_without_unused_refinement_source(system):
+    connection, request, options, _ = system
+    provenance = options["bundle"] / "provenance.json"
+    sources = read_json(provenance)
+    del sources["files_sha256"]["forgeflow/planning/retention.py"]
+    atomic_json(provenance, sources, replace=True)
+    prepared = service.prepare(connection, request, **options)
+    assert "retention_profile" not in artifact(options, prepared, "manifest")
+    assert "retention_refinement" not in artifact(options, prepared, "plan")
+    assert connection.writes == []
+
+
+def test_apply_rejects_self_consistent_profile_plan_without_refinement_source(system):
+    connection, request, options, _ = system
+    prepared = service.prepare(connection, request, retention_profile=retention.RETENTION_PROFILE,
+                               **options)
+    directory = options["store"] / prepared["plan_id"]
+    manifest = read_json(directory / "manifest.json")
+    # Reproduce an artifact accepted before the profile-specific source guard:
+    # its source record and identity agree, but omit the optional module hash.
+    del manifest["sources"]["files_sha256"]["forgeflow/planning/retention.py"]
+    atomic_json(options["bundle"] / "provenance.json", manifest["sources"], replace=True)
+    atomic_json(directory / "manifest.json", manifest, replace=True)
+    plan_id = digest(manifest)
+    directory.rename(options["store"] / plan_id)
+    with pytest.raises(service.RecoveryError, match="incomplete_source_manifest"):
+        service.apply(connection, plan_id, **options)
+    assert connection.writes == []
+
+
 @pytest.mark.parametrize("tamper", ["source_hash", "source_plan", "profile", "missing", "orphan"])
 def test_service_rejects_unbound_or_corrupt_refinement_audit(system, tamper):
     connection, request, options, _ = system

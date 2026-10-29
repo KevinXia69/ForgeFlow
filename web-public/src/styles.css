@@ -3674,3 +3674,16 @@ body.review #approval-panel { display: none !important; }
   max-height: 42vh; overflow-y: auto;
 }
 .sidebar.is-collapsed .side-chat { display: none; }
+
+/* Expanded candidate checks can sit in half-width comparison columns. */
+.candidate-card .policy-check {
+  grid-template-columns: minmax(52px, max-content) minmax(0, 1fr);
+}
+.candidate-card .policy-check-label { min-width: 0; overflow-wrap: anywhere; }
+.candidate-card .policy-check-value {
+  grid-column: 2;
+  min-width: 0;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.candidate-card .policy-check-source { grid-column: 2; }

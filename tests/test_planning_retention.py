@@ -73,6 +73,8 @@ def test_fixed_objectives_joint_stock_allocation_retains_six_instead_of_four(pla
     assert audit["profile"] == retention.RETENTION_PROFILE
     assert audit["retained_before"] == retained(inputs, inputs[3]) == 4
     assert audit["retained_after"] == retained(inputs, result) == 6
+    changes = build_change_set(inputs[0], inputs[1], inputs[2], result)
+    assert changes["projected_state"]["totals"]["new_manufactured_quantity"] == 2
     assert audit["primary_optimum"] == result["plan"]["objective_value"] == 6
     assert audit["spend_optimum_cents"] == 5600
     assert result["plan"]["expected_new_spend"] == inputs[3]["plan"]["expected_new_spend"] == 56
@@ -226,6 +228,22 @@ def test_retention_audit_checks_original_hash_and_result_semantics(planner_bundl
 def test_unproven_original_optima_skip_experiment(planner_bundle, monkeypatch):
     inputs = list(solved(planner_bundle))
     inputs[3]["trace"] = {"models": [], "solve_calls": []}
+    monkeypatch.setattr(retention, "_solve_refinement", lambda *args: pytest.fail("Unexpected solve"))
+    result = retention.refine_retention(*inputs)
+    assert result["plan"] == inputs[3]["plan"]
+    assert result["retention_refinement"]["status"] == "skipped"
+    assert result["retention_refinement"]["reason"] == "original_optima_not_proven"
+
+
+@pytest.mark.parametrize("suffix", [" primary", " spend secondary"])
+def test_feasible_original_phase_is_not_accepted_as_an_optimality_proof(
+    planner_bundle, monkeypatch, suffix,
+):
+    inputs = list(solved(planner_bundle))
+    calls = [call for call in inputs[3]["trace"]["solve_calls"]
+             if call["phase"].endswith((suffix, suffix + " retry"))]
+    assert calls and calls[-1]["status"] == "OPTIMAL"
+    calls[-1]["status"] = "FEASIBLE"
     monkeypatch.setattr(retention, "_solve_refinement", lambda *args: pytest.fail("Unexpected solve"))
     result = retention.refine_retention(*inputs)
     assert result["plan"] == inputs[3]["plan"]

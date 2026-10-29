@@ -127,6 +127,14 @@ def test_three_profiles_are_real_distinct_choices_and_capacity_selection_is_boun
     assert [p["costs"]["planned"]["total"] for p in comparison["plans"]] == ["62.0", "50.0", "90.0"]
     assert all(p["capacity"]["manufactured_units"] == 10 for p in comparison["plans"])
     assert all(p["capacity"]["finished_purchase_units"] == 0 for p in comparison["plans"])
+    projected = [json.loads((system[2]["store"] / plan["plan_id"] / "change-set.json").read_text())[
+        "projected_state"] for plan in comparison["plans"]]
+    assert [row["totals"]["retained_manufactured_quantity"] for row in projected] == [6, 0, 0]
+    assert [row["totals"]["new_manufactured_quantity"] for row in projected] == [4, 10, 10]
+    disrupted = system[1]["disruption"]["workcenter_code"]
+    assert disrupted == "WC-A"
+    assert all(mo["workcenter_code"] != disrupted for row in projected
+               for mo in row["manufacturing_orders"])
     capacity = comparison["plans"][2]
     view = ProductCaseService._executor_view(case)
     intent = executor.selection_intent(view, comparison, capacity["plan_id"])

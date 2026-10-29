@@ -163,7 +163,8 @@ def main():
             save("selected", public_evidence(case))
             metrics = independent_margin(sandbox / "store" / plan_id, case["plan"])
             report.update(case_id=case["case_id"], plan_id=plan_id, margin=metrics,
-                          plan_manifest=read_json(sandbox / "store" / plan_id / "manifest.json"))
+                          plan_manifest=public_evidence(read_json(sandbox / "store" / plan_id / "manifest.json")),
+                          manifest_projection="public; owner scope redacted; original retained in private store")
             if launcher["SCENARIO"] == "A":
                 need(Decimal(metrics["planned_cost"]) == Decimal("4794.94")
                      and metrics["repair_objective"] == 6 and metrics["new_spend_units"] == 43

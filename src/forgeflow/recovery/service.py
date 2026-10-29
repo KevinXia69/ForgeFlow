@@ -125,6 +125,12 @@ def _retention_profile(value):
     return value
 
 
+def _require_retention_sources(sources, profile):
+    if (profile is not None
+            and "forgeflow/planning/retention.py" not in sources["files_sha256"]):
+        raise RecoveryError("incomplete_source_manifest")
+
+
 def _refine(request, snapshot, blueprint, plan, bundle, profile, constraints=None, objective=None):
     if profile is None:
         return plan
@@ -151,6 +157,7 @@ def _prepare_locked(connection, request, *, store, bundle, contract, product=Non
     if _pending_plan(store):
         raise RecoveryError("unfinished_execution_requires_original_plan")
     sources = verify_sources(bundle)
+    _require_retention_sources(sources, retention_profile)
     if product is not None and not {
         "forgeflow/recovery/product_versions.py", "forgeflow/recovery/product_constraints.py",
         "forgeflow/recovery/product_costs.py",
@@ -174,6 +181,7 @@ def _prepare_locked(connection, request, *, store, bundle, contract, product=Non
 def _persist_prepared(connection, request, snapshot, blueprint, plan, changes, baseline, *,
                       sources, store, contract, product=None, product_constraints=None,
                       product_objectives=None, product_objective=None, retention_profile=None):
+    _require_retention_sources(sources, retention_profile)
     _check_retention_binding(retention_profile, plan)
     guard = ScopeGuard(snapshot, request, changes, baseline["payload"]["workorders"], baseline)
     artifacts = dict(zip(ARTIFACTS, (
@@ -229,6 +237,7 @@ def _prepare_candidates_locked(connection, request, *, store, bundle, contract, 
     if _pending_plan(store):
         raise RecoveryError("unfinished_execution_requires_original_plan")
     sources = verify_sources(bundle)
+    _require_retention_sources(sources, retention_profile)
     required = {"forgeflow/recovery/" + name + ".py" for name in (
         "product_versions", "product_constraints", "product_costs", "product_candidates")}
     required.add("forgeflow/planning/objectives.py")
@@ -441,6 +450,7 @@ def apply(
         manifest = read_json(directory / "manifest.json")
         if digest(manifest) != plan_id:
             raise RecoveryError("original_source_binding_changed")
+        _require_retention_sources(sources, manifest.get("retention_profile"))
         legacy = manifest.get("margin_basis") != MARGIN_BASIS
         if legacy and legacy_authorization is None:
             raise RecoveryError("margin_basis_requires_reprepare")

@@ -72,4 +72,4 @@ Bad:
 
 Good:
 
-> This supplier stopped shipping; 50 units across 5 orders are affected. A recovery plan is ready that covers most orders by 3 November; nothing is written to the ERP until you approve it.
+> A purchase commitment failed. The full planning scope is 50 units across 5 orders; the linked orders and failed supply are shown separately. Review the recovery plan before approving any ERP changes.
