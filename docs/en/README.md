@@ -13,3 +13,7 @@ This folder holds the English reference material that is not part of the product
 - [limits.md](./limits.md) — what the product deliberately does not do
 
 > This file used to duplicate the main README. It now points at it, so the two cannot drift apart.
+
+## Current UI evidence
+
+The [local sandbox UI screenshots](../media/next-phase/README.md) show the corrected margin and scope definitions. Their source commit and case identities are recorded alongside the files. They do not establish an upgrade of the public deployment. New slides and videos are outside this revision’s delivery scope at the user’s request.

@@ -1,0 +1,30 @@
+{
+  "port": "50592",
+  "generated_at": "2026-10-28T18:58:57-0700",
+  "passed": [
+    "capture-copy-context",
+    "capture-narrow",
+    "verify-approval-gate",
+    "verify-success-narrative",
+    "verify-copy-context",
+    "verify-start-page",
+    "verify-vocabulary",
+    "verify-bundle-parity",
+    "verify-stage-b",
+    "check-web-parity",
+    "a11y"
+  ],
+  "failed": [],
+  "screens": [
+    "en-audit-case-checks.png",
+    "en-audit-cases.png",
+    "en-audit-demo.png",
+    "en-audit-login.png",
+    "zh-audit-case-checks.png",
+    "zh-audit-cases.png",
+    "zh-audit-demo.png",
+    "zh-audit-login.png"
+  ],
+  "scope": "labelled UI fixtures; not ERP execution evidence",
+  "source_commit": "74a990a51545d7a619b6b39179bd357d803c7396"
+}

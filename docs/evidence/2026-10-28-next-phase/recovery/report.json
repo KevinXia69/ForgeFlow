@@ -1,0 +1,114 @@
+{
+  "category": "real_erp_product_service_with_controlled_response_loss",
+  "approval_origin": "explicitly_authorized_acceptance_driver_synthetic_identity",
+  "browser_approval": false,
+  "autonomous_benchmark": false,
+  "started_at": "2026-10-29T02:03:39.887018+00:00",
+  "stages": [
+    {
+      "stage": "prepared_without_business_write",
+      "tables_unchanged": true
+    },
+    {
+      "stage": "actual_apply_return_discarded",
+      "apply_calls": 1,
+      "authorization_requests": 1,
+      "actual_apply": {
+        "state": null,
+        "execution_validated": true,
+        "verified_steps": 7
+      },
+      "product_state": "execution_unknown",
+      "verified": false
+    },
+    {
+      "stage": "same_approval_replay",
+      "unchanged": true,
+      "apply_calls": 1
+    },
+    {
+      "stage": "actual_reconcile_return_discarded",
+      "reconcile_calls": 1,
+      "tables_unchanged": true,
+      "original_receipt": {
+        "execution_validated": true,
+        "verified_steps": 7,
+        "receipt_sha256": "9d7929eb928e0bac645eb3f221f8b3222afe931a144f5b228ad9a627d73e5f70",
+        "verified_at": "2026-10-29T02:04:26.085723+00:00",
+        "run_id": "local-91ff4ecce7d2a419b9e41736e53f0a33",
+        "case_id": "91ff4ecce7d2a419b9e41736e53f0a33",
+        "plan_id": "83a4edfe0ae19d12ba1a23a0cd327264a282941baf8b8ddf0b620476443a9e45",
+        "policy_sha256": "42f96905e4029b37377c88c36a94e8e96aaf62ba172edbad4947ca3ddfa016aa",
+        "snapshot_sha256": "9e6a067437cf34b30567603df41bfe7b0b731815bdda961c2ff1b965a68cce01",
+        "readback_sha256": "93918006da5129cd5d036d0d2963dd5393685911a555e90952e4ac3f737cb6b5",
+        "verifier": {
+          "status": "passed",
+          "score": 100.0,
+          "strict_success": true,
+          "evaluation_valid": true,
+          "evaluation_scope": "product_original_verifier",
+          "passed_rule_count": 51,
+          "applicable_rule_count": 51,
+          "failed_rule_count": 0,
+          "verification_attempt": "fde9fb49aa1640fc94792559080d94b9"
+        }
+      }
+    },
+    {
+      "stage": "cached_original_receipt_recovered",
+      "apply_calls": 1,
+      "authorization_requests": 1,
+      "reconcile_calls": 2,
+      "same_receipt": true,
+      "tables_unchanged": true,
+      "verified": true,
+      "issued_token_count": 1,
+      "consumed_token_count": 1,
+      "original_receipt": {
+        "execution_validated": true,
+        "verified_steps": 7,
+        "receipt_sha256": "9d7929eb928e0bac645eb3f221f8b3222afe931a144f5b228ad9a627d73e5f70",
+        "verified_at": "2026-10-29T02:04:26.085723+00:00",
+        "run_id": "local-91ff4ecce7d2a419b9e41736e53f0a33",
+        "case_id": "91ff4ecce7d2a419b9e41736e53f0a33",
+        "plan_id": "83a4edfe0ae19d12ba1a23a0cd327264a282941baf8b8ddf0b620476443a9e45",
+        "policy_sha256": "42f96905e4029b37377c88c36a94e8e96aaf62ba172edbad4947ca3ddfa016aa",
+        "snapshot_sha256": "9e6a067437cf34b30567603df41bfe7b0b731815bdda961c2ff1b965a68cce01",
+        "readback_sha256": "93918006da5129cd5d036d0d2963dd5393685911a555e90952e4ac3f737cb6b5",
+        "verifier": {
+          "status": "passed",
+          "score": 100.0,
+          "strict_success": true,
+          "evaluation_valid": true,
+          "evaluation_scope": "product_original_verifier",
+          "passed_rule_count": 51,
+          "applicable_rule_count": 51,
+          "failed_rule_count": 0,
+          "verification_attempt": "fde9fb49aa1640fc94792559080d94b9"
+        }
+      }
+    }
+  ],
+  "source_sha256": {
+    "scripts/verify_product_recovery.py": "d66455f3ee2023b687c7dcf2f1bc937eb38c50ee52131e4d1629d00b2393a5ed",
+    "scripts/local_workbench.py": "288c0766d411a09b8e1216acacb46feb7b517411f7b3c7f3ea0e0188bed7c6ed",
+    "src/forgeflow/product/local.py": "a15a3482165d619acf873600b4e9d65b4aeb60635a8fa7d7c6cff8faaa1edd1b",
+    "src/forgeflow/product/service.py": "8a7323fc27be3f4474a2aabd1467c2b80a9e5da51fbd76dc2b39df438a2d0cdb",
+    "src/forgeflow/product/reconciliation.py": "5b590ade0506c4bb75f17f443274317fb965f017e67e1620f966f38cf27c4f12",
+    "src/forgeflow/product/verifier.py": "12c05d45db781b417781bbb26156cb3e3f2cfe18c0109034da50e3df029df066",
+    "src/forgeflow/executor/handlers.py": "c4f8120552b078c61849edb8668e880b5410062be2b8a6363e0d920cb0fa500c",
+    "src/forgeflow/executor/daemon.py": "e2fe5dac731d320fff55776af80762a29a0700ebf8383ba00600fac7c8094c8e",
+    "src/forgeflow/executor/protocol.py": "195f2ddeeaddcc2d64898e957814d8327132e0e2809c52a85d5b2bb06a2b122d",
+    "src/forgeflow/recovery/client.py": "a11b47c83c6c3c1a14d9977b792e979d73b6b73104633e6611047e281ef736e0",
+    "src/forgeflow/recovery/product_versions.py": "b0fbdd591e7f10d50db809c6276793bd3e8c66c3342abf75066244783974be7b",
+    "src/forgeflow/recovery/service.py": "d269d5427bde28fe664f103fd8e41f0bce4afa083a063538bc5a702abfa7622d",
+    "src/forgeflow/product/state.py": "6e424da21a7938b2e5827725424be815c28ea392f73ae1045ad7d16a6e7be90c",
+    "src/forgeflow/approval.py": "f8ee845ca6378ce05dc58f58632d9d46bc5139fe63d132f622253c5caa281542"
+  },
+  "case_id": "91ff4ecce7d2a419b9e41736e53f0a33",
+  "plan_id": "83a4edfe0ae19d12ba1a23a0cd327264a282941baf8b8ddf0b620476443a9e45",
+  "task": "2280_medium_repair_plan_medium",
+  "container": "ff-next-phase-recovery",
+  "result": "passed",
+  "finished_at": "2026-10-29T02:04:30.081057+00:00"
+}

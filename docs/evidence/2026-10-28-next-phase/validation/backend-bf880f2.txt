@@ -1,0 +1,85 @@
+........................................................................ [  2%]
+.................................................sssss.................. [  4%]
+........................................................................ [  6%]
+........................................................................ [  9%]
+........................................................................ [ 11%]
+........................................................................ [ 13%]
+....................................................s.sss............... [ 16%]
+........................................................................ [ 18%]
+........................................................................ [ 20%]
+........................................................................ [ 23%]
+.........s.............................................................. [ 25%]
+................................................................ [ 27%]
+........................................................................ [ 29%]
+........................................................................ [ 32%]
+........................................................................ [ 34%]
+........................................................................ [ 36%]
+........................................................................ [ 39%]
+.................................................................s.ss... [ 41%]
+.....................................................................ss. [ 43%]
+........................................................................ [ 46%]
+........................................................................ [ 48%]
+........................................................................ [ 50%]
+........................................................................ [ 53%]
+........................................................................ [ 55%]
+........................................................................ [ 57%]
+........................................................................ [ 60%]
+........................................................................ [ 62%]
+........................................................................ [ 64%]
+........................................................................ [ 67%]
+........................................................................ [ 69%]
+........................................................................ [ 71%]
+........................................................................ [ 74%]
+........................................................................ [ 76%]
+........................................................................ [ 78%]
+........................................................................ [ 81%]
+........................................................................ [ 83%]
+........................................................................ [ 85%]
+........................................................................ [ 87%]
+........................................................................ [ 90%]
+.................................sss..................................s. [ 92%]
+........................................................................ [ 94%]
+...............................................................................................................sssssssssssss [ 98%]
+sssssss..........................                                        [100%]
+=============================== warnings summary ===============================
+../../../../Documents/ChatGPT/Nebius × NVIDIA Global AI Hackathon/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1
+  <python-environment>/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_brand_dsh_web.py:10: brand patch is local-runtime only
+SKIPPED [1] tests/test_2288_plan_structure.py:85: the recorded 2288 planning inputs are not present
+SKIPPED [1] tests/test_2288_plan_structure.py:91: the recorded 2288 planning inputs are not present
+SKIPPED [1] tests/test_2288_plan_structure.py:105: the recorded 2288 planning inputs are not present
+SKIPPED [1] tests/test_2288_plan_structure.py:122: the recorded 2288 planning inputs are not present
+SKIPPED [1] tests/test_2288_plan_structure.py:151: the recorded 2288 planning inputs are not present
+SKIPPED [1] tests/test_contract_files.py:68: recorded runs are not present
+SKIPPED [1] tests/test_contract_files.py:80: recorded runs are not present
+SKIPPED [1] tests/test_contract_files.py:86: recorded runs are not present
+SKIPPED [1] tests/test_contract_files.py:94: recorded runs are not present
+SKIPPED [1] tests/test_executor_peer.py:47: SO_PEERCRED is only available on Linux
+SKIPPED [1] tests/test_native_planner.py:372: Build the pinned Pi smoke copy for loader integration.
+SKIPPED [1] tests/test_native_planner.py:420: Build the pinned Pi smoke copy for agent-loop integration.
+SKIPPED [1] tests/test_native_planner.py:464: Build the pinned Pi smoke copy for child process checks.
+SKIPPED [1] tests/test_native_recovery.py:290: Build the pinned Pi smoke copy for loader integration.
+SKIPPED [1] tests/test_native_recovery.py:315: Build the pinned Pi smoke copy for agent-loop integration.
+SKIPPED [3] tests/test_runview.py:249: recorded runs are not present
+SKIPPED [1] tests/test_session_view.py:371: real DSH projection cache is not present
+SKIPPED [1] tests/test_vps_rotate.py:125: requires Linux root file ownership
+SKIPPED [3] tests/test_vps_rotate.py:150: requires Linux root file ownership
+SKIPPED [1] tests/test_vps_rotate.py:160: requires Linux root file ownership
+SKIPPED [1] tests/test_vps_rotate.py:168: requires Linux root file ownership
+SKIPPED [1] tests/test_vps_rotate.py:176: requires Linux root file ownership
+SKIPPED [1] tests/test_vps_rotate.py:185: requires Linux root file ownership
+SKIPPED [1] tests/test_vps_rotate.py:202: requires Linux root file ownership
+SKIPPED [3] tests/test_vps_rotate.py:218: requires Linux root file ownership
+SKIPPED [1] tests/test_vps_rotate.py:236: requires Linux root file ownership
+SKIPPED [1] tests/test_vps_rotate.py:259: requires Linux root file ownership
+SKIPPED [1] tests/test_vps_rotate.py:270: requires Linux root file ownership
+SKIPPED [1] tests/test_vps_rotate.py:292: requires Linux root file ownership
+SKIPPED [1] tests/test_vps_rotate.py:312: requires Linux root file ownership
+SKIPPED [1] tests/test_vps_rotate.py:324: requires Linux root file ownership
+SKIPPED [1] tests/test_vps_rotate.py:336: requires Linux root file ownership
+SKIPPED [1] tests/test_vps_rotate.py:345: requires Linux root file ownership
+3062 passed, 40 skipped, 1 warning, 28 subtests passed in 170.30s (0:02:50)

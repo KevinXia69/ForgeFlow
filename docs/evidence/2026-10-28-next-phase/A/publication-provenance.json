@@ -1,0 +1,11 @@
+{
+  "scope": "public report redaction; original report retained privately",
+  "source_commit": "74a990a51545d7a619b6b39179bd357d803c7396",
+  "original_private_report_sha256": "54874609b606fdcffb7333b0c3692437ff1d047eeb5bebabbf0dc3b089e1b22f",
+  "public_report_sha256": "be1238a02aca20a4f2c96a812f847ab861f11023039b7dfafc88dd0dc47b8e4f",
+  "changes": [
+    "manifest owner_sha256 removed",
+    "publication annotations added"
+  ],
+  "business_results_changed": false
+}

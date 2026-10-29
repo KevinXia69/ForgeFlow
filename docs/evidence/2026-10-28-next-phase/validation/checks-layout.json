@@ -1,0 +1,104 @@
+{
+  "category": "read_only_existing_case_layout_measurement",
+  "passed": true,
+  "combinations": 8,
+  "captures_created": false,
+  "results": [
+    {
+      "scenario": "A",
+      "lang": "zh",
+      "width": 1440,
+      "case_id": "c9839d2e310d8058c37036416ea9514e",
+      "plan_id": "c11adb7efff666f234119b1bab6623e3e0172caa3ee1e3f082191e0cebe43ff0",
+      "checks": 5,
+      "overlap": false,
+      "overflow": false,
+      "mutation_requests": 0,
+      "console_errors": 0
+    },
+    {
+      "scenario": "A",
+      "lang": "zh",
+      "width": 390,
+      "case_id": "c9839d2e310d8058c37036416ea9514e",
+      "plan_id": "c11adb7efff666f234119b1bab6623e3e0172caa3ee1e3f082191e0cebe43ff0",
+      "checks": 5,
+      "overlap": false,
+      "overflow": false,
+      "mutation_requests": 0,
+      "console_errors": 0
+    },
+    {
+      "scenario": "A",
+      "lang": "en",
+      "width": 1440,
+      "case_id": "c9839d2e310d8058c37036416ea9514e",
+      "plan_id": "c11adb7efff666f234119b1bab6623e3e0172caa3ee1e3f082191e0cebe43ff0",
+      "checks": 5,
+      "overlap": false,
+      "overflow": false,
+      "mutation_requests": 0,
+      "console_errors": 0
+    },
+    {
+      "scenario": "A",
+      "lang": "en",
+      "width": 390,
+      "case_id": "c9839d2e310d8058c37036416ea9514e",
+      "plan_id": "c11adb7efff666f234119b1bab6623e3e0172caa3ee1e3f082191e0cebe43ff0",
+      "checks": 5,
+      "overlap": false,
+      "overflow": false,
+      "mutation_requests": 0,
+      "console_errors": 0
+    },
+    {
+      "scenario": "B",
+      "lang": "zh",
+      "width": 1440,
+      "case_id": "b855fc346f583cf914654ba4e69b76cd",
+      "plan_id": "caa71748d9d73f953e30a6727aefe227c233b7b3c75f4e67220e84d1bd4c99b7",
+      "checks": 10,
+      "overlap": false,
+      "overflow": false,
+      "mutation_requests": 0,
+      "console_errors": 0
+    },
+    {
+      "scenario": "B",
+      "lang": "zh",
+      "width": 390,
+      "case_id": "b855fc346f583cf914654ba4e69b76cd",
+      "plan_id": "caa71748d9d73f953e30a6727aefe227c233b7b3c75f4e67220e84d1bd4c99b7",
+      "checks": 10,
+      "overlap": false,
+      "overflow": false,
+      "mutation_requests": 0,
+      "console_errors": 0
+    },
+    {
+      "scenario": "B",
+      "lang": "en",
+      "width": 1440,
+      "case_id": "b855fc346f583cf914654ba4e69b76cd",
+      "plan_id": "caa71748d9d73f953e30a6727aefe227c233b7b3c75f4e67220e84d1bd4c99b7",
+      "checks": 10,
+      "overlap": false,
+      "overflow": false,
+      "mutation_requests": 0,
+      "console_errors": 0
+    },
+    {
+      "scenario": "B",
+      "lang": "en",
+      "width": 390,
+      "case_id": "b855fc346f583cf914654ba4e69b76cd",
+      "plan_id": "caa71748d9d73f953e30a6727aefe227c233b7b3c75f4e67220e84d1bd4c99b7",
+      "checks": 10,
+      "overlap": false,
+      "overflow": false,
+      "mutation_requests": 0,
+      "console_errors": 0
+    }
+  ]
+}

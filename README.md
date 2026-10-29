@@ -24,6 +24,10 @@ controlled by ForgeFlow, not by an assistant's generated answer.
 [How it differs](#how-it-differs) · [One case, end to end](#one-case-end-to-end) ·
 [Status](#status) · [Product docs](./docs/en/README.md)
 
+Current revision: [actual local sandbox UI screenshots](./docs/media/next-phase/README.md)
+and the [next-phase release record](./docs/NEXT_PHASE_RELEASE.md).
+The original deck, video and hosted screenshots remain historical material.
+
 ---
 
 ## What it is
@@ -56,7 +60,7 @@ ForgeFlow is built for that hour. It does one thing:
 6. The task's own acceptance program counts the rules it checks and gives the
    score.
 
-![Case page](docs/images/case-en.png)
+![Current local sandbox case](docs/media/next-phase/A-overview-en.png)
 
 ## One case, end to end
 
@@ -65,20 +69,24 @@ The disruption is one failed **3-unit finished-goods purchase** linked to Alpine
 Theater's 13-unit order, due in 10 days. Total demand, linked order demand and
 failed supply are separate quantities.
 
-The historical plan costs **$4,794.94**, including retained purchasing and
+The default plan costs **$4,794.94**, including retained purchasing and
 manufacturing commitments. Its 43 purchased/manufactured finished units represent
 **$20,623.23** of coverage revenue: the corrected **new-spend margin is 76.7498%**,
 against a 27.5% floor. The 7 units covered by finished stock are excluded from
 that revenue denominator. The old 80% display used all sales revenue and must
 not be used to establish compliance with this floor.
 
-The archived execution records **two purchase-document actions** and **seven
-verified execution steps**. Those are distinct counts; neither establishes the
-number of database writes. Its original acceptance passed **51/51 rules and
-100/100 overall**. These are [historical results](./docs/evidence/2026-10-25-vps/README.md),
-not a fresh execution of the corrected version. Original receipts, hashes,
-screenshots and recordings remain unchanged; see the [presentation correction
-checklist](./docs/RECORDING_CORRECTIONS.md) before reusing them.
+The [fresh local A acceptance](./docs/evidence/2026-10-28-next-phase/A-final/report.json)
+on source `bf880f2` records **two purchase-document actions** and **seven verified
+execution steps**, with **51/51 original rules and 100/100 overall**. Document
+actions and execution steps are distinct counts; neither establishes the number
+of database writes. The authorized HTTP acceptance driver approved this
+synthetic sandbox case before the UI capture. This is separate from an
+autonomous model run or a public deployment upgrade.
+
+[Historical results](./docs/evidence/2026-10-25-vps/README.md), their original
+receipts, hashes, screenshots and recordings remain unchanged. Current materials
+are linked in the [recording corrections](./docs/RECORDING_CORRECTIONS.md).
 
 Three questions to try:
 

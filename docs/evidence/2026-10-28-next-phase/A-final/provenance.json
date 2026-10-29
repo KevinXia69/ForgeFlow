@@ -1,0 +1,28 @@
+{
+  "source_commit": "bf880f2f1a8881809a6da2d89bcd3ba6724f4f81",
+  "upstream_commit": "ceba3880af555129b5278e056a0c20f2fb5a0ba9",
+  "environment": "dedicated_local_synthetic_ERP_Bench_product_HTTP_acceptance",
+  "autonomous_benchmark": false,
+  "browser_approval": false,
+  "margin_basis": "new_spend_coverage_v2",
+  "plan_id": "c11adb7efff666f234119b1bab6623e3e0172caa3ee1e3f082191e0cebe43ff0",
+  "source_unchanged": true,
+  "source_files_matched_commit": 118,
+  "bound_source_files_validated": 46,
+  "original_reward_raw_sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c",
+  "files_sha256": {
+    "after-approval-tables.json": "657e1c0964f0338d291622b66cec3395822fc73a19790a6f6b633e9ea9c8ede3",
+    "original-reward.json": "c592d373be7c5526ac2b740ba6caa3a56134cb69e4e6207279634afa4cc5aa01",
+    "after-replay-tables.json": "12d711994c3ef3d2e7b67dce5fc58f2615e03d120f6cdfcc58692d1ca9b82919",
+    "executed.json": "55bdae32cba3bf93e1e7fae53ca187081b8c94ba1c45a5fc5ab2b0c7c489c321",
+    "resumed-after-approval-tables.json": "65c6b02ffcf7a9983b6a8d9a60742329678933618b8a3b7dcb2c5798709479bb",
+    "report.json": "10e887df6c869ab92ba3a095dd4abaa4982a733fe0c9eab5526618b3a898d2d8",
+    "prepared.json": "2d7be5122aae274444114cdeb180e4d0f03a9858388eb64b9e602565fc904944",
+    "selected.json": "2d7be5122aae274444114cdeb180e4d0f03a9858388eb64b9e602565fc904944",
+    "original-reward.raw.json": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c",
+    "before-approval-tables.json": "2ac624c396aaa3b89806446e4e7b446983e07a475381b18c767df95089bbeeb3",
+    "answers.json": "bb49671f2b91d3e1a1d085d1e72a59cfb261ade6ff426df898864afc1fa0dcad",
+    "resumed-before-approval-tables.json": "08b278eb2d9916c29b8c76d74d300b5bd37906523ec522144b9a27da9294f324",
+    "baseline-tables.json": "97385bc19fea64035a9ab00fb7a11595d54dc4917212a0ce31380f0d61622d0e"
+  }
+}

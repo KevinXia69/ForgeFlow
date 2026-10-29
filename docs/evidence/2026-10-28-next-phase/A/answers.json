@@ -1,0 +1,3396 @@
+{
+  "margin_en": {
+    "answer": "These are the facts for the recorded current plan, “Preserve existing quantities”. The plan proposes 2 changes. Planned cost is $4,794.94, covering planned purchasing and manufacturing including retained existing documents; it is not an increase over the original plan. New-spend margin is 76.75% against a 27.5% threshold; its denominator excludes sales covered by finished stock. This is not measured post-execution accounting margin. The plan is bound to policy 42f96905e402…. Customer budget caps are not a new-purchase authorization limit. Checks: New-spend margin floor: pass · Per-order customer sales-value budget check: pass; 5/5 orders within their own customer caps. · Demand coverage: pass · On-time delivery: pass · Policy binding: pass.\n\nOriginal arrangement planned cost is USD 4,634.89; the known planning-cost difference is USD 160.05 (proposal minus original). The original arrangement may be infeasible. Purchases use snapshot unit prices and manufacturing uses public workcenter standards. New purchase order value is USD 1,432.32; increases to existing purchases are USD 0.00. New manufacturing standard cost is USD 0.00, not a purchase commitment. Cancellation fees where applicable, tax adjustments and actual financial values are unconfirmed. The full cost difference is unknown; this does not establish actual savings.",
+    "mode": "case",
+    "citations": [
+      {
+        "field": "plan.objective",
+        "label": "Planning preference",
+        "value": "preserve_quantities"
+      },
+      {
+        "field": "plan.new_spend",
+        "label": "Planned cost",
+        "value": 4794.94
+      },
+      {
+        "field": "plan.margin",
+        "label": "Recorded margin (%)",
+        "value": 76.75
+      },
+      {
+        "field": "plan.actions",
+        "label": "Planned changes",
+        "value": 2
+      },
+      {
+        "field": "plan.policy_sha256",
+        "label": "Policy binding",
+        "value": "42f96905e4029b37377c88c36a94e8e96aaf62ba172edbad4947ca3ddfa016aa"
+      },
+      {
+        "field": "plan.costs.baseline.total",
+        "label": "Original arrangement planned cost",
+        "value": "4634.89"
+      },
+      {
+        "field": "plan.costs.known_delta",
+        "label": "Known planning-cost difference",
+        "value": "160.05"
+      },
+      {
+        "field": "plan.costs.new_purchase_value",
+        "label": "New purchase order value",
+        "value": "1432.32"
+      },
+      {
+        "field": "plan.costs.purchase_increase",
+        "label": "Increases to existing purchases",
+        "value": "0"
+      },
+      {
+        "field": "plan.costs.new_manufacturing_standard",
+        "label": "New manufacturing standard cost",
+        "value": "0"
+      },
+      {
+        "field": "plan.costs.basis.as_of",
+        "label": "Cost snapshot time",
+        "value": "2026-10-29T02:03:13.203690+00:00"
+      },
+      {
+        "field": "plan.checks.1.status",
+        "label": "Recorded budget-check status",
+        "value": "pass"
+      },
+      {
+        "field": "plan.checks.1.actual",
+        "label": "Recorded budget-check measured value",
+        "value": 5
+      },
+      {
+        "field": "plan.checks.1.threshold",
+        "label": "Recorded budget-check comparison value",
+        "value": 5
+      },
+      {
+        "field": "plan.checks.1.basis.kind",
+        "label": "Budget calculation basis",
+        "value": "sales_order_value_per_customer_cap_v1"
+      },
+      {
+        "field": "plan.checks.1.basis.plan_id",
+        "label": "Budget-check bound plan",
+        "value": "2955ae9daf8579d101062874d0daaa0bc6f4252862f3c9464ff6c663fa3d79b2"
+      },
+      {
+        "field": "plan.checks.1.basis.snapshot_sha256",
+        "label": "Budget-check bound snapshot",
+        "value": "19fa27d90794e003b125890640eae8e063c9937c9d12e9e6661ecded40c2822f"
+      }
+    ],
+    "case_context": {
+      "schema_version": 1,
+      "case_id": "0ea390fdd87cbc15b477fab0e5e1204e",
+      "state": "awaiting_approval",
+      "version": 1,
+      "plan_id": "2955ae9daf8579d101062874d0daaa0bc6f4252862f3c9464ff6c663fa3d79b2",
+      "comparison_id": "f47944a3a83f4d879b7e9383077fc75d",
+      "selection_revision": 2,
+      "selection_pending": false,
+      "updated_at": "2026-10-29T02:03:16.757794+00:00",
+      "outcome": "awaiting_approval"
+    },
+    "evidence_refs": [
+      {
+        "kind": "case",
+        "id": "0ea390fdd87cbc15b477fab0e5e1204e",
+        "href": "/api/product/cases/0ea390fdd87cbc15b477fab0e5e1204e",
+        "label": "Case evidence"
+      }
+    ]
+  },
+  "margin_zh": {
+    "answer": "以下是记录中当前方案“尽量保留既有数量”的事实。该计划包含 2 项变更。方案规划成本为 $4,794.94，包含规划采购与制造成本以及保留的既有单据；这不是相对原方案的成本增量。新增支出利润率为 76.75%，门槛为 27.5%；分母不含现有成品库存覆盖的销售收入。该指标不是执行后实际毛利率。计划绑定策略 42f96905e402…。客户预算边界不是新增采购授权额度。检查结果：新增支出利润率：通过 · 逐单客户销售金额预算检查：通过；5/5 单在各自客户上限内。 · 需求覆盖：通过 · 按时交付：通过 · 策略绑定：通过。\n\n原安排规划成本为 USD 4,634.89，已知规划成本差额为 USD 160.05（方案减原安排）；原安排可能已不可行。采购按快照记录单价、制造按公开工作中心标准计算。新建采购单金额为 USD 1,432.32，既有采购增加额为 USD 0.00；新建制造单标准成本为 USD 0.00，不属于采购承诺。取消费用（如涉及）、税务调整和实际财务值未确认，完整费用差额未知，不能据此声称实际节省。",
+    "mode": "case",
+    "citations": [
+      {
+        "field": "plan.objective",
+        "label": "规划偏好",
+        "value": "preserve_quantities"
+      },
+      {
+        "field": "plan.new_spend",
+        "label": "方案规划成本",
+        "value": 4794.94
+      },
+      {
+        "field": "plan.margin",
+        "label": "记录的利润率（%）",
+        "value": 76.75
+      },
+      {
+        "field": "plan.actions",
+        "label": "计划变更数",
+        "value": 2
+      },
+      {
+        "field": "plan.policy_sha256",
+        "label": "策略绑定",
+        "value": "42f96905e4029b37377c88c36a94e8e96aaf62ba172edbad4947ca3ddfa016aa"
+      },
+      {
+        "field": "plan.costs.baseline.total",
+        "label": "原安排规划成本",
+        "value": "4634.89"
+      },
+      {
+        "field": "plan.costs.known_delta",
+        "label": "已知规划成本差额",
+        "value": "160.05"
+      },
+      {
+        "field": "plan.costs.new_purchase_value",
+        "label": "新建采购单金额",
+        "value": "1432.32"
+      },
+      {
+        "field": "plan.costs.purchase_increase",
+        "label": "既有采购增加额",
+        "value": "0"
+      },
+      {
+        "field": "plan.costs.new_manufacturing_standard",
+        "label": "新建制造单标准成本",
+        "value": "0"
+      },
+      {
+        "field": "plan.costs.basis.as_of",
+        "label": "成本快照时间",
+        "value": "2026-10-29T02:03:13.203690+00:00"
+      },
+      {
+        "field": "plan.checks.1.status",
+        "label": "记录的预算检查状态",
+        "value": "pass"
+      },
+      {
+        "field": "plan.checks.1.actual",
+        "label": "预算检查原记录值",
+        "value": 5
+      },
+      {
+        "field": "plan.checks.1.threshold",
+        "label": "预算检查原对照值",
+        "value": 5
+      },
+      {
+        "field": "plan.checks.1.basis.kind",
+        "label": "预算计算口径",
+        "value": "sales_order_value_per_customer_cap_v1"
+      },
+      {
+        "field": "plan.checks.1.basis.plan_id",
+        "label": "预算检查绑定方案",
+        "value": "2955ae9daf8579d101062874d0daaa0bc6f4252862f3c9464ff6c663fa3d79b2"
+      },
+      {
+        "field": "plan.checks.1.basis.snapshot_sha256",
+        "label": "预算检查绑定快照",
+        "value": "19fa27d90794e003b125890640eae8e063c9937c9d12e9e6661ecded40c2822f"
+      }
+    ],
+    "case_context": {
+      "schema_version": 1,
+      "case_id": "0ea390fdd87cbc15b477fab0e5e1204e",
+      "state": "awaiting_approval",
+      "version": 1,
+      "plan_id": "2955ae9daf8579d101062874d0daaa0bc6f4252862f3c9464ff6c663fa3d79b2",
+      "comparison_id": "f47944a3a83f4d879b7e9383077fc75d",
+      "selection_revision": 2,
+      "selection_pending": false,
+      "updated_at": "2026-10-29T02:03:16.757794+00:00",
+      "outcome": "awaiting_approval"
+    },
+    "evidence_refs": [
+      {
+        "kind": "case",
+        "id": "0ea390fdd87cbc15b477fab0e5e1204e",
+        "href": "/api/product/cases/0ea390fdd87cbc15b477fab0e5e1204e",
+        "label": "Case evidence"
+      }
+    ]
+  },
+  "impact_en": {
+    "answer": "Recorded directly linked demand: 1 orders, 13 units of P27637E67E7-LED-CRS-009. Identified failed supply: 1 documents, 3 units of P27637E67E7-LED-CRS-009. Linked orders show their full demand, not failed supply. Missing direct links do not rule out indirect effects.\n\nThese are the original disruption relationships and planned supplies for the currently selected plan.\n\nShowing the first 4 orders; ask by order reference for its path, or see case details for all relationships.\n\nS00001:\n\nOriginal disruption scope: relationship not recorded; this does not establish no impact.\n\n- Planned supplies: WH/MO/00001 → S00001; 7 units of P27637E67E7-LED-CRS-009.\n\n- Planned supplies: Stock P27637E67E7-LED-DCI-121 → WH/MO/00001; 9 units of P27637E67E7-LED-DCI-121.\n\n- Planned supplies: Stock P27637E67E7-LED-PDS-116 → WH/MO/00001; 15 units of P27637E67E7-LED-PDS-116.\n\n- Planned supplies: Stock P27637E67E7-LED-SCS-124 → WH/MO/00001; 2 units of P27637E67E7-LED-SCS-124.\n\n- Planned supplies: P00001 → WH/MO/00001; 6 units of P27637E67E7-LED-DCI-121.\n\n- Planned supplies: P00004 → WH/MO/00001; 28 units of P27637E67E7-LED-SCS-124.\n\nPlanned supply-ready date 2026-11-06; customer deadline 2026-11-06; calendar-day buffer 0.\n\nS00002:\n\nOriginal disruption scope: relationship not recorded; this does not establish no impact.\n\n- Planned supplies: WH/MO/00001 → S00002; 8 units of P27637E67E7-LED-CRS-009.\n\n- Planned supplies: Stock P27637E67E7-LED-DCI-121 → WH/MO/00001; 9 units of P27637E67E7-LED-DCI-121.\n\n- Planned supplies: Stock P27637E67E7-LED-PDS-116 → WH/MO/00001; 15 units of P27637E67E7-LED-PDS-116.\n\n- Planned supplies: Stock P27637E67E7-LED-SCS-124 → WH/MO/00001; 2 units of P27637E67E7-LED-SCS-124.\n\n- Planned supplies: P00001 → WH/MO/00001; 6 units of P27637E67E7-LED-DCI-121.\n\n- Planned supplies: P00004 → WH/MO/00001; 28 units of P27637E67E7-LED-SCS-124.\n\nPlanned supply-ready date 2026-11-06; customer deadline 2026-11-06; calendar-day buffer 0.\n\nS00003:\n\nOriginal disruption scope: relationship not recorded; this does not establish no impact.\n\n- Planned supplies: WH/MO/00002 → S00003; 6 units of P27637E67E7-LED-CRS-009.\n\n- Planned supplies: WH/MO/00003 → S00003; 3 units of P27637E67E7-LED-CRS-009.\n\n- Planned supplies: Stock P27637E67E7-LED-PDS-116 → WH/MO/00002; 3 units of P27637E67E7-LED-PDS-116.\n\n- Planned supplies: Stock P27637E67E7-LED-SCS-124 → WH/MO/00002; 2 units of P27637E67E7-LED-SCS-124.\n\n- Planned supplies: P00003 → WH/MO/00002; 3 units of P27637E67E7-LED-PDS-116.\n\n- Planned supplies: P00003 → WH/MO/00003; 3 units of P27637E67E7-LED-PDS-116.\n\n- Planned supplies: P00001 → WH/MO/00002; 6 units of P27637E67E7-LED-DCI-121.\n\n- Planned supplies: P00001 → WH/MO/00003; 3 units of P27637E67E7-LED-DCI-121.\n\n- Planned supplies: P00005 → WH/MO/00002; 9 units of P27637E67E7-LED-SCS-124.\n\n- Planned supplies: P00005 → WH/MO/00003; 6 units of P27637E67E7-LED-SCS-124.\n\n- Planned supplies: P00004 → WH/MO/00002; 1 units of P27637E67E7-LED-SCS-124.\n\nPlanned supply-ready date 2026-11-07; customer deadline 2026-11-07; calendar-day buffer 0.\n\nS00004:\n\n- Original disruption scope: P00006 → S00004; association scope; allocated quantity not recorded.\n\n- Original disruption scope: r27637E67E7_q02 → P00006; association scope; allocated quantity not recorded.\n\n- Planned supplies: WH/MO/00004 → S00004; 3 units of P27637E67E7-LED-CRS-009.\n\n- Planned supplies: Planned purchase 0006 → S00004; 3 units of P27637E67E7-LED-CRS-009.\n\n- Planned supplies: Stock P27637E67E7-LED-CRS-009 → S00004; 7 units of P27637E67E7-LED-CRS-009.\n\n- Planned supplies: P00003 → WH/MO/00004; 16 units of P27637E67E7-LED-PDS-116.\n\n- Planned supplies: P00002 → WH/MO/00004; 16 units of P27637E67E7-LED-DCI-121.\n\n- Planned supplies: P00005 → WH/MO/00004; 32 units of P27637E67E7-LED-SCS-124.\n\nPlanned supply-ready date 2026-11-08; customer deadline 2026-11-08; calendar-day buffer 0.\n\nOriginal associations have no per-edge quantity. Component inputs belong to the whole manufacturing order, not an allocation to this sales order. These are plans, not proof of receipt, production or delivery; actual results require the separate execution readback and original verification.",
+    "mode": "case",
+    "citations": [
+      {
+        "field": "plan.plan_id",
+        "label": "Selected plan",
+        "value": "2955ae9daf8579d101062874d0daaa0bc6f4252862f3c9464ff6c663fa3d79b2"
+      },
+      {
+        "field": "plan.impact_chain.orders.3.order_ref",
+        "label": "Linked order evidence",
+        "value": "S00004"
+      },
+      {
+        "field": "plan.impact_chain.orders.3.node_key",
+        "label": "Linked order evidence",
+        "value": "order:existing:sale.order:4"
+      },
+      {
+        "field": "plan.impact_chain.orders.3.readiness.demand_units",
+        "label": "Linked order evidence",
+        "value": 13
+      },
+      {
+        "field": "plan.impact_chain.nodes.24.key",
+        "label": "Failed supply evidence",
+        "value": "baseline:existing:purchase.order:6"
+      },
+      {
+        "field": "plan.impact_chain.nodes.24.kind",
+        "label": "Failed supply evidence",
+        "value": "purchase_order"
+      },
+      {
+        "field": "plan.impact_chain.nodes.24.product_code",
+        "label": "Failed supply evidence",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.nodes.24.quantity",
+        "label": "Failed supply evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.18.from",
+        "label": "Direct scope relationship",
+        "value": "baseline:existing:purchase.order:6"
+      },
+      {
+        "field": "plan.impact_chain.edges.18.to",
+        "label": "Direct scope relationship",
+        "value": "order:existing:sale.order:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.18.relation",
+        "label": "Direct scope relationship",
+        "value": "origin_scope"
+      },
+      {
+        "field": "plan.impact_chain.edges.18.phase",
+        "label": "Direct scope relationship",
+        "value": "baseline"
+      },
+      {
+        "field": "plan.impact_chain.edges.19.from",
+        "label": "Direct scope relationship",
+        "value": "disruption"
+      },
+      {
+        "field": "plan.impact_chain.edges.19.to",
+        "label": "Direct scope relationship",
+        "value": "baseline:existing:purchase.order:6"
+      },
+      {
+        "field": "plan.impact_chain.edges.19.relation",
+        "label": "Direct scope relationship",
+        "value": "disruption_scope"
+      },
+      {
+        "field": "plan.impact_chain.edges.19.phase",
+        "label": "Direct scope relationship",
+        "value": "baseline"
+      },
+      {
+        "field": "plan.impact_chain.orders.0.order_ref",
+        "label": "Sales order",
+        "value": "S00001"
+      },
+      {
+        "field": "plan.impact_chain.nodes.7.label",
+        "label": "Business document",
+        "value": "WH/MO/00001"
+      },
+      {
+        "field": "plan.impact_chain.nodes.7.kind",
+        "label": "Relationship evidence",
+        "value": "manufacturing_order"
+      },
+      {
+        "field": "plan.impact_chain.nodes.1.label",
+        "label": "Business document",
+        "value": "S00001"
+      },
+      {
+        "field": "plan.impact_chain.nodes.1.kind",
+        "label": "Relationship evidence",
+        "value": "sales_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.20.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.20.to",
+        "label": "Relationship evidence",
+        "value": "order:existing:sale.order:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.20.relation",
+        "label": "Relationship evidence",
+        "value": "sales_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.20.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.20.quantity",
+        "label": "Relationship evidence",
+        "value": 7
+      },
+      {
+        "field": "plan.impact_chain.edges.20.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.20.available_day",
+        "label": "Relationship evidence",
+        "value": 8
+      },
+      {
+        "field": "plan.impact_chain.edges.20.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.20.source_refs.0.record",
+        "label": "Public source record",
+        "value": "sales_order_flows.0"
+      },
+      {
+        "field": "plan.impact_chain.nodes.27.label",
+        "label": "Business document",
+        "value": "Stock P27637E67E7-LED-DCI-121"
+      },
+      {
+        "field": "plan.impact_chain.nodes.27.kind",
+        "label": "Relationship evidence",
+        "value": "stock"
+      },
+      {
+        "field": "plan.impact_chain.edges.28.from",
+        "label": "Relationship evidence",
+        "value": "planned:stock:P27637E67E7-LED-DCI-121"
+      },
+      {
+        "field": "plan.impact_chain.edges.28.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.28.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.28.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-DCI-121"
+      },
+      {
+        "field": "plan.impact_chain.edges.28.quantity",
+        "label": "Relationship evidence",
+        "value": 9
+      },
+      {
+        "field": "plan.impact_chain.edges.28.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.28.available_day",
+        "label": "Relationship evidence",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.edges.28.required_day",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.28.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.28.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.0"
+      },
+      {
+        "field": "plan.impact_chain.nodes.28.label",
+        "label": "Business document",
+        "value": "Stock P27637E67E7-LED-PDS-116"
+      },
+      {
+        "field": "plan.impact_chain.nodes.28.kind",
+        "label": "Relationship evidence",
+        "value": "stock"
+      },
+      {
+        "field": "plan.impact_chain.edges.29.from",
+        "label": "Relationship evidence",
+        "value": "planned:stock:P27637E67E7-LED-PDS-116"
+      },
+      {
+        "field": "plan.impact_chain.edges.29.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.29.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.29.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-PDS-116"
+      },
+      {
+        "field": "plan.impact_chain.edges.29.quantity",
+        "label": "Relationship evidence",
+        "value": 15
+      },
+      {
+        "field": "plan.impact_chain.edges.29.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.29.available_day",
+        "label": "Relationship evidence",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.edges.29.required_day",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.29.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.29.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.1"
+      },
+      {
+        "field": "plan.impact_chain.nodes.29.label",
+        "label": "Business document",
+        "value": "Stock P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.nodes.29.kind",
+        "label": "Relationship evidence",
+        "value": "stock"
+      },
+      {
+        "field": "plan.impact_chain.edges.31.from",
+        "label": "Relationship evidence",
+        "value": "planned:stock:P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.31.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.31.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.31.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.31.quantity",
+        "label": "Relationship evidence",
+        "value": 2
+      },
+      {
+        "field": "plan.impact_chain.edges.31.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.31.available_day",
+        "label": "Relationship evidence",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.edges.31.required_day",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.31.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.31.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.3"
+      },
+      {
+        "field": "plan.impact_chain.nodes.15.label",
+        "label": "Business document",
+        "value": "P00001"
+      },
+      {
+        "field": "plan.impact_chain.nodes.15.kind",
+        "label": "Relationship evidence",
+        "value": "purchase_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.37.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:purchase.order:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.37.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.37.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.37.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-DCI-121"
+      },
+      {
+        "field": "plan.impact_chain.edges.37.quantity",
+        "label": "Relationship evidence",
+        "value": 6
+      },
+      {
+        "field": "plan.impact_chain.edges.37.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.37.available_day",
+        "label": "Relationship evidence",
+        "value": 2
+      },
+      {
+        "field": "plan.impact_chain.edges.37.required_day",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.37.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.37.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.9"
+      },
+      {
+        "field": "plan.impact_chain.nodes.21.label",
+        "label": "Business document",
+        "value": "P00004"
+      },
+      {
+        "field": "plan.impact_chain.nodes.21.kind",
+        "label": "Relationship evidence",
+        "value": "purchase_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.43.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:purchase.order:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.43.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.43.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.43.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.43.quantity",
+        "label": "Relationship evidence",
+        "value": 28
+      },
+      {
+        "field": "plan.impact_chain.edges.43.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.43.available_day",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.43.required_day",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.43.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.43.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.15"
+      },
+      {
+        "field": "plan.impact_chain.orders.0.readiness.planned_ready_date",
+        "label": "Planned readiness",
+        "value": "2026-11-06"
+      },
+      {
+        "field": "plan.impact_chain.orders.0.readiness.customer_due_date",
+        "label": "Planned readiness",
+        "value": "2026-11-06"
+      },
+      {
+        "field": "plan.impact_chain.orders.0.readiness.buffer_days",
+        "label": "Planned readiness",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.orders.1.order_ref",
+        "label": "Sales order",
+        "value": "S00002"
+      },
+      {
+        "field": "plan.impact_chain.nodes.2.label",
+        "label": "Business document",
+        "value": "S00002"
+      },
+      {
+        "field": "plan.impact_chain.nodes.2.kind",
+        "label": "Relationship evidence",
+        "value": "sales_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.21.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.21.to",
+        "label": "Relationship evidence",
+        "value": "order:existing:sale.order:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.21.relation",
+        "label": "Relationship evidence",
+        "value": "sales_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.21.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.21.quantity",
+        "label": "Relationship evidence",
+        "value": 8
+      },
+      {
+        "field": "plan.impact_chain.edges.21.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.21.available_day",
+        "label": "Relationship evidence",
+        "value": 8
+      },
+      {
+        "field": "plan.impact_chain.edges.21.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.21.source_refs.0.record",
+        "label": "Public source record",
+        "value": "sales_order_flows.1"
+      },
+      {
+        "field": "plan.impact_chain.orders.1.readiness.planned_ready_date",
+        "label": "Planned readiness",
+        "value": "2026-11-06"
+      },
+      {
+        "field": "plan.impact_chain.orders.1.readiness.customer_due_date",
+        "label": "Planned readiness",
+        "value": "2026-11-06"
+      },
+      {
+        "field": "plan.impact_chain.orders.1.readiness.buffer_days",
+        "label": "Planned readiness",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.orders.2.order_ref",
+        "label": "Sales order",
+        "value": "S00003"
+      },
+      {
+        "field": "plan.impact_chain.nodes.9.label",
+        "label": "Business document",
+        "value": "WH/MO/00002"
+      },
+      {
+        "field": "plan.impact_chain.nodes.9.kind",
+        "label": "Relationship evidence",
+        "value": "manufacturing_order"
+      },
+      {
+        "field": "plan.impact_chain.nodes.3.label",
+        "label": "Business document",
+        "value": "S00003"
+      },
+      {
+        "field": "plan.impact_chain.nodes.3.kind",
+        "label": "Relationship evidence",
+        "value": "sales_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.22.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.22.to",
+        "label": "Relationship evidence",
+        "value": "order:existing:sale.order:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.22.relation",
+        "label": "Relationship evidence",
+        "value": "sales_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.22.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.22.quantity",
+        "label": "Relationship evidence",
+        "value": 6
+      },
+      {
+        "field": "plan.impact_chain.edges.22.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.22.available_day",
+        "label": "Relationship evidence",
+        "value": 9
+      },
+      {
+        "field": "plan.impact_chain.edges.22.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.22.source_refs.0.record",
+        "label": "Public source record",
+        "value": "sales_order_flows.2"
+      },
+      {
+        "field": "plan.impact_chain.nodes.11.label",
+        "label": "Business document",
+        "value": "WH/MO/00003"
+      },
+      {
+        "field": "plan.impact_chain.nodes.11.kind",
+        "label": "Relationship evidence",
+        "value": "manufacturing_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.23.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.23.to",
+        "label": "Relationship evidence",
+        "value": "order:existing:sale.order:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.23.relation",
+        "label": "Relationship evidence",
+        "value": "sales_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.23.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.23.quantity",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.23.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.23.available_day",
+        "label": "Relationship evidence",
+        "value": 9
+      },
+      {
+        "field": "plan.impact_chain.edges.23.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.23.source_refs.0.record",
+        "label": "Public source record",
+        "value": "sales_order_flows.3"
+      },
+      {
+        "field": "plan.impact_chain.edges.30.from",
+        "label": "Relationship evidence",
+        "value": "planned:stock:P27637E67E7-LED-PDS-116"
+      },
+      {
+        "field": "plan.impact_chain.edges.30.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.30.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.30.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-PDS-116"
+      },
+      {
+        "field": "plan.impact_chain.edges.30.quantity",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.30.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.30.available_day",
+        "label": "Relationship evidence",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.edges.30.required_day",
+        "label": "Relationship evidence",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.30.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.30.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.2"
+      },
+      {
+        "field": "plan.impact_chain.edges.32.from",
+        "label": "Relationship evidence",
+        "value": "planned:stock:P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.32.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.32.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.32.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.32.quantity",
+        "label": "Relationship evidence",
+        "value": 2
+      },
+      {
+        "field": "plan.impact_chain.edges.32.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.32.available_day",
+        "label": "Relationship evidence",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.edges.32.required_day",
+        "label": "Relationship evidence",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.32.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.32.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.4"
+      },
+      {
+        "field": "plan.impact_chain.nodes.19.label",
+        "label": "Business document",
+        "value": "P00003"
+      },
+      {
+        "field": "plan.impact_chain.nodes.19.kind",
+        "label": "Relationship evidence",
+        "value": "purchase_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.33.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:purchase.order:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.33.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.33.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.33.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-PDS-116"
+      },
+      {
+        "field": "plan.impact_chain.edges.33.quantity",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.33.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.33.available_day",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.33.required_day",
+        "label": "Relationship evidence",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.33.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.33.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.5"
+      },
+      {
+        "field": "plan.impact_chain.edges.34.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:purchase.order:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.34.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.34.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.34.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-PDS-116"
+      },
+      {
+        "field": "plan.impact_chain.edges.34.quantity",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.34.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.34.available_day",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.34.required_day",
+        "label": "Relationship evidence",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.34.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.34.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.6"
+      },
+      {
+        "field": "plan.impact_chain.edges.38.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:purchase.order:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.38.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.38.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.38.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-DCI-121"
+      },
+      {
+        "field": "plan.impact_chain.edges.38.quantity",
+        "label": "Relationship evidence",
+        "value": 6
+      },
+      {
+        "field": "plan.impact_chain.edges.38.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.38.available_day",
+        "label": "Relationship evidence",
+        "value": 2
+      },
+      {
+        "field": "plan.impact_chain.edges.38.required_day",
+        "label": "Relationship evidence",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.38.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.38.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.10"
+      },
+      {
+        "field": "plan.impact_chain.edges.39.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:purchase.order:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.39.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.39.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.39.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-DCI-121"
+      },
+      {
+        "field": "plan.impact_chain.edges.39.quantity",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.39.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.39.available_day",
+        "label": "Relationship evidence",
+        "value": 2
+      },
+      {
+        "field": "plan.impact_chain.edges.39.required_day",
+        "label": "Relationship evidence",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.39.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.39.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.11"
+      },
+      {
+        "field": "plan.impact_chain.nodes.23.label",
+        "label": "Business document",
+        "value": "P00005"
+      },
+      {
+        "field": "plan.impact_chain.nodes.23.kind",
+        "label": "Relationship evidence",
+        "value": "purchase_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.40.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:purchase.order:5"
+      },
+      {
+        "field": "plan.impact_chain.edges.40.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.40.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.40.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.40.quantity",
+        "label": "Relationship evidence",
+        "value": 9
+      },
+      {
+        "field": "plan.impact_chain.edges.40.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.40.available_day",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.40.required_day",
+        "label": "Relationship evidence",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.40.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.40.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.12"
+      },
+      {
+        "field": "plan.impact_chain.edges.41.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:purchase.order:5"
+      },
+      {
+        "field": "plan.impact_chain.edges.41.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.41.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.41.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.41.quantity",
+        "label": "Relationship evidence",
+        "value": 6
+      },
+      {
+        "field": "plan.impact_chain.edges.41.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.41.available_day",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.41.required_day",
+        "label": "Relationship evidence",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.41.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.41.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.13"
+      },
+      {
+        "field": "plan.impact_chain.edges.44.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:purchase.order:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.44.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.44.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.44.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.44.quantity",
+        "label": "Relationship evidence",
+        "value": 1
+      },
+      {
+        "field": "plan.impact_chain.edges.44.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.44.available_day",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.44.required_day",
+        "label": "Relationship evidence",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.44.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.44.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.16"
+      },
+      {
+        "field": "plan.impact_chain.orders.2.readiness.planned_ready_date",
+        "label": "Planned readiness",
+        "value": "2026-11-07"
+      },
+      {
+        "field": "plan.impact_chain.orders.2.readiness.customer_due_date",
+        "label": "Planned readiness",
+        "value": "2026-11-07"
+      },
+      {
+        "field": "plan.impact_chain.orders.2.readiness.buffer_days",
+        "label": "Planned readiness",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.nodes.24.label",
+        "label": "Business document",
+        "value": "P00006"
+      },
+      {
+        "field": "plan.impact_chain.nodes.4.label",
+        "label": "Business document",
+        "value": "S00004"
+      },
+      {
+        "field": "plan.impact_chain.nodes.4.kind",
+        "label": "Relationship evidence",
+        "value": "sales_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.18.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.18.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "recorded_scope_quantity_unknown"
+      },
+      {
+        "field": "plan.impact_chain.edges.18.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.18.source_refs.0.record",
+        "label": "Public source record",
+        "value": "operations.9.before"
+      },
+      {
+        "field": "plan.impact_chain.nodes.0.label",
+        "label": "Business document",
+        "value": "r27637E67E7_q02"
+      },
+      {
+        "field": "plan.impact_chain.nodes.0.kind",
+        "label": "Relationship evidence",
+        "value": "disruption"
+      },
+      {
+        "field": "plan.impact_chain.edges.19.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.19.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "recorded_scope_quantity_unknown"
+      },
+      {
+        "field": "plan.impact_chain.edges.19.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "blueprint"
+      },
+      {
+        "field": "plan.impact_chain.edges.19.source_refs.0.record",
+        "label": "Public source record",
+        "value": "disruption"
+      },
+      {
+        "field": "plan.impact_chain.nodes.13.label",
+        "label": "Business document",
+        "value": "WH/MO/00004"
+      },
+      {
+        "field": "plan.impact_chain.nodes.13.kind",
+        "label": "Relationship evidence",
+        "value": "manufacturing_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.24.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.24.to",
+        "label": "Relationship evidence",
+        "value": "order:existing:sale.order:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.24.relation",
+        "label": "Relationship evidence",
+        "value": "sales_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.24.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.24.quantity",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.24.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.24.available_day",
+        "label": "Relationship evidence",
+        "value": 10
+      },
+      {
+        "field": "plan.impact_chain.edges.24.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.24.source_refs.0.record",
+        "label": "Public source record",
+        "value": "sales_order_flows.4"
+      },
+      {
+        "field": "plan.impact_chain.nodes.25.label",
+        "label": "Business document",
+        "value": "Planned purchase 0006"
+      },
+      {
+        "field": "plan.impact_chain.nodes.25.kind",
+        "label": "Relationship evidence",
+        "value": "purchase_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.26.from",
+        "label": "Relationship evidence",
+        "value": "planned:new:purchase.order:0006"
+      },
+      {
+        "field": "plan.impact_chain.edges.26.to",
+        "label": "Relationship evidence",
+        "value": "order:existing:sale.order:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.26.relation",
+        "label": "Relationship evidence",
+        "value": "sales_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.26.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.26.quantity",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.26.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.26.available_day",
+        "label": "Relationship evidence",
+        "value": 10
+      },
+      {
+        "field": "plan.impact_chain.edges.26.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.26.source_refs.0.record",
+        "label": "Public source record",
+        "value": "sales_order_flows.6"
+      },
+      {
+        "field": "plan.impact_chain.nodes.26.label",
+        "label": "Business document",
+        "value": "Stock P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.nodes.26.kind",
+        "label": "Relationship evidence",
+        "value": "stock"
+      },
+      {
+        "field": "plan.impact_chain.edges.27.from",
+        "label": "Relationship evidence",
+        "value": "planned:stock:P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.27.to",
+        "label": "Relationship evidence",
+        "value": "order:existing:sale.order:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.27.relation",
+        "label": "Relationship evidence",
+        "value": "sales_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.27.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.27.quantity",
+        "label": "Relationship evidence",
+        "value": 7
+      },
+      {
+        "field": "plan.impact_chain.edges.27.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.27.available_day",
+        "label": "Relationship evidence",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.edges.27.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.27.source_refs.0.record",
+        "label": "Public source record",
+        "value": "sales_order_flows.7"
+      },
+      {
+        "field": "plan.impact_chain.edges.35.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:purchase.order:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.35.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.35.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.35.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-PDS-116"
+      },
+      {
+        "field": "plan.impact_chain.edges.35.quantity",
+        "label": "Relationship evidence",
+        "value": 16
+      },
+      {
+        "field": "plan.impact_chain.edges.35.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.35.available_day",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.35.required_day",
+        "label": "Relationship evidence",
+        "value": 5
+      },
+      {
+        "field": "plan.impact_chain.edges.35.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.35.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.7"
+      },
+      {
+        "field": "plan.impact_chain.nodes.17.label",
+        "label": "Business document",
+        "value": "P00002"
+      },
+      {
+        "field": "plan.impact_chain.nodes.17.kind",
+        "label": "Relationship evidence",
+        "value": "purchase_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.36.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:purchase.order:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.36.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.36.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.36.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-DCI-121"
+      },
+      {
+        "field": "plan.impact_chain.edges.36.quantity",
+        "label": "Relationship evidence",
+        "value": 16
+      },
+      {
+        "field": "plan.impact_chain.edges.36.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.36.available_day",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.36.required_day",
+        "label": "Relationship evidence",
+        "value": 5
+      },
+      {
+        "field": "plan.impact_chain.edges.36.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.36.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.8"
+      },
+      {
+        "field": "plan.impact_chain.edges.42.from",
+        "label": "Relationship evidence",
+        "value": "planned:existing:purchase.order:5"
+      },
+      {
+        "field": "plan.impact_chain.edges.42.to",
+        "label": "Relationship evidence",
+        "value": "planned:existing:mrp.production:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.42.relation",
+        "label": "Relationship evidence",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.42.product_code",
+        "label": "Relationship evidence",
+        "value": "P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.42.quantity",
+        "label": "Relationship evidence",
+        "value": 32
+      },
+      {
+        "field": "plan.impact_chain.edges.42.quantity_basis",
+        "label": "Relationship evidence",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.42.available_day",
+        "label": "Relationship evidence",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.42.required_day",
+        "label": "Relationship evidence",
+        "value": 5
+      },
+      {
+        "field": "plan.impact_chain.edges.42.source_refs.0.artifact",
+        "label": "Source artifact",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.42.source_refs.0.record",
+        "label": "Public source record",
+        "value": "component_flows.14"
+      },
+      {
+        "field": "plan.impact_chain.orders.3.readiness.planned_ready_date",
+        "label": "Planned readiness",
+        "value": "2026-11-08"
+      },
+      {
+        "field": "plan.impact_chain.orders.3.readiness.customer_due_date",
+        "label": "Planned readiness",
+        "value": "2026-11-08"
+      },
+      {
+        "field": "plan.impact_chain.orders.3.readiness.buffer_days",
+        "label": "Planned readiness",
+        "value": 0
+      },
+      {
+        "field": "state",
+        "label": "Case state",
+        "value": "awaiting_approval"
+      }
+    ],
+    "case_context": {
+      "schema_version": 1,
+      "case_id": "0ea390fdd87cbc15b477fab0e5e1204e",
+      "state": "awaiting_approval",
+      "version": 1,
+      "plan_id": "2955ae9daf8579d101062874d0daaa0bc6f4252862f3c9464ff6c663fa3d79b2",
+      "comparison_id": "f47944a3a83f4d879b7e9383077fc75d",
+      "selection_revision": 2,
+      "selection_pending": false,
+      "updated_at": "2026-10-29T02:03:16.757794+00:00",
+      "outcome": "awaiting_approval"
+    },
+    "evidence_refs": [
+      {
+        "kind": "case",
+        "id": "0ea390fdd87cbc15b477fab0e5e1204e",
+        "href": "/api/product/cases/0ea390fdd87cbc15b477fab0e5e1204e",
+        "label": "Case evidence"
+      }
+    ]
+  },
+  "impact_zh": {
+    "answer": "已记录直接关联需求：1 张订单，共 13 件 P27637E67E7-LED-CRS-009。 已识别失效供给：1 张单据，3 件 P27637E67E7-LED-CRS-009。 关联订单的完整需求不等于失效供给；没有直接关联记录也不代表绝无间接影响。\n\n以下是当前选定方案的原异常关联与计划供应安排。\n\n先列前4张订单；可按订单号询问其完整路径，全部关系见案例详情。\n\nS00001：\n\n原异常关联：关系未记录，不能判定没有影响。\n\n- 计划供应: WH/MO/00001 → S00001; 7 件 P27637E67E7-LED-CRS-009.\n\n- 计划供应: 库存 P27637E67E7-LED-DCI-121 → WH/MO/00001; 9 件 P27637E67E7-LED-DCI-121.\n\n- 计划供应: 库存 P27637E67E7-LED-PDS-116 → WH/MO/00001; 15 件 P27637E67E7-LED-PDS-116.\n\n- 计划供应: 库存 P27637E67E7-LED-SCS-124 → WH/MO/00001; 2 件 P27637E67E7-LED-SCS-124.\n\n- 计划供应: P00001 → WH/MO/00001; 6 件 P27637E67E7-LED-DCI-121.\n\n- 计划供应: P00004 → WH/MO/00001; 28 件 P27637E67E7-LED-SCS-124.\n\n计划齐货日 2026-11-06；客户截止 2026-11-06；自然日余量 0。\n\nS00002：\n\n原异常关联：关系未记录，不能判定没有影响。\n\n- 计划供应: WH/MO/00001 → S00002; 8 件 P27637E67E7-LED-CRS-009.\n\n- 计划供应: 库存 P27637E67E7-LED-DCI-121 → WH/MO/00001; 9 件 P27637E67E7-LED-DCI-121.\n\n- 计划供应: 库存 P27637E67E7-LED-PDS-116 → WH/MO/00001; 15 件 P27637E67E7-LED-PDS-116.\n\n- 计划供应: 库存 P27637E67E7-LED-SCS-124 → WH/MO/00001; 2 件 P27637E67E7-LED-SCS-124.\n\n- 计划供应: P00001 → WH/MO/00001; 6 件 P27637E67E7-LED-DCI-121.\n\n- 计划供应: P00004 → WH/MO/00001; 28 件 P27637E67E7-LED-SCS-124.\n\n计划齐货日 2026-11-06；客户截止 2026-11-06；自然日余量 0。\n\nS00003：\n\n原异常关联：关系未记录，不能判定没有影响。\n\n- 计划供应: WH/MO/00002 → S00003; 6 件 P27637E67E7-LED-CRS-009.\n\n- 计划供应: WH/MO/00003 → S00003; 3 件 P27637E67E7-LED-CRS-009.\n\n- 计划供应: 库存 P27637E67E7-LED-PDS-116 → WH/MO/00002; 3 件 P27637E67E7-LED-PDS-116.\n\n- 计划供应: 库存 P27637E67E7-LED-SCS-124 → WH/MO/00002; 2 件 P27637E67E7-LED-SCS-124.\n\n- 计划供应: P00003 → WH/MO/00002; 3 件 P27637E67E7-LED-PDS-116.\n\n- 计划供应: P00003 → WH/MO/00003; 3 件 P27637E67E7-LED-PDS-116.\n\n- 计划供应: P00001 → WH/MO/00002; 6 件 P27637E67E7-LED-DCI-121.\n\n- 计划供应: P00001 → WH/MO/00003; 3 件 P27637E67E7-LED-DCI-121.\n\n- 计划供应: P00005 → WH/MO/00002; 9 件 P27637E67E7-LED-SCS-124.\n\n- 计划供应: P00005 → WH/MO/00003; 6 件 P27637E67E7-LED-SCS-124.\n\n- 计划供应: P00004 → WH/MO/00002; 1 件 P27637E67E7-LED-SCS-124.\n\n计划齐货日 2026-11-07；客户截止 2026-11-07；自然日余量 0。\n\nS00004：\n\n- 原异常关联: P00006 → S00004; 关联范围，分配量未记录.\n\n- 原异常关联: r27637E67E7_q02 → P00006; 关联范围，分配量未记录.\n\n- 计划供应: WH/MO/00004 → S00004; 3 件 P27637E67E7-LED-CRS-009.\n\n- 计划供应: 计划新建采购单 0006 → S00004; 3 件 P27637E67E7-LED-CRS-009.\n\n- 计划供应: 库存 P27637E67E7-LED-CRS-009 → S00004; 7 件 P27637E67E7-LED-CRS-009.\n\n- 计划供应: P00003 → WH/MO/00004; 16 件 P27637E67E7-LED-PDS-116.\n\n- 计划供应: P00002 → WH/MO/00004; 16 件 P27637E67E7-LED-DCI-121.\n\n- 计划供应: P00005 → WH/MO/00004; 32 件 P27637E67E7-LED-SCS-124.\n\n计划齐货日 2026-11-08；客户截止 2026-11-08；自然日余量 0。\n\n原关联不提供逐边数量；组件投入量属于整张制造单，不能当作此销售订单的分摊量。以上均为计划，不证明已收货、生产或交付；实际结果须查看独立执行回读与原始验收。",
+    "mode": "case",
+    "citations": [
+      {
+        "field": "plan.plan_id",
+        "label": "当前方案",
+        "value": "2955ae9daf8579d101062874d0daaa0bc6f4252862f3c9464ff6c663fa3d79b2"
+      },
+      {
+        "field": "plan.impact_chain.orders.3.order_ref",
+        "label": "关联订单依据",
+        "value": "S00004"
+      },
+      {
+        "field": "plan.impact_chain.orders.3.node_key",
+        "label": "关联订单依据",
+        "value": "order:existing:sale.order:4"
+      },
+      {
+        "field": "plan.impact_chain.orders.3.readiness.demand_units",
+        "label": "关联订单依据",
+        "value": 13
+      },
+      {
+        "field": "plan.impact_chain.nodes.24.key",
+        "label": "失效供给依据",
+        "value": "baseline:existing:purchase.order:6"
+      },
+      {
+        "field": "plan.impact_chain.nodes.24.kind",
+        "label": "失效供给依据",
+        "value": "purchase_order"
+      },
+      {
+        "field": "plan.impact_chain.nodes.24.product_code",
+        "label": "失效供给依据",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.nodes.24.quantity",
+        "label": "失效供给依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.18.from",
+        "label": "直接影响关系",
+        "value": "baseline:existing:purchase.order:6"
+      },
+      {
+        "field": "plan.impact_chain.edges.18.to",
+        "label": "直接影响关系",
+        "value": "order:existing:sale.order:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.18.relation",
+        "label": "直接影响关系",
+        "value": "origin_scope"
+      },
+      {
+        "field": "plan.impact_chain.edges.18.phase",
+        "label": "直接影响关系",
+        "value": "baseline"
+      },
+      {
+        "field": "plan.impact_chain.edges.19.from",
+        "label": "直接影响关系",
+        "value": "disruption"
+      },
+      {
+        "field": "plan.impact_chain.edges.19.to",
+        "label": "直接影响关系",
+        "value": "baseline:existing:purchase.order:6"
+      },
+      {
+        "field": "plan.impact_chain.edges.19.relation",
+        "label": "直接影响关系",
+        "value": "disruption_scope"
+      },
+      {
+        "field": "plan.impact_chain.edges.19.phase",
+        "label": "直接影响关系",
+        "value": "baseline"
+      },
+      {
+        "field": "plan.impact_chain.orders.0.order_ref",
+        "label": "销售订单",
+        "value": "S00001"
+      },
+      {
+        "field": "plan.impact_chain.nodes.7.label",
+        "label": "业务单据",
+        "value": "WH/MO/00001"
+      },
+      {
+        "field": "plan.impact_chain.nodes.7.kind",
+        "label": "关系依据",
+        "value": "manufacturing_order"
+      },
+      {
+        "field": "plan.impact_chain.nodes.1.label",
+        "label": "业务单据",
+        "value": "S00001"
+      },
+      {
+        "field": "plan.impact_chain.nodes.1.kind",
+        "label": "关系依据",
+        "value": "sales_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.20.from",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.20.to",
+        "label": "关系依据",
+        "value": "order:existing:sale.order:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.20.relation",
+        "label": "关系依据",
+        "value": "sales_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.20.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.20.quantity",
+        "label": "关系依据",
+        "value": 7
+      },
+      {
+        "field": "plan.impact_chain.edges.20.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.20.available_day",
+        "label": "关系依据",
+        "value": 8
+      },
+      {
+        "field": "plan.impact_chain.edges.20.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.20.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "sales_order_flows.0"
+      },
+      {
+        "field": "plan.impact_chain.nodes.27.label",
+        "label": "业务单据",
+        "value": "Stock P27637E67E7-LED-DCI-121"
+      },
+      {
+        "field": "plan.impact_chain.nodes.27.kind",
+        "label": "关系依据",
+        "value": "stock"
+      },
+      {
+        "field": "plan.impact_chain.edges.28.from",
+        "label": "关系依据",
+        "value": "planned:stock:P27637E67E7-LED-DCI-121"
+      },
+      {
+        "field": "plan.impact_chain.edges.28.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.28.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.28.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-DCI-121"
+      },
+      {
+        "field": "plan.impact_chain.edges.28.quantity",
+        "label": "关系依据",
+        "value": 9
+      },
+      {
+        "field": "plan.impact_chain.edges.28.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.28.available_day",
+        "label": "关系依据",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.edges.28.required_day",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.28.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.28.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.0"
+      },
+      {
+        "field": "plan.impact_chain.nodes.28.label",
+        "label": "业务单据",
+        "value": "Stock P27637E67E7-LED-PDS-116"
+      },
+      {
+        "field": "plan.impact_chain.nodes.28.kind",
+        "label": "关系依据",
+        "value": "stock"
+      },
+      {
+        "field": "plan.impact_chain.edges.29.from",
+        "label": "关系依据",
+        "value": "planned:stock:P27637E67E7-LED-PDS-116"
+      },
+      {
+        "field": "plan.impact_chain.edges.29.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.29.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.29.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-PDS-116"
+      },
+      {
+        "field": "plan.impact_chain.edges.29.quantity",
+        "label": "关系依据",
+        "value": 15
+      },
+      {
+        "field": "plan.impact_chain.edges.29.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.29.available_day",
+        "label": "关系依据",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.edges.29.required_day",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.29.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.29.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.1"
+      },
+      {
+        "field": "plan.impact_chain.nodes.29.label",
+        "label": "业务单据",
+        "value": "Stock P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.nodes.29.kind",
+        "label": "关系依据",
+        "value": "stock"
+      },
+      {
+        "field": "plan.impact_chain.edges.31.from",
+        "label": "关系依据",
+        "value": "planned:stock:P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.31.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.31.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.31.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.31.quantity",
+        "label": "关系依据",
+        "value": 2
+      },
+      {
+        "field": "plan.impact_chain.edges.31.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.31.available_day",
+        "label": "关系依据",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.edges.31.required_day",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.31.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.31.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.3"
+      },
+      {
+        "field": "plan.impact_chain.nodes.15.label",
+        "label": "业务单据",
+        "value": "P00001"
+      },
+      {
+        "field": "plan.impact_chain.nodes.15.kind",
+        "label": "关系依据",
+        "value": "purchase_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.37.from",
+        "label": "关系依据",
+        "value": "planned:existing:purchase.order:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.37.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.37.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.37.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-DCI-121"
+      },
+      {
+        "field": "plan.impact_chain.edges.37.quantity",
+        "label": "关系依据",
+        "value": 6
+      },
+      {
+        "field": "plan.impact_chain.edges.37.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.37.available_day",
+        "label": "关系依据",
+        "value": 2
+      },
+      {
+        "field": "plan.impact_chain.edges.37.required_day",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.37.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.37.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.9"
+      },
+      {
+        "field": "plan.impact_chain.nodes.21.label",
+        "label": "业务单据",
+        "value": "P00004"
+      },
+      {
+        "field": "plan.impact_chain.nodes.21.kind",
+        "label": "关系依据",
+        "value": "purchase_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.43.from",
+        "label": "关系依据",
+        "value": "planned:existing:purchase.order:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.43.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.43.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.43.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.43.quantity",
+        "label": "关系依据",
+        "value": 28
+      },
+      {
+        "field": "plan.impact_chain.edges.43.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.43.available_day",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.43.required_day",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.43.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.43.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.15"
+      },
+      {
+        "field": "plan.impact_chain.orders.0.readiness.planned_ready_date",
+        "label": "计划备货",
+        "value": "2026-11-06"
+      },
+      {
+        "field": "plan.impact_chain.orders.0.readiness.customer_due_date",
+        "label": "计划备货",
+        "value": "2026-11-06"
+      },
+      {
+        "field": "plan.impact_chain.orders.0.readiness.buffer_days",
+        "label": "计划备货",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.orders.1.order_ref",
+        "label": "销售订单",
+        "value": "S00002"
+      },
+      {
+        "field": "plan.impact_chain.nodes.2.label",
+        "label": "业务单据",
+        "value": "S00002"
+      },
+      {
+        "field": "plan.impact_chain.nodes.2.kind",
+        "label": "关系依据",
+        "value": "sales_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.21.from",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.21.to",
+        "label": "关系依据",
+        "value": "order:existing:sale.order:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.21.relation",
+        "label": "关系依据",
+        "value": "sales_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.21.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.21.quantity",
+        "label": "关系依据",
+        "value": 8
+      },
+      {
+        "field": "plan.impact_chain.edges.21.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.21.available_day",
+        "label": "关系依据",
+        "value": 8
+      },
+      {
+        "field": "plan.impact_chain.edges.21.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.21.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "sales_order_flows.1"
+      },
+      {
+        "field": "plan.impact_chain.orders.1.readiness.planned_ready_date",
+        "label": "计划备货",
+        "value": "2026-11-06"
+      },
+      {
+        "field": "plan.impact_chain.orders.1.readiness.customer_due_date",
+        "label": "计划备货",
+        "value": "2026-11-06"
+      },
+      {
+        "field": "plan.impact_chain.orders.1.readiness.buffer_days",
+        "label": "计划备货",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.orders.2.order_ref",
+        "label": "销售订单",
+        "value": "S00003"
+      },
+      {
+        "field": "plan.impact_chain.nodes.9.label",
+        "label": "业务单据",
+        "value": "WH/MO/00002"
+      },
+      {
+        "field": "plan.impact_chain.nodes.9.kind",
+        "label": "关系依据",
+        "value": "manufacturing_order"
+      },
+      {
+        "field": "plan.impact_chain.nodes.3.label",
+        "label": "业务单据",
+        "value": "S00003"
+      },
+      {
+        "field": "plan.impact_chain.nodes.3.kind",
+        "label": "关系依据",
+        "value": "sales_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.22.from",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.22.to",
+        "label": "关系依据",
+        "value": "order:existing:sale.order:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.22.relation",
+        "label": "关系依据",
+        "value": "sales_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.22.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.22.quantity",
+        "label": "关系依据",
+        "value": 6
+      },
+      {
+        "field": "plan.impact_chain.edges.22.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.22.available_day",
+        "label": "关系依据",
+        "value": 9
+      },
+      {
+        "field": "plan.impact_chain.edges.22.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.22.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "sales_order_flows.2"
+      },
+      {
+        "field": "plan.impact_chain.nodes.11.label",
+        "label": "业务单据",
+        "value": "WH/MO/00003"
+      },
+      {
+        "field": "plan.impact_chain.nodes.11.kind",
+        "label": "关系依据",
+        "value": "manufacturing_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.23.from",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.23.to",
+        "label": "关系依据",
+        "value": "order:existing:sale.order:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.23.relation",
+        "label": "关系依据",
+        "value": "sales_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.23.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.23.quantity",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.23.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.23.available_day",
+        "label": "关系依据",
+        "value": 9
+      },
+      {
+        "field": "plan.impact_chain.edges.23.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.23.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "sales_order_flows.3"
+      },
+      {
+        "field": "plan.impact_chain.edges.30.from",
+        "label": "关系依据",
+        "value": "planned:stock:P27637E67E7-LED-PDS-116"
+      },
+      {
+        "field": "plan.impact_chain.edges.30.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.30.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.30.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-PDS-116"
+      },
+      {
+        "field": "plan.impact_chain.edges.30.quantity",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.30.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.30.available_day",
+        "label": "关系依据",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.edges.30.required_day",
+        "label": "关系依据",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.30.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.30.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.2"
+      },
+      {
+        "field": "plan.impact_chain.edges.32.from",
+        "label": "关系依据",
+        "value": "planned:stock:P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.32.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.32.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.32.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.32.quantity",
+        "label": "关系依据",
+        "value": 2
+      },
+      {
+        "field": "plan.impact_chain.edges.32.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.32.available_day",
+        "label": "关系依据",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.edges.32.required_day",
+        "label": "关系依据",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.32.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.32.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.4"
+      },
+      {
+        "field": "plan.impact_chain.nodes.19.label",
+        "label": "业务单据",
+        "value": "P00003"
+      },
+      {
+        "field": "plan.impact_chain.nodes.19.kind",
+        "label": "关系依据",
+        "value": "purchase_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.33.from",
+        "label": "关系依据",
+        "value": "planned:existing:purchase.order:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.33.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.33.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.33.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-PDS-116"
+      },
+      {
+        "field": "plan.impact_chain.edges.33.quantity",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.33.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.33.available_day",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.33.required_day",
+        "label": "关系依据",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.33.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.33.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.5"
+      },
+      {
+        "field": "plan.impact_chain.edges.34.from",
+        "label": "关系依据",
+        "value": "planned:existing:purchase.order:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.34.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.34.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.34.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-PDS-116"
+      },
+      {
+        "field": "plan.impact_chain.edges.34.quantity",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.34.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.34.available_day",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.34.required_day",
+        "label": "关系依据",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.34.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.34.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.6"
+      },
+      {
+        "field": "plan.impact_chain.edges.38.from",
+        "label": "关系依据",
+        "value": "planned:existing:purchase.order:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.38.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.38.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.38.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-DCI-121"
+      },
+      {
+        "field": "plan.impact_chain.edges.38.quantity",
+        "label": "关系依据",
+        "value": 6
+      },
+      {
+        "field": "plan.impact_chain.edges.38.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.38.available_day",
+        "label": "关系依据",
+        "value": 2
+      },
+      {
+        "field": "plan.impact_chain.edges.38.required_day",
+        "label": "关系依据",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.38.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.38.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.10"
+      },
+      {
+        "field": "plan.impact_chain.edges.39.from",
+        "label": "关系依据",
+        "value": "planned:existing:purchase.order:1"
+      },
+      {
+        "field": "plan.impact_chain.edges.39.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.39.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.39.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-DCI-121"
+      },
+      {
+        "field": "plan.impact_chain.edges.39.quantity",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.39.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.39.available_day",
+        "label": "关系依据",
+        "value": 2
+      },
+      {
+        "field": "plan.impact_chain.edges.39.required_day",
+        "label": "关系依据",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.39.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.39.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.11"
+      },
+      {
+        "field": "plan.impact_chain.nodes.23.label",
+        "label": "业务单据",
+        "value": "P00005"
+      },
+      {
+        "field": "plan.impact_chain.nodes.23.kind",
+        "label": "关系依据",
+        "value": "purchase_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.40.from",
+        "label": "关系依据",
+        "value": "planned:existing:purchase.order:5"
+      },
+      {
+        "field": "plan.impact_chain.edges.40.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.40.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.40.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.40.quantity",
+        "label": "关系依据",
+        "value": 9
+      },
+      {
+        "field": "plan.impact_chain.edges.40.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.40.available_day",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.40.required_day",
+        "label": "关系依据",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.40.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.40.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.12"
+      },
+      {
+        "field": "plan.impact_chain.edges.41.from",
+        "label": "关系依据",
+        "value": "planned:existing:purchase.order:5"
+      },
+      {
+        "field": "plan.impact_chain.edges.41.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.41.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.41.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.41.quantity",
+        "label": "关系依据",
+        "value": 6
+      },
+      {
+        "field": "plan.impact_chain.edges.41.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.41.available_day",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.41.required_day",
+        "label": "关系依据",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.41.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.41.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.13"
+      },
+      {
+        "field": "plan.impact_chain.edges.44.from",
+        "label": "关系依据",
+        "value": "planned:existing:purchase.order:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.44.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.44.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.44.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.44.quantity",
+        "label": "关系依据",
+        "value": 1
+      },
+      {
+        "field": "plan.impact_chain.edges.44.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.44.available_day",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.44.required_day",
+        "label": "关系依据",
+        "value": 4
+      },
+      {
+        "field": "plan.impact_chain.edges.44.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.44.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.16"
+      },
+      {
+        "field": "plan.impact_chain.orders.2.readiness.planned_ready_date",
+        "label": "计划备货",
+        "value": "2026-11-07"
+      },
+      {
+        "field": "plan.impact_chain.orders.2.readiness.customer_due_date",
+        "label": "计划备货",
+        "value": "2026-11-07"
+      },
+      {
+        "field": "plan.impact_chain.orders.2.readiness.buffer_days",
+        "label": "计划备货",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.nodes.24.label",
+        "label": "业务单据",
+        "value": "P00006"
+      },
+      {
+        "field": "plan.impact_chain.nodes.4.label",
+        "label": "业务单据",
+        "value": "S00004"
+      },
+      {
+        "field": "plan.impact_chain.nodes.4.kind",
+        "label": "关系依据",
+        "value": "sales_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.18.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.18.quantity_basis",
+        "label": "关系依据",
+        "value": "recorded_scope_quantity_unknown"
+      },
+      {
+        "field": "plan.impact_chain.edges.18.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.18.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "operations.9.before"
+      },
+      {
+        "field": "plan.impact_chain.nodes.0.label",
+        "label": "业务单据",
+        "value": "r27637E67E7_q02"
+      },
+      {
+        "field": "plan.impact_chain.nodes.0.kind",
+        "label": "关系依据",
+        "value": "disruption"
+      },
+      {
+        "field": "plan.impact_chain.edges.19.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.19.quantity_basis",
+        "label": "关系依据",
+        "value": "recorded_scope_quantity_unknown"
+      },
+      {
+        "field": "plan.impact_chain.edges.19.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "blueprint"
+      },
+      {
+        "field": "plan.impact_chain.edges.19.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "disruption"
+      },
+      {
+        "field": "plan.impact_chain.nodes.13.label",
+        "label": "业务单据",
+        "value": "WH/MO/00004"
+      },
+      {
+        "field": "plan.impact_chain.nodes.13.kind",
+        "label": "关系依据",
+        "value": "manufacturing_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.24.from",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.24.to",
+        "label": "关系依据",
+        "value": "order:existing:sale.order:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.24.relation",
+        "label": "关系依据",
+        "value": "sales_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.24.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.24.quantity",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.24.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.24.available_day",
+        "label": "关系依据",
+        "value": 10
+      },
+      {
+        "field": "plan.impact_chain.edges.24.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.24.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "sales_order_flows.4"
+      },
+      {
+        "field": "plan.impact_chain.nodes.25.label",
+        "label": "业务单据",
+        "value": "Planned purchase 0006"
+      },
+      {
+        "field": "plan.impact_chain.nodes.25.kind",
+        "label": "关系依据",
+        "value": "purchase_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.26.from",
+        "label": "关系依据",
+        "value": "planned:new:purchase.order:0006"
+      },
+      {
+        "field": "plan.impact_chain.edges.26.to",
+        "label": "关系依据",
+        "value": "order:existing:sale.order:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.26.relation",
+        "label": "关系依据",
+        "value": "sales_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.26.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.26.quantity",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.26.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.26.available_day",
+        "label": "关系依据",
+        "value": 10
+      },
+      {
+        "field": "plan.impact_chain.edges.26.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.26.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "sales_order_flows.6"
+      },
+      {
+        "field": "plan.impact_chain.nodes.26.label",
+        "label": "业务单据",
+        "value": "Stock P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.nodes.26.kind",
+        "label": "关系依据",
+        "value": "stock"
+      },
+      {
+        "field": "plan.impact_chain.edges.27.from",
+        "label": "关系依据",
+        "value": "planned:stock:P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.27.to",
+        "label": "关系依据",
+        "value": "order:existing:sale.order:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.27.relation",
+        "label": "关系依据",
+        "value": "sales_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.27.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-CRS-009"
+      },
+      {
+        "field": "plan.impact_chain.edges.27.quantity",
+        "label": "关系依据",
+        "value": 7
+      },
+      {
+        "field": "plan.impact_chain.edges.27.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.27.available_day",
+        "label": "关系依据",
+        "value": 0
+      },
+      {
+        "field": "plan.impact_chain.edges.27.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.27.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "sales_order_flows.7"
+      },
+      {
+        "field": "plan.impact_chain.edges.35.from",
+        "label": "关系依据",
+        "value": "planned:existing:purchase.order:3"
+      },
+      {
+        "field": "plan.impact_chain.edges.35.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.35.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.35.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-PDS-116"
+      },
+      {
+        "field": "plan.impact_chain.edges.35.quantity",
+        "label": "关系依据",
+        "value": 16
+      },
+      {
+        "field": "plan.impact_chain.edges.35.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.35.available_day",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.35.required_day",
+        "label": "关系依据",
+        "value": 5
+      },
+      {
+        "field": "plan.impact_chain.edges.35.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.35.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.7"
+      },
+      {
+        "field": "plan.impact_chain.nodes.17.label",
+        "label": "业务单据",
+        "value": "P00002"
+      },
+      {
+        "field": "plan.impact_chain.nodes.17.kind",
+        "label": "关系依据",
+        "value": "purchase_order"
+      },
+      {
+        "field": "plan.impact_chain.edges.36.from",
+        "label": "关系依据",
+        "value": "planned:existing:purchase.order:2"
+      },
+      {
+        "field": "plan.impact_chain.edges.36.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.36.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.36.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-DCI-121"
+      },
+      {
+        "field": "plan.impact_chain.edges.36.quantity",
+        "label": "关系依据",
+        "value": 16
+      },
+      {
+        "field": "plan.impact_chain.edges.36.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.36.available_day",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.36.required_day",
+        "label": "关系依据",
+        "value": 5
+      },
+      {
+        "field": "plan.impact_chain.edges.36.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.36.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.8"
+      },
+      {
+        "field": "plan.impact_chain.edges.42.from",
+        "label": "关系依据",
+        "value": "planned:existing:purchase.order:5"
+      },
+      {
+        "field": "plan.impact_chain.edges.42.to",
+        "label": "关系依据",
+        "value": "planned:existing:mrp.production:4"
+      },
+      {
+        "field": "plan.impact_chain.edges.42.relation",
+        "label": "关系依据",
+        "value": "component_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.42.product_code",
+        "label": "关系依据",
+        "value": "P27637E67E7-LED-SCS-124"
+      },
+      {
+        "field": "plan.impact_chain.edges.42.quantity",
+        "label": "关系依据",
+        "value": 32
+      },
+      {
+        "field": "plan.impact_chain.edges.42.quantity_basis",
+        "label": "关系依据",
+        "value": "exact_plan_allocation"
+      },
+      {
+        "field": "plan.impact_chain.edges.42.available_day",
+        "label": "关系依据",
+        "value": 3
+      },
+      {
+        "field": "plan.impact_chain.edges.42.required_day",
+        "label": "关系依据",
+        "value": 5
+      },
+      {
+        "field": "plan.impact_chain.edges.42.source_refs.0.artifact",
+        "label": "来源资料",
+        "value": "change_set"
+      },
+      {
+        "field": "plan.impact_chain.edges.42.source_refs.0.record",
+        "label": "公开来源记录",
+        "value": "component_flows.14"
+      },
+      {
+        "field": "plan.impact_chain.orders.3.readiness.planned_ready_date",
+        "label": "计划备货",
+        "value": "2026-11-08"
+      },
+      {
+        "field": "plan.impact_chain.orders.3.readiness.customer_due_date",
+        "label": "计划备货",
+        "value": "2026-11-08"
+      },
+      {
+        "field": "plan.impact_chain.orders.3.readiness.buffer_days",
+        "label": "计划备货",
+        "value": 0
+      },
+      {
+        "field": "state",
+        "label": "案件状态",
+        "value": "awaiting_approval"
+      }
+    ],
+    "case_context": {
+      "schema_version": 1,
+      "case_id": "0ea390fdd87cbc15b477fab0e5e1204e",
+      "state": "awaiting_approval",
+      "version": 1,
+      "plan_id": "2955ae9daf8579d101062874d0daaa0bc6f4252862f3c9464ff6c663fa3d79b2",
+      "comparison_id": "f47944a3a83f4d879b7e9383077fc75d",
+      "selection_revision": 2,
+      "selection_pending": false,
+      "updated_at": "2026-10-29T02:03:16.757794+00:00",
+      "outcome": "awaiting_approval"
+    },
+    "evidence_refs": [
+      {
+        "kind": "case",
+        "id": "0ea390fdd87cbc15b477fab0e5e1204e",
+        "href": "/api/product/cases/0ea390fdd87cbc15b477fab0e5e1204e",
+        "label": "Case evidence"
+      }
+    ]
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "category": "read_only_real_sandbox_ui_screenshots",
+  "source_commit": "bf880f2f1a8881809a6da2d89bcd3ba6724f4f81",
+  "new_deck_and_video": "cancelled_by_user_and_excluded_from_delivery",
+  "A_final": {
+    "case_id": "c9839d2e310d8058c37036416ea9514e",
+    "plan_id": "c11adb7efff666f234119b1bab6623e3e0172caa3ee1e3f082191e0cebe43ff0",
+    "evidence": "docs/evidence/2026-10-28-next-phase/A-final/executed.json",
+    "evidence_sha256": "55bdae32cba3bf93e1e7fae53ca187081b8c94ba1c45a5fc5ab2b0c7c489c321",
+    "capture": {
+      "scenario": "A",
+      "case_id": "c9839d2e310d8058c37036416ea9514e",
+      "plan_id": "c11adb7efff666f234119b1bab6623e3e0172caa3ee1e3f082191e0cebe43ff0",
+      "margin": 76.75,
+      "recorded_at": "2026-10-29T02:21:24.389Z",
+      "port": 8167,
+      "writes": [],
+      "console_errors": []
+    }
+  },
+  "layout_checks": {
+    "ui_source_commit": "bf880f2f1a8881809a6da2d89bcd3ba6724f4f81",
+    "source_note": "Executed immediately before the commit, with UI source bytes matching bf880f2; business cases are the preceding 74a990a A/B acceptance. This checks the corrected CSS against real persisted cases, not a new business acceptance.",
+    "business_source_commit": "74a990a51545d7a619b6b39179bd357d803c7396",
+    "cases": {
+      "A": "0ea390fdd87cbc15b477fab0e5e1204e",
+      "B": "80941de7afddc8e21583b2a6d1485da2"
+    },
+    "scenarios": [
+      "A",
+      "B"
+    ],
+    "languages": [
+      "zh",
+      "en"
+    ],
+    "widths": [
+      1440,
+      390
+    ],
+    "all_checks_no_overlap_or_horizontal_overflow": true
+  },
+  "files": {
+    "layout-A-zh-390.png": "6d697a35431cec3a2e3d0ef8e54f95b5e49427e56713f0295180041afb1e1455",
+    "A-candidates-en.png": "49d7382a20a2180c43dcbfce563eecd28df29f70eededa7f1c34c927cdaf4548",
+    "A-checks-en.png": "8891f0b50807a49c432b5009d7948d6b0e350b284f2127d0cbe4bef78ffa9d99",
+    "A-margin-and-scope.png": "2b8ddc1dda97d145e3fe668167cbcf5581c52e24de8c403898b4c4a839fac698",
+    "layout-A-zh-1440.png": "383a3712d1b1dabec8316e9dec998481370bd6e6312c42afd5ac7e5c6a390cba",
+    "layout-A-en-1440.png": "2a3d67a59135be9e4b7dc8a7fede5ed867758b3ae2aaa5d64fd987b38176f378",
+    "A-overview.png": "d8e8f1bf8721d367a14863ec1aecaab568f851d959a1b8025e6d3519fe93fa77",
+    "A-overview-en.png": "6c470fc615451efdf8f79333e65d2c3e1e3550b270a832e2eab8ad72a137768c",
+    "layout-B-en-1440.png": "f448fa64d941f036491aee1f36b9571db13de5a36581d60fc3b16c702b1becb2",
+    "layout-B-zh-1440.png": "8c6fae8770b574c0e9e3d0b447656924caea8855bc747379b39687a6355c2ad3",
+    "layout-B-en-390.png": "ae5d8a53ab57c00c33c33e97083b8b06164034dec0fe1d054d091cd07140efee",
+    "A-receipt-en.png": "a062d6c58033139e70491d6198243ca33bd87d97e01ce61e2efe42dc7e736e68",
+    "layout-A-en-390.png": "9fb59313209c073c54d78510b3236c706df18e3ab16ed9e404f738350675f627",
+    "A-qa-zh.png": "11f596fc74986046efd7664f544e2f8821230ea22ee99ac511a224a68657fe9e",
+    "A-qa-en.png": "c530e5d8943daa60cf3060ac79b9fd5a00bfcc9f888a4d27fb9e79745744c9c1",
+    "A-checks.png": "191aad957cd17b9a15bfb47e589c0e6e8584865fe5736a7f8988f82d8f4387a4",
+    "layout-B-zh-390.png": "3be59d58bb8834b5d4679484031199e59d2e09f2b92d723fb40d6654d51cc41e",
+    "A-receipt.png": "7dc513a9786b2e2188be0271f541f3489925f6340512b5e5ff54a077abe06654"
+  }
+}

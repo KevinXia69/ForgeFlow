@@ -1,0 +1,66 @@
+{
+  "category": "real_erp_response_loss_recovery_margin_v2",
+  "source_commit": "74a990a51545d7a619b6b39179bd357d803c7396",
+  "plan_id": "83a4edfe0ae19d12ba1a23a0cd327264a282941baf8b8ddf0b620476443a9e45",
+  "margin_basis": "new_spend_coverage_v2",
+  "checks": {
+    "quantity_conservation": true,
+    "target_bucket_conservation": true,
+    "stock_used_once": true,
+    "public_sku_wc_standard": true,
+    "horizon_capacity": true,
+    "supplier_lead_and_so_daily_deadlines": true,
+    "component_before_mo_start": true,
+    "mo_wo_daily_dates_agree": true,
+    "po_to_mo_and_so_links": true,
+    "no_cancelled_origin": true,
+    "aggregate_spend_unchanged": true,
+    "active_operation_coverage": true,
+    "live_id_bindings": true,
+    "sales_order_budget_caps": true,
+    "margin_basis": "new_spend_coverage_v2",
+    "new_spend_units": 43,
+    "new_spend_revenue": "20623.23",
+    "stock_units": 7,
+    "combined_new_spend_margin": 0.7674981077163956,
+    "required_margin": 0.275,
+    "capacity_minutes": {
+      "P27637E67E7-WC01": {
+        "used": 2586.1,
+        "limit": 2703.0
+      },
+      "P27637E67E7-WC02": {
+        "used": 2295.9,
+        "limit": 3316.0
+      }
+    },
+    "projected_new_spend": 4794.94
+  },
+  "displayed_margin_pct": 76.75,
+  "displayed_planned_cost": 4794.94,
+  "public_plan_unchanged_through_recovery": true,
+  "manifest_sha256": "83a4edfe0ae19d12ba1a23a0cd327264a282941baf8b8ddf0b620476443a9e45",
+  "artifact_sha256": {
+    "baseline": "0077c6e534cb60e750202b1883bf91885e3051c9e11ce4e606ea2b3aac89368b",
+    "binding": "098a86d5ab66c83b0d8391ce7bd0f25473b802066a3bf2cbd0bfc777e0ecdf04",
+    "blueprint": "d62e80566e69b666328cd44a093eb6acc5a7667390829ec512e2fe60532f74b7",
+    "change-set": "59cf9b530564f38e150dffad4d0d01d6621f15fac6c3833f66dcae7dc3fa9833",
+    "plan": "c27c456168cf6b333590bebe1869af8c4fea56aa65044e487749e7ef7c0a9300",
+    "request": "cace09c0ba9b05af991bfbfb9f55f62bec58b7c4851a1128a6a1ee0c0ee6c456",
+    "snapshot": "9e6a067437cf34b30567603df41bfe7b0b731815bdda961c2ff1b965a68cce01"
+  },
+  "bundle_sources_sha256": "2bcce02c4ee4cc802c2c3c7f668aaef048def75f02eb281ee7ff465028eb9fd7",
+  "bundled_release_files_verified": 33,
+  "source_files_match_frozen_release": true,
+  "original_verifier": {
+    "status": "passed",
+    "score": 100.0,
+    "strict_success": true,
+    "evaluation_valid": true,
+    "evaluation_scope": "product_original_verifier",
+    "passed_rule_count": 51,
+    "applicable_rule_count": 51,
+    "failed_rule_count": 0,
+    "verification_attempt": "fde9fb49aa1640fc94792559080d94b9"
+  }
+}

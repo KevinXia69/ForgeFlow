@@ -37,3 +37,8 @@ deploy/.env
 web/node_modules/
 web/dist/
 src/forgeflow/api/static/app/
+
+# Local authoring scratch and dependency links are not release artifacts.
+.codex-private/
+/web/node_modules
+/web-public/node_modules

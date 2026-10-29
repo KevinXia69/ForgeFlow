@@ -1,0 +1,11 @@
+{
+  "source_commit": "74a990a51545d7a619b6b39179bd357d803c7396",
+  "upstream_commit": "ceba3880af555129b5278e056a0c20f2fb5a0ba9",
+  "environment": "dedicated_local_synthetic_ERP_Bench_product_HTTP_acceptance",
+  "autonomous_benchmark": false,
+  "browser_approval": false,
+  "margin_basis": "new_spend_coverage_v2",
+  "plan_id": "2955ae9daf8579d101062874d0daaa0bc6f4252862f3c9464ff6c663fa3d79b2",
+  "report_source_unchanged": true,
+  "original_reward_raw_sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c"
+}

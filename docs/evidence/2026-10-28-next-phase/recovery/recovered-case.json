@@ -1,0 +1,960 @@
+{
+  "case_id": "91ff4ecce7d2a419b9e41736e53f0a33",
+  "scenario": "A",
+  "state": "succeeded",
+  "synthetic": true,
+  "order": {
+    "ref": "SO-1..5",
+    "product": "Clean Room Sealed Fixture",
+    "units": 50,
+    "due_days": 8,
+    "customer": "5 confirmed sales orders",
+    "due_days_max": 10
+  },
+  "disruption": {
+    "kind": "supplier_cancellation",
+    "vendor": "Stonewall Components"
+  },
+  "plan": {
+    "plan_id": "83a4edfe0ae19d12ba1a23a0cd327264a282941baf8b8ddf0b620476443a9e45",
+    "actions": [
+      {
+        "kind": "cancel_po",
+        "document": "P00006",
+        "summary": "Cancel purchase_order P00006",
+        "quantity": 3,
+        "before": {
+          "arrival_day": 10,
+          "date_planned": "2026-11-08 01:58:43",
+          "product_code": "P27637E67E7-LED-CRS-009",
+          "quantity": 3,
+          "supply_role": "finished",
+          "unit_price": 424.09,
+          "vendor_ref": "r27637E67E7_q02",
+          "origin_refs": [
+            {
+              "model": "sale.order",
+              "name": "S00004"
+            }
+          ]
+        },
+        "after": null
+      },
+      {
+        "kind": "create_po",
+        "document": "new:purchase.order:0006",
+        "summary": "Create purchase_order new:purchase.order:0006",
+        "quantity": 3,
+        "before": null,
+        "after": {
+          "arrival_day": 10,
+          "date_planned": "2026-11-08 00:00:00",
+          "product_code": "P27637E67E7-LED-CRS-009",
+          "quantity": 3,
+          "supply_role": "finished",
+          "unit_price": 477.44,
+          "vendor_ref": "r27637E67E7_q04",
+          "origin_refs": [
+            {
+              "model": "sale.order",
+              "name": "S00004"
+            }
+          ]
+        }
+      }
+    ],
+    "margin": 76.75,
+    "on_time": true,
+    "new_spend": 4794.94,
+    "checks": [
+      {
+        "actual": "76.75%",
+        "code": "margin",
+        "label": "New-spend margin floor",
+        "source": "independent new-spend coverage check; original floor 27.5%; effective floor 27.5%; excludes finished stock revenue",
+        "status": "pass",
+        "threshold": "27.5%"
+      },
+      {
+        "actual": 5,
+        "basis": {
+          "kind": "sales_order_value_per_customer_cap_v1",
+          "plan_id": "83a4edfe0ae19d12ba1a23a0cd327264a282941baf8b8ddf0b620476443a9e45",
+          "snapshot_sha256": "9e6a067437cf34b30567603df41bfe7b0b731815bdda961c2ff1b965a68cce01"
+        },
+        "code": "budget",
+        "label": "Sales-order values within individual customer caps",
+        "source": "bound sales-order quantity times unit price compared with each customer cap; not purchase authorization",
+        "status": "pass",
+        "threshold": 5
+      },
+      {
+        "actual": "50 units",
+        "code": "demand",
+        "label": "Demand coverage",
+        "source": "local solver plan",
+        "status": "pass",
+        "threshold": "50 units"
+      },
+      {
+        "actual": true,
+        "code": "on_time",
+        "label": "On-time delivery",
+        "source": "bound plan allocations and change-set sales-order flows",
+        "status": "pass",
+        "threshold": "all selected orders by their deadlines"
+      },
+      {
+        "actual": "42f96905e4029b37377c88c36a94e8e96aaf62ba172edbad4947ca3ddfa016aa",
+        "code": "policy",
+        "label": "Policy binding",
+        "source": "local plan binding",
+        "status": "pass",
+        "threshold": "required"
+      }
+    ],
+    "cost_delta": null,
+    "costs": {
+      "actual_cost": null,
+      "baseline": {
+        "known_subtotal": "4634.89",
+        "manufacturing": "1330.0",
+        "purchase": "3304.89",
+        "total": "4634.89"
+      },
+      "basis": {
+        "anchor_date": "2026-10-29",
+        "as_of": "2026-10-29T02:03:41.351782+00:00",
+        "company_id": 1,
+        "currency": "USD",
+        "manufacturing_basis": "planning-metadata-v1",
+        "pricing_sha256": "1e875f8b0155447fec99584ffe6002ecdc3d32bb1b07e9b01b1777eaed3bef6a",
+        "sales_order_ids": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "snapshot_sha256": "9e6a067437cf34b30567603df41bfe7b0b731815bdda961c2ff1b965a68cce01",
+        "target_product_code": "P27637E67E7-LED-CRS-009",
+        "tax_basis": "recorded_unit_price_no_tax_adjustment",
+        "unit_basis": "product_uom_no_conversion"
+      },
+      "comparable": true,
+      "full_delta": null,
+      "known_delta": "160.05",
+      "lines": [
+        {
+          "action": "keep",
+          "after": {
+            "amount": "540.0",
+            "missing": null,
+            "price_reference": "P27637E67E7-WC02",
+            "price_source": "public_workcenter_standard",
+            "quantity": "15",
+            "unit_price": "36.0",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "before": {
+            "amount": "540.0",
+            "missing": null,
+            "price_reference": "P27637E67E7-WC02",
+            "price_source": "public_workcenter_standard",
+            "quantity": "15",
+            "unit_price": "36.0",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "cancellation_fee": null,
+          "document": "WH/MO/00001",
+          "kind": "manufacturing_order",
+          "known_delta": "0.0",
+          "product_code": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "action": "keep",
+          "after": {
+            "amount": "186.0",
+            "missing": null,
+            "price_reference": "P27637E67E7-WC01",
+            "price_source": "public_workcenter_standard",
+            "quantity": "6",
+            "unit_price": "31.0",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "before": {
+            "amount": "186.0",
+            "missing": null,
+            "price_reference": "P27637E67E7-WC01",
+            "price_source": "public_workcenter_standard",
+            "quantity": "6",
+            "unit_price": "31.0",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "cancellation_fee": null,
+          "document": "WH/MO/00002",
+          "kind": "manufacturing_order",
+          "known_delta": "0.0",
+          "product_code": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "action": "keep",
+          "after": {
+            "amount": "108.0",
+            "missing": null,
+            "price_reference": "P27637E67E7-WC02",
+            "price_source": "public_workcenter_standard",
+            "quantity": "3",
+            "unit_price": "36.0",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "before": {
+            "amount": "108.0",
+            "missing": null,
+            "price_reference": "P27637E67E7-WC02",
+            "price_source": "public_workcenter_standard",
+            "quantity": "3",
+            "unit_price": "36.0",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "cancellation_fee": null,
+          "document": "WH/MO/00003",
+          "kind": "manufacturing_order",
+          "known_delta": "0.0",
+          "product_code": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "action": "keep",
+          "after": {
+            "amount": "496.0",
+            "missing": null,
+            "price_reference": "P27637E67E7-WC01",
+            "price_source": "public_workcenter_standard",
+            "quantity": "16",
+            "unit_price": "31.0",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "before": {
+            "amount": "496.0",
+            "missing": null,
+            "price_reference": "P27637E67E7-WC01",
+            "price_source": "public_workcenter_standard",
+            "quantity": "16",
+            "unit_price": "31.0",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "cancellation_fee": null,
+          "document": "WH/MO/00004",
+          "kind": "manufacturing_order",
+          "known_delta": "0.0",
+          "product_code": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "action": "keep",
+          "after": {
+            "amount": "534.15",
+            "missing": null,
+            "price_reference": "r27637E67E7_q08|P27637E67E7-LED-DCI-121|10|35.61|2",
+            "price_source": "purchase_unit_price",
+            "quantity": "15",
+            "unit_price": "35.61",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "before": {
+            "amount": "534.15",
+            "missing": null,
+            "price_reference": "r27637E67E7_q08|P27637E67E7-LED-DCI-121|10|35.61|2",
+            "price_source": "purchase_unit_price",
+            "quantity": "15",
+            "unit_price": "35.61",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "cancellation_fee": null,
+          "document": "P00001",
+          "kind": "purchase_order",
+          "known_delta": "0.00",
+          "product_code": "P27637E67E7-LED-DCI-121"
+        },
+        {
+          "action": "keep",
+          "after": {
+            "amount": "422.4",
+            "missing": null,
+            "price_reference": "r27637E67E7_q10|P27637E67E7-LED-DCI-121|16|26.4|3",
+            "price_source": "purchase_unit_price",
+            "quantity": "16",
+            "unit_price": "26.4",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "before": {
+            "amount": "422.4",
+            "missing": null,
+            "price_reference": "r27637E67E7_q10|P27637E67E7-LED-DCI-121|16|26.4|3",
+            "price_source": "purchase_unit_price",
+            "quantity": "16",
+            "unit_price": "26.4",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "cancellation_fee": null,
+          "document": "P00002",
+          "kind": "purchase_order",
+          "known_delta": "0.0",
+          "product_code": "P27637E67E7-LED-DCI-121"
+        },
+        {
+          "action": "keep",
+          "after": {
+            "amount": "352.66",
+            "missing": null,
+            "price_reference": "r27637E67E7_q06|P27637E67E7-LED-PDS-116|13|16.03|3",
+            "price_source": "purchase_unit_price",
+            "quantity": "22",
+            "unit_price": "16.03",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "before": {
+            "amount": "352.66",
+            "missing": null,
+            "price_reference": "r27637E67E7_q06|P27637E67E7-LED-PDS-116|13|16.03|3",
+            "price_source": "purchase_unit_price",
+            "quantity": "22",
+            "unit_price": "16.03",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "cancellation_fee": null,
+          "document": "P00003",
+          "kind": "purchase_order",
+          "known_delta": "0.00",
+          "product_code": "P27637E67E7-LED-PDS-116"
+        },
+        {
+          "action": "keep",
+          "after": {
+            "amount": "275.5",
+            "missing": null,
+            "price_reference": "r27637E67E7_q11|P27637E67E7-LED-SCS-124|5|9.5|3",
+            "price_source": "purchase_unit_price",
+            "quantity": "29",
+            "unit_price": "9.5",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "before": {
+            "amount": "275.5",
+            "missing": null,
+            "price_reference": "r27637E67E7_q11|P27637E67E7-LED-SCS-124|5|9.5|3",
+            "price_source": "purchase_unit_price",
+            "quantity": "29",
+            "unit_price": "9.5",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "cancellation_fee": null,
+          "document": "P00004",
+          "kind": "purchase_order",
+          "known_delta": "0.0",
+          "product_code": "P27637E67E7-LED-SCS-124"
+        },
+        {
+          "action": "keep",
+          "after": {
+            "amount": "447.91",
+            "missing": null,
+            "price_reference": "r27637E67E7_q12|P27637E67E7-LED-SCS-124|18|9.53|3",
+            "price_source": "purchase_unit_price",
+            "quantity": "47",
+            "unit_price": "9.53",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "before": {
+            "amount": "447.91",
+            "missing": null,
+            "price_reference": "r27637E67E7_q12|P27637E67E7-LED-SCS-124|18|9.53|3",
+            "price_source": "purchase_unit_price",
+            "quantity": "47",
+            "unit_price": "9.53",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "cancellation_fee": null,
+          "document": "P00005",
+          "kind": "purchase_order",
+          "known_delta": "0.00",
+          "product_code": "P27637E67E7-LED-SCS-124"
+        },
+        {
+          "action": "cancel",
+          "after": null,
+          "before": {
+            "amount": "1272.27",
+            "missing": null,
+            "price_reference": "r27637E67E7_q02|P27637E67E7-LED-CRS-009|2|424.09|7",
+            "price_source": "purchase_unit_price",
+            "quantity": "3",
+            "unit_price": "424.09",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "cancellation_fee": null,
+          "document": "P00006",
+          "kind": "purchase_order",
+          "known_delta": "-1272.27",
+          "product_code": "P27637E67E7-LED-CRS-009"
+        },
+        {
+          "action": "create",
+          "after": {
+            "amount": "1432.32",
+            "missing": null,
+            "price_reference": "r27637E67E7_q04|P27637E67E7-LED-CRS-009|1|477.44|6",
+            "price_source": "purchase_unit_price",
+            "quantity": "3",
+            "unit_price": "477.44",
+            "uom_id": 1,
+            "uom_label": "Units"
+          },
+          "before": null,
+          "cancellation_fee": null,
+          "document": "new:purchase.order:0006",
+          "kind": "purchase_order",
+          "known_delta": "1432.32",
+          "product_code": "P27637E67E7-LED-CRS-009"
+        }
+      ],
+      "missing": [
+        "tax_treatment",
+        "price_validity_dates",
+        "actual_financials",
+        "cancellation_fees"
+      ],
+      "new_manufacturing_standard": "0",
+      "new_purchase_value": "1432.32",
+      "planned": {
+        "known_subtotal": "4794.94",
+        "manufacturing": "1330.0",
+        "purchase": "3464.94",
+        "total": "4794.94"
+      },
+      "purchase_increase": "0",
+      "schema_version": 1
+    },
+    "policy_sha256": "42f96905e4029b37377c88c36a94e8e96aaf62ba172edbad4947ca3ddfa016aa",
+    "snapshot_sha256": "9e6a067437cf34b30567603df41bfe7b0b731815bdda961c2ff1b965a68cce01",
+    "prepared_at": "2026-10-29T02:03:43.877037+00:00",
+    "margin_basis": "new_spend_coverage_v2"
+  },
+  "approval": {
+    "expires_at": "2026-10-29T02:18:44.339569+00:00",
+    "issued_at": "2026-10-29T02:03:44.339569+00:00",
+    "comment": "Authorized product recovery acceptance: discard successful transport returns.",
+    "plan_id": "83a4edfe0ae19d12ba1a23a0cd327264a282941baf8b8ddf0b620476443a9e45",
+    "phase": "dispatching",
+    "approver_label": "Operator cfa8664d"
+  },
+  "execution": {
+    "status": "succeeded",
+    "readback": {
+      "execution_validated": true,
+      "verified_steps": 7,
+      "receipt_sha256": "9d7929eb928e0bac645eb3f221f8b3222afe931a144f5b228ad9a627d73e5f70",
+      "readback_sha256": "93918006da5129cd5d036d0d2963dd5393685911a555e90952e4ac3f737cb6b5",
+      "verified_at": "2026-10-29T02:04:26.085723+00:00",
+      "records": [
+        {
+          "kind": "cancel_po",
+          "document": "P00006",
+          "state": "reflected",
+          "quantity": 3
+        },
+        {
+          "kind": "create_po",
+          "document": "new:purchase.order:0006",
+          "state": "reflected",
+          "quantity": 3
+        }
+      ]
+    },
+    "verifier": {
+      "applicable_rule_count": 51,
+      "checks": [
+        {
+          "applicable": 51,
+          "document": "100.0/100",
+          "kind": "original_verifier",
+          "passed": true,
+          "passed_count": 51,
+          "total": 51
+        }
+      ],
+      "evaluation_scope": "product_original_verifier",
+      "evaluation_valid": true,
+      "failed_rule_count": 0,
+      "original_passed": true,
+      "passed_rule_count": 51,
+      "reward_sha256": "23cf0e9703a482859312b078223077700ca1c83f365aed4ecf3673993b868d3c",
+      "rules": {
+        "applicable": 51,
+        "by_dimension": {
+          "constraint": [
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "demand_coverage",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "demand_coverage",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "demand_coverage",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "demand_coverage",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "demand_coverage",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "deadline_fulfillment",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "deadline_fulfillment",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "deadline_fulfillment",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "deadline_fulfillment",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "deadline_fulfillment",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "list_price",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "list_price",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "list_price",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "list_price",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "list_price",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "sale_revenue",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "sale_revenue",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "sale_revenue",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "sale_revenue",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "sale_revenue",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "budget_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "budget_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "budget_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "budget_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "budget_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "new_spend_margin_policy",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "supply_timing_feasible",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "po_delivery_schedule_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "po_consolidation_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "po_min_qty_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "po_price_tier_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "mo_schedule_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "finished_stock_capacity_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "assembly_capacity_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "finished_vendor_max_qty_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "component_vendor_max_qty_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "component_stock_capacity_compliance",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "mo_component_feasibility",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "supply_coverage",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "repair_state_compliance",
+              "status": "PASS"
+            }
+          ],
+          "hygiene": [
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "seeded_order_confirmed",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "seeded_order_confirmed",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "seeded_order_confirmed",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "seeded_order_confirmed",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "seeded_order_confirmed",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "po_origin_traceability",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "po_origin_traceability",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "po_origin_traceability",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "po_origin_traceability",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "mrp_origin_traceability",
+              "status": "PASS"
+            },
+            {
+              "applicable": true,
+              "passed": true,
+              "rule": "adjacent_data_untouched",
+              "status": "PASS"
+            }
+          ]
+        },
+        "failed": 0,
+        "not_applicable": 0,
+        "passed": 51,
+        "total": 51
+      },
+      "score": 100.0,
+      "status": "passed",
+      "strict_success": true,
+      "verification_attempt": "fde9fb49aa1640fc94792559080d94b9"
+    },
+    "writes": [
+      {
+        "after": null,
+        "before": {
+          "arrival_day": 10,
+          "date_planned": "2026-11-08 01:58:43",
+          "origin_refs": [
+            {
+              "model": "sale.order",
+              "name": "S00004"
+            }
+          ],
+          "product_code": "P27637E67E7-LED-CRS-009",
+          "quantity": 3,
+          "supply_role": "finished",
+          "unit_price": 424.09,
+          "vendor_ref": "r27637E67E7_q02"
+        },
+        "document": "P00006",
+        "kind": "cancel_po",
+        "quantity": 3,
+        "summary": "Cancel purchase_order P00006"
+      },
+      {
+        "after": {
+          "arrival_day": 10,
+          "date_planned": "2026-11-08 00:00:00",
+          "origin_refs": [
+            {
+              "model": "sale.order",
+              "name": "S00004"
+            }
+          ],
+          "product_code": "P27637E67E7-LED-CRS-009",
+          "quantity": 3,
+          "supply_role": "finished",
+          "unit_price": 477.44,
+          "vendor_ref": "r27637E67E7_q04"
+        },
+        "before": null,
+        "document": "new:purchase.order:0006",
+        "kind": "create_po",
+        "quantity": 3,
+        "summary": "Create purchase_order new:purchase.order:0006"
+      }
+    ]
+  },
+  "created_at": "2026-10-29T02:03:40.352033+00:00",
+  "updated_at": "2026-10-29T02:04:29.681636+00:00",
+  "reason": null,
+  "decision": {
+    "can_approve": false,
+    "reason": "plan_already_applied",
+    "blocked_checks": [],
+    "unknown_checks": [],
+    "warnings": [],
+    "can_reject": false,
+    "can_request_changes": false,
+    "revision_reason": "revision_unsupported",
+    "can_reconcile": true,
+    "can_cancel_unstarted": false,
+    "preparation_pending": false,
+    "can_resume_preparation": false,
+    "can_reprepare": false
+  },
+  "result": {
+    "execution_status": "succeeded",
+    "readback_status": "passed",
+    "verifier_status": "passed",
+    "strict_success": true,
+    "evaluation_valid": true,
+    "verified": true,
+    "simulation_passed": false,
+    "verification_source": "original_verifier",
+    "outcome": "verified"
+  },
+  "revision": {
+    "changes": {},
+    "parent_plan_id": null,
+    "reason": null,
+    "version": 1
+  },
+  "history": [],
+  "audit": [
+    {
+      "action": "preparation_requested",
+      "actor_label": "Operator cfa8664d",
+      "at": "2026-10-29T02:03:40.352809+00:00",
+      "plan_id": null,
+      "version": 1
+    },
+    {
+      "action": "prepared",
+      "actor_label": "Operator cfa8664d",
+      "at": "2026-10-29T02:03:43.883081+00:00",
+      "plan_id": "83a4edfe0ae19d12ba1a23a0cd327264a282941baf8b8ddf0b620476443a9e45",
+      "version": 1
+    },
+    {
+      "action": "approval_requested",
+      "actor_label": "Operator cfa8664d",
+      "at": "2026-10-29T02:03:44.339612+00:00",
+      "comment": "Authorized product recovery acceptance: discard successful transport returns.",
+      "plan_id": "83a4edfe0ae19d12ba1a23a0cd327264a282941baf8b8ddf0b620476443a9e45"
+    },
+    {
+      "action": "approved",
+      "actor_label": "Operator cfa8664d",
+      "at": "2026-10-29T02:03:44.343939+00:00",
+      "comment": "Authorized product recovery acceptance: discard successful transport returns.",
+      "plan_id": "83a4edfe0ae19d12ba1a23a0cd327264a282941baf8b8ddf0b620476443a9e45"
+    },
+    {
+      "action": "reconciled",
+      "actor_label": "Operator cfa8664d",
+      "at": "2026-10-29T02:04:29.681656+00:00",
+      "plan_id": "83a4edfe0ae19d12ba1a23a0cd327264a282941baf8b8ddf0b620476443a9e45",
+      "status": "succeeded"
+    }
+  ],
+  "revision_limits": {
+    "original_margin_pct": 27.5,
+    "effective_margin_pct": 27.5,
+    "max_exclusive_pct": 100,
+    "decimal_places": 2
+  }
+}

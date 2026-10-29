@@ -1,0 +1,17 @@
+{
+  "source_commit": "bf880f2f1a8881809a6da2d89bcd3ba6724f4f81",
+  "command": "PYTHONPATH=src python -m pytest -q -rs",
+  "passed": 3062,
+  "skipped": 40,
+  "subtests_passed": 28,
+  "warnings": 1,
+  "warning": "Starlette TestClient httpx deprecation",
+  "skip_scope": [
+    "missing historical recorded runs and DSH runtime cache",
+    "optional pinned Pi smoke copy not built",
+    "Linux-only peer credentials and root ownership checks on macOS"
+  ],
+  "log": "backend-bf880f2.txt",
+  "log_sha256": "34d02cc3e9249fe84580ce3b37325e50c217f49f22c1c76bd1fb6a679b0aff37",
+  "log_redaction": "absolute workstation paths replaced with placeholders"
+}

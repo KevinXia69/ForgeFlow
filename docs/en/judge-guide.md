@@ -89,3 +89,7 @@ the deployment evidence, not in an unsupported uptime guarantee.
 For self-hosting, use the [repository setup instructions](../../README.md#run-the-product-locally)
 and [VPS guide](../../deploy/vps/README.md). Runtime secrets and private invitations
 are deliberately excluded from the public source.
+
+## Current local validation materials
+
+For the corrected source revision, see the [local UI screenshots](../media/next-phase/README.md) and [release evidence](../NEXT_PHASE_RELEASE.md). Local sandbox results have their own source commit and plan identities. The hosted workflow above needs its own deployment verification before those results can describe the hosted version.

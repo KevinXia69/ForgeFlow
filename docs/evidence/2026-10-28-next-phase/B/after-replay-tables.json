@@ -1,0 +1,40 @@
+{
+  "scope": "Dedicated synthetic ERP-Bench product acceptance; not autonomous evaluation",
+  "label": "after-replay",
+  "recorded_at": "2026-10-29T02:05:24.515529+00:00",
+  "container": "ff-next-phase-b",
+  "tables": {
+    "purchase_order": {
+      "count": 21,
+      "digest": "7aca8c447c6ae5dccefb17d591b583ad"
+    },
+    "purchase_order_line": {
+      "count": 21,
+      "digest": "418d773cb5e0625134ce24c3b9ee8509"
+    },
+    "mrp_production": {
+      "count": 8,
+      "digest": "52ae28b09a9f170721d12f3574a2d940"
+    },
+    "mrp_workorder": {
+      "count": 8,
+      "digest": "2f4d33697badad8e58a817a8e736e58a"
+    },
+    "sale_order": {
+      "count": 12,
+      "digest": "c97fc60a849a66d138606e0a599946b3"
+    },
+    "sale_order_line": {
+      "count": 12,
+      "digest": "a657d284e13d4a738114bd8c854c4a1c"
+    },
+    "stock_move": {
+      "count": 137,
+      "digest": "59913882c14755c50cb918b4223b5f8b"
+    },
+    "stock_picking": {
+      "count": 33,
+      "digest": "b44a1af1d57f73931ca76c4e6fa44145"
+    }
+  }
+}
