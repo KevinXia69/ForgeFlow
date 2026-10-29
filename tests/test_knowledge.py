@@ -38,7 +38,7 @@ def test_nonsense_query_returns_nothing() -> None:
 
 def test_chunk_line_ranges_are_exact() -> None:
     lines = (ROOT / "README.md").read_text(encoding="utf-8").splitlines()
-    heading = lines.index("## Boundaries") + 1
+    heading = next(number for number, line in enumerate(lines, 1) if line.startswith("## "))
     passages = [p for p in DocumentIndex(ROOT).passages() if p.path == "README.md"]
     passage = next(p for p in passages if p.start_line == heading)
     assert passage.start_line <= heading <= passage.end_line

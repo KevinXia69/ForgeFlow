@@ -67,6 +67,24 @@ are a successful model turn. The settings dialog's workspace/temporary model
 configuration is separate from the DSH process configuration; see
 [model settings](en/model-settings.md).
 
+## Optional candidate comparison
+
+The launcher defaults to one planning objective. To enable quantity-preservation,
+planned-cost and manufacturing-minutes comparisons, set these options in the
+same shell before the first `init` of a fresh sandbox:
+
+```bash
+export FORGEFLOW_LOCAL_CANDIDATES=1
+export FORGEFLOW_LOCAL_CANDIDATE_PROFILE=quantity-cost-capacity-v2
+```
+
+The instance saves these choices and retains them on resume. Existing instances
+keep their original settings; use a fresh sandbox to change them. Equivalent
+plans are deduplicated, so three objectives do not guarantee three distinct
+candidate cards. Cost and manufacturing-minutes priorities change the original
+preservation preference. These options do not enable the separate, default-off
+retention refinement. See [candidate objectives](en/current-capabilities.md#candidate-objectives-and-acceptance).
+
 ## Start, preserve and inspect
 
 ```bash

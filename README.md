@@ -1,257 +1,211 @@
 # ForgeFlow
 
-**Manufacturing delivery exceptions: detect → plan → one approval → apply → read back from ERP → original acceptance.**
+**Repair manufacturing plans after supplier cancellations and workcenter outages.**
 
-You approve a plan once, and that exact plan is what gets applied. Afterwards the
-ERP is read back and compared with the plan, and the result comes from the
-acceptance program that ships with the task.
+ForgeFlow is a workbench for reviewing, approving and applying changes to
+existing purchase and manufacturing plans. It reads the ERP back after execution
+and presents the original task verifier's result.
 
-![Start page](docs/images/start-en.png)
+Built on two [ERP-Bench](https://github.com/agentic-labs/erp-bench) recovery tasks,
+it reuses their synthetic business data, Odoo environments, planning reference
+solver and acceptance programs. **NVIDIA Nemotron on Nebius Token Factory**
+answers questions from case evidence; **CP-SAT** handles product planning.
 
-<p>
-  <a href="https://github.com/KevinXia69/ForgeFlow/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
-  <a href="https://www.python.org/"><img alt="Python" src="https://img.shields.io/badge/python-3.12%2B-3776AB"></a>
-  <img alt="Status" src="https://img.shields.io/badge/status-runnable%2C%20unreleased-orange">
-</p>
+[Try the demo](#try-the-demo) · [Follow one case](#one-case-from-disruption-to-verified-result) ·
+[Scope and evidence](#scope-and-evidence) · [Run locally](#run-the-product-locally) ·
+[Product docs](./docs/en/README.md)
 
-The hosted assistant and research runner use **Nebius Token Factory** with
-**NVIDIA Nemotron 3.5 Super VL**, model id `nvidia/Nemotron-3.5-Super-VL`.
-The assistant answers from scoped case/evidence tools; setup lives in
-[model settings](./docs/en/model-settings.md). Product planning is a separate
-CP-SAT constraint solve that runs offline. Approval and ERP execution are
-controlled by ForgeFlow, not by an assistant's generated answer.
+![Scenario A after execution: failed supply, linked orders and verified result](docs/media/next-phase/A-overview-en.png)
 
-[How it differs](#how-it-differs) · [One case, end to end](#one-case-end-to-end) ·
-[Status](#status) · [Product docs](./docs/en/README.md)
+*Actual local Scenario A after approved execution, using synthetic data and
+source `bf880f2`. [Screenshot provenance](./docs/media/next-phase/README.md).
+Hosted deployment evidence is listed separately below.*
 
-Current revision: [actual local sandbox UI screenshots](./docs/media/next-phase/README.md)
-and the [next-phase release record](./docs/NEXT_PHASE_RELEASE.md).
-The original deck, video and hosted screenshots remain historical material.
+## The problem: repairing an existing plan
 
----
+Orders are already confirmed. Stock, purchases and manufacturing commitments
+are already in place. Then a supply path becomes unavailable:
 
-## What it is
+- **Supplier cancellation:** Stonewall Components withdraws a confirmed purchase.
+  Find another fulfillment route for Alpine Theater while retaining valid
+  commitments. [Original Scenario A](https://github.com/agentic-labs/erp-bench/blob/ceba3880af555129b5278e056a0c20f2fb5a0ba9/tasks/2280_medium_repair_plan_medium/instruction.md).
+- **Workcenter outage:** Assembly Line 1 goes down with manufacturing orders
+  scheduled on it. Cancel the affected manufacturing orders and find feasible
+  alternatives. [Original Scenario B](https://github.com/agentic-labs/erp-bench/blob/ceba3880af555129b5278e056a0c20f2fb5a0ba9/tasks/2299_hard_repair_plan_hard/instruction.md).
 
-A supplier cancels, a line goes down, a deadline collapses. Someone digs through
-the ERP and edits a pile of documents from experience, and a week later nobody
-can say why it was done that way or what actually changed.
+The tasks allow buying finished goods, manufacturing or a mix. Delivery dates,
+customer budgets, margin floors, supplier limits and workcenter capacity remain
+binding. Preserving valid work and linking sales orders to their supplies are
+original task requirements. The stated priority is to preserve prior work,
+then minimize purchasing and manufacturing spend among equally preserving plans.
 
-The cost arrives later. A late delivery, a penalty, a customer who doesn't
-reorder, a change nobody can defend.
+## What ForgeFlow adds
 
-| Before ForgeFlow | With ForgeFlow |
+ERP-Bench supplies the business problem, environment, reference planner and
+original verifier. ForgeFlow turns those foundations into a reviewable product
+workflow:
+
+| Decision or question | What the workbench provides |
 | --- | --- |
-| The cancellation is noticed when the line is already idle | The exception becomes a case, with the orders, quantities and dates attached |
-| The fix lives in one person's head and a pile of ERP edits | The plan is written down, checked against policy, and approved once |
-| "Done" means somebody said so | The ERP is read back, and the task's own acceptance program scores it |
+| What does the disruption affect? | A case with total demand, directly linked orders, failed supply and the existing supply relationships |
+| Which plan should we use? | Concrete document changes, constraint checks and candidate objectives with their tradeoffs |
+| What am I authorizing? | An expiring approval bound to the selected plan and captured ERP state |
+| What actually happened? | Controlled execution, a persistent journal, ERP readback and a case-bound original-verifier receipt |
 
-ForgeFlow is built for that hour. It does one thing:
+**Case → plan and checks → explicit approval → execution → ERP readback → original acceptance.**
 
-1. It starts from the exception, so a case knows which orders are affected,
-   which product, how many units, and when they are due.
-2. It checks the plan against each policy separately: the margin floor, each
-   order's budget, demand coverage, on-time delivery, and the original contract.
-   You see which rule failed instead of a single score.
-3. You approve once. The approval records the plan version you saw and the state
-   of the ERP at that moment, and it expires.
-4. Only then does it write: the disrupted purchase order is cancelled, new
-   purchase and manufacturing orders are created, and workcenters are scheduled.
-5. It reads the ERP back and compares the result with the plan.
-6. The task's own acceptance program counts the rules it checks and gives the
-   score.
+The default objective minimizes quantity deviations on existing supply paths,
+then planned cost. Alternatives prioritize planned cost or manufacturing minutes;
+equivalent candidates are deduplicated. The assistant explains the
+case through scoped tools and does not approve or execute writes.
 
-![Current local sandbox case](docs/media/next-phase/A-overview-en.png)
+## One case, from disruption to verified result
 
-## One case, end to end
+**1. Existing commitments.** Scenario A contains **5 orders and 50 units**, due
+in **8–10 days**, with 7 finished units in stock. Alpine Theater's order is
+13 units, due in 10 days.
 
-The Scenario A planning scope covers **5 orders and 50 units, due in 8–10 days**.
-The disruption is one failed **3-unit finished-goods purchase** linked to Alpine
-Theater's 13-unit order, due in 10 days. Total demand, linked order demand and
-failed supply are separate quantities.
+**2. Disruption.** Stonewall Components' failed finished-goods purchase covers
+**3 units** linked to Alpine Theater. The full 50-unit planning scope, the
+13-unit linked order and the 3-unit supply gap describe different things.
 
-The default plan costs **$4,794.94**, including retained purchasing and
-manufacturing commitments. Its 43 purchased/manufactured finished units represent
-**$20,623.23** of coverage revenue: the corrected **new-spend margin is 76.7498%**,
-against a 27.5% floor. The 7 units covered by finished stock are excluded from
-that revenue denominator. The old 80% display used all sales revenue and must
-not be used to establish compliance with this floor.
+**3. Proposed repair.** The recorded default plan replaces that purchase while
+retaining the other planned purchasing and manufacturing commitments:
 
-The [fresh local A acceptance](./docs/evidence/2026-10-28-next-phase/A-final/report.json)
-on source `bf880f2` records **two purchase-document actions** and **seven verified
-execution steps**, with **51/51 original rules and 100/100 overall**. Document
-actions and execution steps are distinct counts; neither establishes the number
-of database writes. The authorized HTTP acceptance driver approved this
-synthetic sandbox case before the UI capture. This is separate from an
-autonomous model run or a public deployment upgrade.
+| Part of the plan | Existing arrangement | Repaired arrangement |
+| --- | --- | --- |
+| Failed supply | 3 units from Stonewall Components | Cancel that purchase order |
+| Replacement supply | No replacement purchase | Create a 3-unit purchase from an alternative supplier |
+| Finished stock | 7 units available | Use 7 units toward the orders |
+| Other valid commitments | 5 component purchases and 4 manufacturing orders for 40 finished units | Retain their planned quantities |
 
-[Historical results](./docs/evidence/2026-10-25-vps/README.md), their original
-receipts, hashes, screenshots and recordings remain unchanged. Current materials
-are linked in the [recording corrections](./docs/RECORDING_CORRECTIONS.md).
+**Planned purchasing and manufacturing cost is $4,794.94**, including retained
+commitments. This is the whole plan's cost, not the cost increase caused by the
+cancellation. The **new-spend margin is 76.75% against a 27.5% floor**: the
+43 purchased/manufactured finished units cover $20,623.23 of sales revenue;
+finished-stock revenue is excluded. See the [proposed plan and changes](./docs/evidence/2026-10-28-next-phase/A-final/selected.json)
+and [metric definitions](./docs/en/current-capabilities.md#new-spend-margin).
 
-Three questions to try:
+**4. Approval and execution.** Review the proposed changes and checks, then
+approve that exact plan. In this recorded acceptance, an authorized HTTP driver
+issued the approval before the UI capture. The receipt records **two purchase-document
+actions and seven verified execution steps**; neither is a database-write count.
 
-| Ask | What you should get back |
-| --- | --- |
-| What is waiting on me? | The one case that needs a decision, and the reason it can't be approved yet |
-| How was the last cancellation fixed? | What was written, what came back on readback, what the acceptance program said |
-| Is the receipt real? | Where it comes from, and how far it goes |
+**5. Verified result.** ERP readback and the original verifier confirmed
+**51/51 applicable rules and 100/100** for this local sandbox run on `bf880f2`.
+[Acceptance report](./docs/evidence/2026-10-28-next-phase/A-final/report.json) ·
+[Execution receipt](./docs/evidence/2026-10-28-next-phase/A-final/executed.json) ·
+[Original reward](./docs/evidence/2026-10-28-next-phase/A-final/original-reward.raw.json).
 
-## Boundaries
+## Try the demo
 
-Chat answers questions; writes start only after your approval, and the approval
-expires. The product covers two kinds of disruption, supplier cancellations and
-workcenter outages, on one task family. When the outcome of a write is unknown,
-the case says so and waits for a person.
+Open [the hosted workbench](https://168.144.242.231/app/) with the private judge
+invite supplied with the submission. Follow the [judge guide](./docs/en/judge-guide.md)
+to prepare Scenario A, inspect the plan, ask about its changes, approve it and
+review the receipt. Judges need no model account or local installation.
 
-Complete execution currently supports one finished product and a single-level
-BoM; read-only collection can follow deeper material relationships. The
-`planning-metadata-v1` profile exposes existing manufacturing time, cost and lead
-time in workcenter notes without changing those values. Its visibility is
-enhanced compared with the original task input. See [current capabilities and
-metric definitions](./docs/en/current-capabilities.md).
+Each invite selects a separate persistent workspace. Approval writes to that
+workspace's synthetic Odoo sandbox; cases and ERP records survive sign-out and
+restart. Execution does not reset the sandbox. Access, capacity and operator
+recovery details are in the [VPS guide](./deploy/vps/README.md).
 
-## How it differs
+The latest source validation below was local; it did **not** upgrade the hosted
+service. Use each deployment's own evidence to identify its tested behavior.
 
-| The usual approach | What ForgeFlow does |
-| --- | --- |
-| A chat assistant suggests a fix | The plan is a document you approve, and that plan is what gets applied |
-| An agent edits the ERP directly | Every write goes through one executor process, and it can only touch the documents the plan lists. An unknown outcome is reported and not retried |
-| A planner scores its own output | The acceptance program that ships with the task sets the score |
+## Scope and evidence
 
-## Hosted demo
+| Track | Recorded scope and result | Evidence |
+| --- | --- | --- |
+| Current local A, source `bf880f2` | Supplier cancellation; approved execution, readback, 51/51 rules, 100/100 | [A-final](./docs/evidence/2026-10-28-next-phase/A-final/report.json) |
+| Current local B, source `bf880f2` | Workcenter outage; approved execution, readback, 95/95 rules, 100/100 | [B-final](./docs/evidence/2026-10-28-next-phase/B-final/report.json) |
+| Historical hosted A | Earlier deployment; real sandbox writes, model calls and separately scoped recovery/concurrency checks | [VPS record](./docs/evidence/2026-10-25-vps/README.md), [reviewer record](./docs/evidence/2026-10-26-reviewers/README.md) |
+| Autonomous research | Separate model-driven trials, with retained passes, failures, timeouts and configuration limits | [Recorded results](./docs/en/evaluation.md), [limits](./docs/en/limits.md) |
 
-Open [the ForgeFlow workbench](https://168.144.242.231/app/) and use the private
-judge invite supplied with the submission. No model account or payment is
-required from judges. Follow [the judge guide](./docs/en/judge-guide.md) for the
-case, approval and verification workflow. The deployment provides five independent, persistent
-judge workspaces on the same HTTPS entry point, selected by invite code. Each
-workspace has its own API, assistant and ERP; its records survive sign-out and
-restart. A judge's ERP is not automatically reset after execution. All five
-invites passed public HTTPS routing and fresh-workspace checks. Two separate
-disposable workspaces passed concurrent planning, model calls and approved ERP
-execution with original verification. See [the acceptance record](./docs/evidence/2026-10-26-reviewers/README.md)
-and [the VPS guide](./deploy/vps/README.md). The capacity target is five judges
-working mainly at different times, with occasional two-person overlap.
+The current A/B runs use authorized HTTP approval drivers. The original tasks
+request autonomous execution; passing their business verifier through the
+product workflow is not evidence of autonomous model completion.
 
-The demo performs real approved writes in a synthetic ERP-Bench sandbox. It is
-not a production customer deployment. The earlier Render review site is
-suspended and is not the current demo URL.
+Complete product execution supports **one finished product and a single-level
+BoM**. The `planning-metadata-v1` profile makes existing manufacturing time,
+cost and lead time visible in workcenter notes. Default preservation does not
+guarantee globally minimal ERP writes. The optional retention refinement is
+**off by default**. See [current capabilities](./docs/en/current-capabilities.md)
+for candidate tradeoffs, data visibility and recovery boundaries.
+
+Tests provide different kinds of evidence. The [release validation record](./docs/evidence/2026-10-28-next-phase/README.md)
+reports 3062 backend tests passed and 40 skipped, plus frontend checks with their
+source versions. `first_look_audit.sh` checks the UI against a read-only API; it
+does not start an ERP or prove approved execution. The [evidence index](./docs/EVIDENCE.md)
+separates those checks from real sandbox acceptance. Historical receipts and
+media retain their original dates and metric definitions.
 
 ## Run the product locally
 
-Use Linux (Ubuntu 24.04 recommended), or an Ubuntu WSL2 environment with Docker
-integration. The executor uses Unix sockets and file locks; native Windows
-PowerShell is not a supported host. Install Python 3.12, [uv](https://docs.astral.sh/uv/),
-Node.js 24 with npm, and a running Docker engine. Allow at least 4 CPUs, 8 GiB
-of RAM and 20 GiB of free disk. The initial image build needs network access and
-can take considerably longer than five minutes.
+Use Ubuntu 24.04 or Ubuntu under WSL2, with Python 3.12, [uv](https://docs.astral.sh/uv/),
+Node.js 24/npm and Docker. Allow at least 4 CPUs, 8 GiB RAM and 20 GiB disk.
+Native Windows PowerShell is unsupported. Initial dependencies and image builds
+need network access and may take substantially longer than five minutes.
+
+The commands below start the default planning path. To compare objective
+priorities, choose the [optional candidate setup](./docs/LOCAL_WORKBENCH.md#optional-candidate-comparison)
+before the first `init`. Run from a fresh checkout in a Linux shell:
 
 ```bash
-# Run from a fresh checkout in a Linux shell.
 python3 scripts/fetch_upstream.py
 uv sync --frozen --extra planning --extra dsh-sdk
-
-# 2. Self-check: config, toolchain, Docker. No model calls.
 uv run forgeflow doctor
-
-# 3. Build the workbench front end and the local Scenario A image
-cd web && npm ci && npm run build && cd ..
+(cd web && npm ci && npm run build)
 uv run python scripts/build_local_image.py --scenario A
-
-# 4. Configure the assistant. Edit .env locally to set NEBIUS_API_KEY.
-cp .env.example .env
-uv run python scripts/setup_dsh_harness.py
-
-# 5. Start the workbench (initializes the sandbox on first run)
 uv run python scripts/local_workbench.py init
-uv run python scripts/local_workbench.py start   # -> http://127.0.0.1:8000
+uv run python scripts/local_workbench.py start
 ```
 
-Sign in with the fixed local invite code `demo-invite-code-0001` (see
-[`scripts/local_workbench.py`](./scripts/local_workbench.py)). The session key is
-generated separately and kept out of the repository. For lifecycle commands,
-Scenario B, model configuration, and troubleshooting, see
-[the local workbench guide](./docs/LOCAL_WORKBENCH.md). The deterministic
-planning/approval/execution flow can run without a model key; AI answers require
-the configured Nebius key. The local development launcher is not a public server.
+Open `http://127.0.0.1:8000/app/` with the local development invite
+`demo-invite-code-0001`. Planning, approval and execution can run without a model
+key. For AI answers, configure the [optional assistant](./docs/LOCAL_WORKBENCH.md#optional-ai-assistant)
+before starting. The [local guide](./docs/LOCAL_WORKBENCH.md) covers Scenario B,
+stop/resume and troubleshooting; the launcher is for local development.
 
-If you only want the tests, skip Docker:
+## Architecture and development
+
+- **Assistant:** NVIDIA Nemotron 3.5 Super VL (`nvidia/Nemotron-3.5-Super-VL`)
+  via Nebius Token Factory, using scoped case/evidence tools through DSH.
+  [Model settings](./docs/en/model-settings.md).
+- **Planner:** the pinned ERP-Bench CP-SAT reference solver, integrated with
+  live snapshots, candidate objectives and independently checked change sets.
+- **Executor:** ForgeFlow owns approval validation, scoped ERP operations,
+  journaling and readback. Uncertain execution follows controlled recovery.
+- **Verifier:** the original ERP-Bench acceptance programs supply the task result.
+
+See [architecture](./docs/en/architecture.md) and [release/recovery instructions](./docs/NEXT_PHASE_RELEASE.md).
+
+```text
+src/forgeflow/   API, cases, planning, approval, recovery, verification and Q&A
+web/            Bilingual React workbench
+web-public/     English workbench with deployment-controlled write capabilities
+contracts/      Versioned task policies
+tests/          Automated checks and synthetic fixtures
+docs/           Guides, dated evidence and screenshots
+scripts/        Setup, local lifecycle and validation tools
+```
 
 ```bash
-uv run pytest -q
+uv run pytest -q                                     # backend suite; some fixtures/platforms skip
+uv run python scripts/check_typography.py            # typography checks
+uv run python scripts/check_web_parity.py            # frontend consistency
+(cd web && npm run typecheck && npm run test:hermetic) # mock-API interface checks
+bash scripts/first_look_audit.sh                     # read-only UI/API audit
 ```
 
-Run the suite in the Linux environment above. Some integration tests need
-recorded runs under `runs/` and skip when those artifacts are absent. A passing
-offline suite is not evidence that a fresh Docker initialization or a live
-model call passed. The [isolated bootstrap record](./docs/evidence/2026-10-25-local-bootstrap/README.md)
-covers fresh Linux dependencies/image/database, Scenario A planning and
-stop/resume; see its explicit limits for model calls and approved ERP writes.
-
-## Why you can check it
-
-Every claim below points at something you can run.
-
-| What you want to know | Where to look |
-| --- | --- |
-| How each interface claim is verified | [`web/e2e/`](./web/e2e/) holds six acceptance harnesses, plus contrast and accessibility checks |
-| Whether the two front ends tell one story | `uv run python scripts/check_web_parity.py` compares them |
-| Whether the product still works end to end | `bash scripts/first_look_audit.sh` starts its own read-only API and runs 11 checks |
-| What a finished run looks like | the Evidence screen and [current capabilities](./docs/en/current-capabilities.md) |
-| What is simulated and what is real | [`docs/EVIDENCE.md`](./docs/EVIDENCE.md) explains the split |
-
-## Status
-
-The product has recorded end-to-end runs from an exception through approval,
-execution, readback and acceptance. Published evidence describes those specific
-runs; it is not a blanket claim that every platform or fresh checkout was tested.
-
-The hosted Scenario A workflow, isolated Odoo/PostgreSQL recovery, and normal OS
-reboot are now recorded in the [October 25 VPS acceptance evidence](./docs/evidence/2026-10-25-vps/README.md).
-Whole-site recovery onto another VPS, a new approval after reboot, and a
-screen-reader audit remain untested. Research is a separate track, and it has
-failed three runs in a row. Those results stay in the repository.
-
-## Repository layout
-
-```
-src/forgeflow/        Product: cases, plans, approval, execution, readback, acceptance, Q&A
-  api/                FastAPI: read-only paths and the approval path
-  recovery/           Change set, compiler, readback, scope guard
-  planning/           Offline solving (cp-sat); no model calls
-web/                  Bilingual workbench (React + Vite)
-web-public/           English workbench with capability-gated approval/execution
-contracts/            Task policy contracts (budgets, margin, forbidden vendors/workcenters)
-tests/                Test suite plus synthetic fixtures
-docs/                 Product reference material (English), plus the deck and demo
-docs/images/          Screenshots used by this file
-scripts/              Upstream fetch, local workbench, first-look audit, parity checks
-```
-
-## Development and gates
-
-```bash
-uv run pytest -q                                      # full test suite
-uv run python scripts/check_typography.py             # 14px minimum type size
-uv run python scripts/check_web_parity.py             # the two front ends stay in step
-cd web && npm run typecheck && npm run test:hermetic  # types + hermetic end-to-end
-bash scripts/first_look_audit.sh                      # the whole audit in one command
-```
-
-CLI entry points:
-
-```bash
-uv run forgeflow doctor      # read-only self-check
-uv run forgeflow api         # product API and UI
-uv run forgeflow tasks       # list the current tasks
-uv run forgeflow run --help  # run a task from an isolated start state and keep the original score
-```
+The backend suite does not require Docker. Live ERP acceptance and model calls
+have separate records and setup requirements.
 
 ## Upstream and license
 
-- Reuses [ERP-Bench](https://github.com/agentic-labs/erp-bench) Odoo tasks, the Pi
-  single-agent tool loop that the research runs use, and the original acceptance
-  program. Versions are pinned in [`upstream.lock.json`](./upstream.lock.json) and
-  verified by commit hash, so this repository does not nest another one.
-- Third-party sources and local changes: [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md).
-- Code in this repository is [Apache-2.0](./LICENSE).
+- **ERP-Bench:** task statements, synthetic data, Odoo environments, procurement/
+  planning reference solvers and original acceptance programs. Pinned at
+  [`ceba3880af555129b5278e056a0c20f2fb5a0ba9`](https://github.com/agentic-labs/erp-bench/tree/ceba3880af555129b5278e056a0c20f2fb5a0ba9).
+- **Pi:** the single-agent tool loop used by autonomous research. Source versions
+  and hashes are recorded in [`upstream.lock.json`](./upstream.lock.json).
+- ForgeFlow code is [Apache-2.0](./LICENSE). Third-party code and services retain
+  their own terms; see [sources and licenses](./THIRD_PARTY_NOTICES.md).
