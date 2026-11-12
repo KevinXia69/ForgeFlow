@@ -11,12 +11,14 @@ from urllib.parse import urlsplit
 
 from dotenv import dotenv_values
 
-DEFAULT_NEBIUS_BASE_URL = "https://api.tokenfactory.nebius.com/v1"
+DEFAULT_NEBIUS_BASE_URL = "https://api.deepseek.com/v1"
+DEFAULT_MODEL = "deepseek-flash"
 CONFIG_NAMES = ("NEBIUS_API_KEY", "NEBIUS_BASE_URL", "NEBIUS_MODEL")
 EXECUTION_GUIDANCE_PROFILES = (
     "none", "odoo-read-v1", "odoo-schedule-v1", "recovery-workflow-v1",
 )
 THINKING_MODES = ("provider-default", "off")
+RECOVERY_MODES = ("autonomous", "prepare-only", "investigation")
 # Opt-in hardening of the task verifier's execution context. The verifier runs
 # as root, so a writable working directory lets a planted module (for example
 # pathlib.py) be imported and write the reward. PYTHONSAFEPATH stops Python
@@ -60,6 +62,43 @@ RECOVERY_WORKFLOW_V1_GUIDANCE = """1. Use the provided prepare_recovery and exec
 
 class ConfigError(ValueError):
     """An invalid configuration, described without echoing supplied values."""
+
+
+def validate_recovery_mode(
+    mode: str = "autonomous", *, agent: str, planner_profile: str,
+    security_profile: str, execution_guidance: str = "none",
+    contract_guidance: str = "none",
+) -> str:
+    """Keep preparation-only runs on the enforced permission boundary."""
+    if not isinstance(mode, str) or mode not in RECOVERY_MODES:
+        raise ConfigError("Unknown recovery_mode; expected autonomous, prepare-only, or investigation.")
+    if mode != "autonomous":
+        if (agent != "pi" or planner_profile != "cp-sat-recovery-v1"
+                or security_profile != "permission-split-v1"):
+            raise ConfigError(
+                "Non-autonomous recovery_mode requires Pi, cp-sat-recovery-v1, "
+                "and permission-split-v1."
+            )
+        if execution_guidance != "none" or contract_guidance != "none":
+            raise ConfigError(
+                "Non-autonomous recovery_mode requires execution_guidance='none' "
+                "and contract_guidance='none'; it supplies its own preparation guidance."
+            )
+    return mode
+
+
+def validate_investigation_event_payload(value: object) -> dict[str, str]:
+    """Validate the trusted host event envelope without interpreting its prose."""
+    if not isinstance(value, dict) or set(value) != {"text", "sha256"}:
+        raise ConfigError("Investigation event requires text and its SHA-256 digest.")
+    text = value["text"]
+    if (not isinstance(text, str) or not text.strip() or "\x00" in text
+            or len(text.encode("utf-8")) > 16 * 1024):
+        raise ConfigError("Investigation event must be nonempty UTF-8 text of at most 16 KiB.")
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    if value["sha256"] != digest:
+        raise ConfigError("Investigation event digest does not match its text.")
+    return {"text": text, "sha256": digest}
 
 
 def validate_security_profile(profile: str = "none") -> str:
@@ -151,7 +190,7 @@ class NebiusConfig:
     workspace_root: Path
     api_key: str = field(default="", repr=False)
     base_url: str = DEFAULT_NEBIUS_BASE_URL
-    model: str = ""
+    model: str = DEFAULT_MODEL
 
     def __post_init__(self) -> None:
         _validate_service_url(self.base_url)
@@ -185,7 +224,7 @@ class NebiusConfig:
     def public_dict(self) -> dict[str, object]:
         """Return the safe subset suitable for CLI/UI output and run records."""
         return {
-            "provider": "nebius",
+            "provider": "deepseek",
             "base_url": self.base_url,
             "model": self.model or None,
             "key_present": bool(self.api_key),
@@ -224,14 +263,20 @@ def load_config(
     }
     config = NebiusConfig(
         workspace_root=root,
-        api_key=values["NEBIUS_API_KEY"],
+        api_key=(
+            values["NEBIUS_API_KEY"]
+            or (process_values.get("DEEPSEEK_API_KEY") or file_values.get("DEEPSEEK_API_KEY") or "").strip()
+        ),
         base_url=(
             values["NEBIUS_BASE_URL"]
             if "NEBIUS_BASE_URL" in process_values
             or "NEBIUS_BASE_URL" in file_values
-            else DEFAULT_NEBIUS_BASE_URL
+            else (process_values.get("DEEPSEEK_BASE_URL") or file_values.get("DEEPSEEK_BASE_URL") or DEFAULT_NEBIUS_BASE_URL).strip()
         ),
-        model=values["NEBIUS_MODEL"],
+        model=(
+            values["NEBIUS_MODEL"]
+            or (process_values.get("DEEPSEEK_MODEL") or file_values.get("DEEPSEEK_MODEL") or DEFAULT_MODEL).strip()
+        ),
     )
     if require_model:
         config.require_model_run()

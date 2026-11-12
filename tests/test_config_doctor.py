@@ -51,7 +51,9 @@ def test_missing_configuration_allows_offline_work_but_not_model_run(tmp_path):
     config = load_config(tmp_path, environ={"OPENAI_API_KEY": "unrelated-secret"})
     assert config.api_key == ""
     assert config.public_dict()["key_present"] is False
-    with pytest.raises(ConfigError, match="NEBIUS_API_KEY.*NEBIUS_MODEL"):
+    assert config.base_url == "https://api.deepseek.com/v1"
+    assert config.model == "deepseek-flash"
+    with pytest.raises(ConfigError, match="NEBIUS_API_KEY"):
         config.require_model_run()
 
 

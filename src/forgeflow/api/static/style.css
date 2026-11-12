@@ -1,6 +1,4 @@
 /* ForgeFlow workbench shell.
-   Layout and visual language follow the WayRaft v0.1.0 workbench
-   (Apache-2.0, https://github.com/…/WayRaft): a 220px navigation rail,
    a serif-led assistant surface and a light neutral palette. The
    implementation here is ForgeFlow's own and shares no GPU code. */
 :root {

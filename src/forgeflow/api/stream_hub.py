@@ -24,9 +24,11 @@ DONE = object()
 class TurnJournal:
     """Completed-turn journal. In-flight turns are deliberately not resumed."""
 
-    def __init__(self, root, retention_seconds: float = 3600.0) -> None:
+    def __init__(self, root, retention_seconds: float = 3600.0,
+                 max_records: int | None = None) -> None:
         self.root = root
         self.retention = retention_seconds
+        self.max_records = max_records
         self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
 
     def _path(self, key: str):
@@ -38,14 +40,43 @@ class TurnJournal:
         temporary.write_text(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
         os.chmod(temporary, 0o600)
         temporary.replace(path)
+        self._trim(path)
+
+    def _trim(self, keep=None) -> None:
+        if self.max_records is None:
+            return
+        paths = []
+        for path in self.root.glob("*.json"):
+            try:
+                paths.append((path.stat().st_mtime, path))
+            except OSError:
+                continue
+        for _mtime, path in sorted(paths):
+            if len(paths) <= self.max_records:
+                break
+            if path == keep:
+                continue
+            path.unlink(missing_ok=True)
+            paths.remove((_mtime, path))
 
     def load(self, key: str) -> dict | None:
         path = self._path(key)
         try:
+            info = path.stat()
             value = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return None
-        return value if isinstance(value, dict) and value.get("key") == key else None
+        if not isinstance(value, dict) or value.get("key") != key:
+            return None
+        updated = value.get("updated_at")
+        if isinstance(updated, (int, float)) and not isinstance(updated, bool):
+            age = time.time() - float(updated)
+        else:
+            age = time.time() - info.st_mtime
+        if age > self.retention:
+            path.unlink(missing_ok=True)
+            return None
+        return value
 
     def purge(self) -> None:
         cutoff = time.time() - self.retention
@@ -77,6 +108,7 @@ class StreamJob:
         self._persist_lock = threading.Lock()
         self._done = False
         self._cancelled = False
+        self._finished_monotonic: float | None = None
         self._error: str | None = None
         self._thread = threading.Thread(target=self._run, daemon=True)
 
@@ -97,12 +129,24 @@ class StreamJob:
             sink.put((seq, event))
 
     def _run(self) -> None:
+        producer = self._producer
         try:
-            for event in self._producer:
-                if self._cancelled:
-                    break
-                if isinstance(event, dict):
-                    self._publish(event)
+            try:
+                for event in producer:
+                    if self._cancelled:
+                        break
+                    if isinstance(event, dict):
+                        self._publish(event)
+            finally:
+                # A break leaves the generator suspended. Close it on the
+                # consuming thread so SDK cleanup (and its provider slot) is
+                # completed before this job reports itself done.
+                close = getattr(producer, "close", None)
+                if callable(close):
+                    try:
+                        close()
+                    except Exception:
+                        pass
         except Exception:
             self._publish({"type": "error", "code": "stream_failed"})
         finally:
@@ -111,6 +155,7 @@ class StreamJob:
             finally:
                 with self._lock:
                     self._done = True
+                    self._finished_monotonic = time.monotonic()
                     subscribers = list(self._subscribers)
                 for sink in subscribers:
                     sink.put(DONE)
@@ -179,12 +224,29 @@ class StreamJob:
         if job._cancelled:
             job._events.clear()
         job._done = True
+        updated = record.get("updated_at")
+        if isinstance(updated, (int, float)) and not isinstance(updated, bool):
+            job._finished_monotonic = time.monotonic() - max(0.0, time.time() - float(updated))
+        else:
+            job._finished_monotonic = time.monotonic()
         return job
 
     @property
     def done(self) -> bool:
         with self._lock:
             return self._done
+
+    @property
+    def finished_at(self) -> float | None:
+        with self._lock:
+            return self._finished_monotonic
+
+    @property
+    def busy(self) -> bool:
+        """True while this turn still owns a producer execution slot."""
+        with self._lock:
+            done = self._done
+        return not done or self._thread.is_alive()
 
     @property
     def cancelled(self) -> bool:
@@ -220,6 +282,7 @@ class StreamJob:
         with self._lock:
             self._cancelled = True
             self._done = True
+            self._finished_monotonic = self._finished_monotonic or time.monotonic()
             self._events.clear()
             subscribers = list(self._subscribers)
         for sink in subscribers:
@@ -241,6 +304,8 @@ class AssistantStreamHub:
         self._retention = retention_seconds
         self._max_jobs = max_jobs
         self._journal = journal
+        if journal is not None and journal.max_records is None:
+            journal.max_records = max_jobs
         self._lock = threading.Lock()
 
     def _save_snapshot(self, snapshot: dict[str, Any]) -> None:
@@ -248,31 +313,68 @@ class AssistantStreamHub:
             self._journal.save(snapshot)
 
     def start(self, key: str, producer_factory, *, request_hash=None, on_cancel=None,
-              reuse_completed=False, metadata=None) -> StreamJob:
+              reuse_completed=False, metadata=None, on_create=None) -> StreamJob:
         with self._lock:
             now = time.monotonic()
             active = self._jobs.get(key)
+            if active is not None and active.cancelled:
+                if active.request_hash != request_hash:
+                    raise ValueError("turn_payload_mismatch")
+                return active
             if active is not None and (not active.done or reuse_completed):
                 if active.request_hash != request_hash:
                     raise ValueError("turn_payload_mismatch")
                 return active
             self._purge_locked()
             if self._journal is not None:
-                self._journal.purge()
-            if len(self._jobs) >= self._max_jobs:
-                finished = [key for key, candidate in self._jobs.items() if candidate.done]
-                if finished:
-                    oldest = min(finished, key=lambda item: self._finished_at.get(item, now))
-                    self._jobs.pop(oldest, None)
-                    self._finished_at.pop(oldest, None)
-                else:
-                    raise StreamCapacityError("stream_capacity")
+                record = self._journal.load(key)
+                if record is not None and (
+                        record.get("status") == "cancelled"
+                        or record.get("status") == "complete" and reuse_completed
+                ):
+                    if record.get("request_hash") not in (None, request_hash):
+                        raise ValueError("turn_payload_mismatch")
+                    # An explicit turn id is allowed to recover a completed
+                    # turn. A legacy no-turn-id repeat must recompute.
+                    return StreamJob.from_journal(record, on_finish=self._save_snapshot)
+            self._ensure_capacity_locked(now)
             job = StreamJob(key, producer_factory(), request_hash=request_hash, on_cancel=on_cancel,
                             on_finish=self._save_snapshot, metadata=metadata)
             self._jobs[key] = job
             self._finished_at.pop(key, None)
+            if on_create is not None:
+                try:
+                    # The creation callback commits turn-scoped state before a
+                    # competing start can observe this job.
+                    on_create()
+                except BaseException:
+                    self._jobs.pop(key, None)
+                    raise
             job.start()
             return job
+
+    def _evict_finished_locked(self, now: float) -> bool:
+        finished = [
+            (key, job) for key, job in self._jobs.items()
+            if job.done and not job.busy
+        ]
+        if not finished:
+            return False
+        key, _job = min(
+            finished,
+            key=lambda item: item[1].finished_at
+            if item[1].finished_at is not None else self._finished_at.get(item[0], now))
+        self._jobs.pop(key, None)
+        self._finished_at.pop(key, None)
+        return True
+
+    def _ensure_capacity_locked(self, now: float) -> None:
+        # A cancelled job still owns its producer thread until the provider
+        # request actually ends; it must continue to consume an execution slot.
+        if sum(1 for job in self._jobs.values() if job.busy) >= self._max_jobs:
+            raise StreamCapacityError("stream_capacity")
+        if len(self._jobs) >= self._max_jobs and not self._evict_finished_locked(now):
+            raise StreamCapacityError("stream_capacity")
 
     def get(self, key: str, last_event_id: int | None = None) -> StreamJob | None:
         with self._lock:
@@ -281,17 +383,32 @@ class AssistantStreamHub:
             if job is None and self._journal is not None:
                 record = self._journal.load(key)
                 if record is not None and record.get("status") in {"complete", "cancelled"}:
+                    try:
+                        self._ensure_capacity_locked(time.monotonic())
+                    except StreamCapacityError:
+                        return None
                     job = StreamJob.from_journal(record, on_finish=self._save_snapshot)
                     self._jobs[key] = job
-                    self._finished_at[key] = time.monotonic()
+                    updated = record.get("updated_at")
+                    if isinstance(updated, (int, float)) and not isinstance(updated, bool):
+                        age = max(0.0, time.time() - float(updated))
+                    else:
+                        age = 0.0
+                    self._finished_at[key] = time.monotonic() - age
             return job
 
     def _purge_locked(self) -> None:
         now = time.monotonic()
+        if self._journal is not None:
+            self._journal.purge()
         for key, job in list(self._jobs.items()):
-            if not job.done:
+            if not job.done or job.busy:
                 continue
-            finished = self._finished_at.setdefault(key, now)
+            finished = job.finished_at
+            if finished is None:
+                finished = self._finished_at.setdefault(key, now)
+            else:
+                self._finished_at[key] = finished
             if now - finished > self._retention:
                 self._jobs.pop(key, None)
                 self._finished_at.pop(key, None)
@@ -306,10 +423,23 @@ class AssistantStreamHub:
     def cancel(self, key: str) -> bool:
         with self._lock:
             job = self._jobs.get(key)
-            if job is None:
-                # Remember an early Stop even if its start request is in flight.
+            if job is not None:
+                job.cancel()
+                return True
+            if self._journal is not None:
+                # Journal-only early Stop: this does not consume an in-memory
+                # execution slot and is still bounded by the journal's capacity.
                 job = StreamJob(key, (), on_finish=self._save_snapshot)
-                self._jobs[key] = job
+                job.cancel()
+                return True
+            try:
+                self._ensure_capacity_locked(time.monotonic())
+            except StreamCapacityError:
+                return False
+            # Remember an early Stop even if its start request is in flight.
+            job = StreamJob(key, (), on_finish=self._save_snapshot)
+            self._jobs[key] = job
+            self._finished_at.pop(key, None)
         job.cancel()
         return True
 

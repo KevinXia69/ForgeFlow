@@ -41,3 +41,6 @@ def test_server_strips_full_case_reference() -> None:
     text = f"The plan is applied.\n\nReference: Case {case_id}\n"
     assert strip_case_reference(text, case_id, "en") == "The plan is applied."
     assert case_id not in strip_case_reference(f"Answer {case_id}", case_id, "zh")
+
+    for prefix in ("案例编号", "Case ID"):
+        assert strip_case_reference(f"The case is pending.\n\n{prefix}：{case_id}", case_id, "zh") == "The case is pending."

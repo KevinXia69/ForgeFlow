@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import copy
 import json
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import test_product_versions as root_tests
@@ -389,3 +390,42 @@ def test_case_without_an_executor_binding_says_it_needs_preparing(wired):
     view = cases.get(case_id, ACTOR)
     assert view["decision"]["can_approve"] is False
     assert view["decision"]["reason"] == "product_binding_missing"
+
+
+def test_expired_saved_authorization_can_be_closed_before_dispatch(wired, monkeypatch):
+    cases, case_id, executor, connection, _, _, _ = wired
+    prepared = cases.prepare(case_id, ACTOR)
+    plan_id = prepared["plan"]["plan_id"]
+    write = cases._write
+
+    def stop_after_authorization(case):
+        write(case)
+        if (case.approval or {}).get("phase") == "authorized":
+            raise KeyboardInterrupt("controlled stop after durable authorization")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(cases, "_write", stop_after_authorization)
+        with pytest.raises(KeyboardInterrupt):
+            cases.approve(case_id, ACTOR, plan_id, comment="original intent")
+
+    stored = cases._read(case_id)
+    assert stored.approval["phase"] == "authorized"
+    assert stored.approval["executor_grant"]
+
+    future = datetime.now(UTC) + timedelta(days=2)
+    monkeypatch.setattr("forgeflow.product.service._now", lambda: future)
+    restarted = ProductCaseService(cases.root.parent, executor)
+    with pytest.raises(ProductCaseError, match="approval_expired"):
+        restarted.approve(case_id, ACTOR, plan_id)
+    view = restarted.get(case_id, ACTOR)
+    assert view["state"] == "expired"
+    assert view["decision"]["can_cancel_unstarted"] is True
+
+    result = restarted.cancel_unstarted(case_id, ACTOR, plan_id)
+    assert result["result"]["outcome"] == "not_started"
+    assert connection.writes == []
+    final = restarted._read(case_id)
+    assert final.state == "rejected"
+    assert final.execution["status"] == "not_started"
+    assert final.approval["unstarted_cancellation"]["outcome"] == "not_started"
+    assert restarted.cancel_unstarted(case_id, ACTOR, plan_id) == result

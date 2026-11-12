@@ -34,8 +34,9 @@ def streaming_app(tmp_path, monkeypatch):
                     while not release.wait(.01):
                         if cancel_event is not None and cancel_event.is_set():
                             return
+                    user_question = question.split("\n\nQuestion: ", 1)[-1]
                     yield {'type': 'trace', 'activity': []}
-                    yield {'type': 'final', 'answer': question, 'mode': 'harness', 'citations': [],
+                    yield {'type': 'final', 'answer': f'answer to {user_question}', 'mode': 'harness', 'citations': [],
                            'case_context': {'case_id': 'forged-provider-context'}}
             return Scoped()
 
@@ -162,8 +163,9 @@ def test_completed_turn_survives_a_restart_at_the_api_level(tmp_path, monkeypatc
                 supports_turn_cancellation = True
 
                 def stream(self, question, _key, *, cancel_event=None):
-                    calls.append(question)
-                    yield {'type': 'final', 'answer': f'answer to {question}', 'mode': 'harness',
+                    user_question = question.split('\n\nQuestion: ', 1)[1]
+                    calls.append(user_question)
+                    yield {'type': 'final', 'answer': f'answer to {user_question}', 'mode': 'harness',
                            'citations': [], 'case_context': {'case_id': 'restart'}}
             return Scoped()
 
@@ -209,7 +211,7 @@ def test_cancelled_turn_stays_cancelled_after_api_restart(tmp_path, monkeypatch,
                 supports_turn_cancellation = True
 
                 def stream(self, question, _key, *, cancel_event=None):
-                    calls.append(question)
+                    calls.append(question.split('\n\nQuestion: ', 1)[1])
                     entered.set()
                     try:
                         while not release.wait(.01):

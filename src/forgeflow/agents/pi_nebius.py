@@ -28,15 +28,19 @@ from harbor.models.agent.context import AgentContext
 from forgeflow.agents.pi_source_patch import PROVIDER_SOURCE, patch_provider_source
 from forgeflow.budget import (
     BUDGET_MECHANISM_VERSION,
+    BUSINESS_AUDIT_TABLES,
     CLEANUP_ALLOWANCE_SEC,
+    MIN_NEXT_CALL_TOKENS,
     PI_BUDGET_EXTENSION,
     SETUP_BUDGET_SEC,
+    TOKEN_BUDGET_MECHANISM,
     BudgetCleanupError,
     BudgetExceeded,
     BudgetRecorder,
     Deadline,
     bounded_await,
     positive_seconds,
+    resolve_total_token_budget,
     system_clock,
 )
 from forgeflow.config import (
@@ -44,6 +48,8 @@ from forgeflow.config import (
     load_config,
     resolve_execution_guidance,
     validate_execution_guidance,
+    validate_investigation_event_payload,
+    validate_recovery_mode,
     validate_security_profile,
     validate_thinking_mode,
 )
@@ -57,7 +63,7 @@ UPSTREAM_ADAPTER_SHA256 = "8c6c45bdc74a3842b225c168631cb73aaf58e465e53667c8f3c4c
 PI_COMMIT = "08dc60bc52d89d6823a9738cc90b1916e5e446e5"
 PI_VERSION = "0.85.1"
 NODE_VERSION = "22.19.0"
-DEFAULT_MODEL = "nvidia/Nemotron-3.5-Super-VL"
+DEFAULT_MODEL = "deepseek-flash"
 AGENT_USER = "forgeflow"
 PI_HOME = "/home/forgeflow/.pi/agent"
 AGENT_LOG_DIR = "/home/forgeflow/logs"
@@ -66,7 +72,12 @@ PI_EXECUTABLE = (
     "/opt/forgeflow/node/bin/node",
     f"{PI_SOURCE}/packages/coding-agent/dist/cli.js",
 )
-MODEL_CONTEXT_WINDOW = 131072
+MODEL_CONTEXT_WINDOW = 1_048_576
+# Nebius validates this ceiling against input + output context, not output alone.
+# Pinned Pi's buildBaseOptions subtracts estimated context and 4096 safety tokens
+# before emitting max_tokens. Evidence: build-inputs/nemotron-model-limits.json.
+DEFAULT_MODEL_MAX_OUTPUT_TOKENS = 32768
+MODEL_CONTEXT_SAFETY_TOKENS = 4096
 OUTPUT_POLICY_EXTENSION = "/opt/forgeflow/provider_default_output.js"
 OUTPUT_POLICY_SOURCE = Path(__file__).with_name("provider_default_output.js")
 BUDGET_EXTENSION_PATH = "/opt/forgeflow/budget_guard.mjs"
@@ -78,6 +89,12 @@ NATIVE_FEEDBACK_EXTENSION = "/opt/forgeflow/native_planner_feedback.js"
 NATIVE_FEEDBACK_SOURCE = Path(__file__).with_name("native_planner_feedback.js")
 NATIVE_RECOVERY_EXTENSION = "/opt/forgeflow/native_recovery.js"
 NATIVE_RECOVERY_SOURCE = Path(__file__).with_name("native_recovery.js")
+NATIVE_INVESTIGATION_EXTENSION = "/opt/forgeflow/native_investigation.js"
+NATIVE_INVESTIGATION_SOURCE = Path(__file__).with_name("native_investigation.js")
+INVESTIGATION_TOOLS = (
+    "investigation_query", "validate_investigation_draft", "prepare_investigated_recovery",
+    "investigation_status", "finish_investigation",
+)
 NATIVE_PLANNER_PROFILES = {"cp-sat-native-v1", "cp-sat-native-v2", "cp-sat-recovery-v1"}
 PERMISSION_PROFILE = "permission-split-v1"
 READ_KEY_PATH = "/etc/odoo/api_key.read"
@@ -86,6 +103,7 @@ EXECUTOR_STORE = "/var/lib/forgeflow/recovery"
 EXECUTOR_APPROVALS = "/var/lib/forgeflow/approvals"
 EXECUTOR_READY = "/run/forgeflow/executor.ready"
 EXECUTOR_LOG = "/var/log/forgeflow/executor.out"
+EXECUTOR_EVENT = EXECUTOR_STORE + "/event.txt"
 EXECUTOR_MAIN = f"{PLANNER_ROOT}/forgeflow/executor/main.py"
 RECOVERY_HELP = """Use prepare_recovery with the actual task policies and live identifiers,
 then execute_recovery with its returned plan_id to carry out the planned repair.
@@ -95,6 +113,31 @@ are not additional quantities. Do not fabricate receipts, manufacturing completi
 or stock adjustments. A stopped execution may have written changes: preserve the
 same plan_id and journal for controlled recovery; do not blindly replan or create
 replacement documents. Tool readback is not the external benchmark verdict.
+"""
+PREPARE_ONLY_HELP = """Investigate the task and live ERP records using read-only queries,
+then call prepare_recovery with the evidenced, task-authorized request. Preserve
+the original scope, budgets, margin and disruption policy. For a cancellation,
+vendor_ref/offer_key identify the canceled supply, never
+the replacement; the solver chooses replacement supply. If a business decision
+or required evidence is missing, report the clarification needed. Stop when a
+prepared plan is available and report its plan_id for review. This mode does not
+authorize ERP writes or execution; preparation is not ERP recovery or acceptance.
+"""
+INVESTIGATION_HELP = """Use the investigation tools to read bounded business evidence,
+validate an evidence-backed draft, and prepare the validated request for review.
+In every episode, query global policy using kind=policy and arguments={} for
+anchor_date, margin and task_type; use its returned observation_id for those
+fields. Separately query each order's policy for authorization and budget_cap.
+Order-policy evidence cannot prove global policy, and deadlines or prices cannot
+supply policy values. These facts are queryable; do not ask the user for them.
+The fixed task authorization cannot be expanded or replaced. Add an order only
+with evidence of its identity, existing authorization and explicit budget. Use
+vendor_ref/offer_key for the canceled supply, never for a replacement; the solver
+chooses replacements. Use
+the structured feedback to investigate and revise; ask for clarification when
+business authority or necessary facts are missing. Stop with a prepared plan,
+a precise clarification, or a supported stop reason. Preparation does not execute
+ERP changes and does not establish external benchmark success.
 """
 NATIVE_PLANNER_HELP = """Use the plan_recovery tool to compute a repair plan from live Odoo.
 Supply the actual task policies and live identifiers in its structured request.
@@ -125,12 +168,17 @@ UpstreamPi = _load_upstream_pi()
 
 
 def validate_max_output_tokens(value: int) -> int:
-    """Validate an application output budget, leaving room for input context."""
-    if isinstance(value, bool) or not isinstance(value, int) or not 0 < value < MODEL_CONTEXT_WINDOW:
+    """Validate the output ceiling; Pi reserves room for the current context."""
+    if isinstance(value, bool) or not isinstance(value, int) or not 0 < value <= DEFAULT_MODEL_MAX_OUTPUT_TOKENS:
         raise ValueError(
-            f"max_output_tokens must be an integer from 1 to {MODEL_CONTEXT_WINDOW - 1}."
+            f"max_output_tokens must be an integer from 1 to {DEFAULT_MODEL_MAX_OUTPUT_TOKENS}."
         )
     return value
+
+
+def resolve_max_output_tokens(value: int | None) -> int:
+    """Default to the verified model ceiling, with Pi's per-request context clamp."""
+    return DEFAULT_MODEL_MAX_OUTPUT_TOKENS if value is None else validate_max_output_tokens(value)
 
 
 def build_models_config(
@@ -142,15 +190,14 @@ def build_models_config(
 ) -> dict[str, Any]:
     """Pi 0.85.1 configuration; the key remains an environment reference.
 
-    128 Ki tokens is a conservative application budget, not a claim about the
-    hosted model's full context limit. The optional, tested thinking override is
-    separate from the output budget and model capability declaration.
+    The verified model ceiling is reduced by pinned Pi for each request's input
+    context and safety reserve. The optional thinking override is separate from
+    the output budget and model capability declaration.
     """
     thinking_mode = validate_thinking_mode(thinking_mode)
     if not model_id or any(character.isspace() for character in model_id):
         raise ValueError("A nonempty Nebius model identifier is required.")
-    if max_output_tokens is not None:
-        max_output_tokens = validate_max_output_tokens(max_output_tokens)
+    max_output_tokens = resolve_max_output_tokens(max_output_tokens)
     result = {
         "providers": {
             "nebius": {
@@ -168,7 +215,7 @@ def build_models_config(
                 "models": [
                     {
                         "id": model_id,
-                        "name": "ForgeFlow NVIDIA Nemotron 3.5 Super VL",
+                        "name": "ForgeFlow DeepSeek V4.1 Flash",
                         "input": ["text", "image"],
                         "reasoning": True,
                         "contextWindow": MODEL_CONTEXT_WINDOW,
@@ -194,15 +241,22 @@ def build_pi_command(
     executable: tuple[str, ...] = PI_EXECUTABLE,
     output_file: str = f"{AGENT_LOG_DIR}/pi.txt",
     execution_guidance: str = "none",
-    provider_default_output: bool = True,
+    provider_default_output: bool = False,
     planner_profile: str = "none",
     contract_guidance: str = "none",
     contract_payload: dict | None = None,
     budget_guard: bool = False,
+    recovery_mode: str = "autonomous",
+    security_profile: str = "none",
 ) -> str:
     """Quote task input and retain the CLI exit status across log capture."""
     validate_execution_guidance(
         execution_guidance, agent="pi", planner_profile=planner_profile,
+    )
+    validate_recovery_mode(
+        recovery_mode, agent="pi", planner_profile=planner_profile,
+        security_profile=security_profile, execution_guidance=execution_guidance,
+        contract_guidance=contract_guidance,
     )
     guidance = resolve_execution_guidance(execution_guidance)
     reviewed_inputs = resolve_contract_guidance(contract_guidance, contract_payload)
@@ -226,6 +280,10 @@ def build_pi_command(
         "--model",
         model_id,
     ]
+    if recovery_mode == "investigation":
+        # Pinned Pi --tools applies to builtin, extension and custom tools.
+        # Do not expose filesystem/shell tools alongside the bounded queries.
+        arguments.extend(["--tools", ",".join(INVESTIGATION_TOOLS)])
     if provider_default_output:
         arguments.extend(["-e", OUTPUT_POLICY_EXTENSION])
     if budget_guard:
@@ -233,7 +291,8 @@ def build_pi_command(
     arguments.extend(["-e", TOOL_AUDIT_EXTENSION])
     if planner_profile in NATIVE_PLANNER_PROFILES:
         extension = (
-            NATIVE_RECOVERY_EXTENSION if planner_profile == "cp-sat-recovery-v1"
+            NATIVE_INVESTIGATION_EXTENSION if recovery_mode == "investigation"
+            else NATIVE_RECOVERY_EXTENSION if planner_profile == "cp-sat-recovery-v1"
             else NATIVE_FEEDBACK_EXTENSION if planner_profile == "cp-sat-native-v2"
             else NATIVE_PLANNER_EXTENSION
         )
@@ -243,7 +302,9 @@ def build_pi_command(
         appended.append(reviewed_inputs["text"])
     if planner_profile != "none":
         appended.append(
-            RECOVERY_HELP if planner_profile == "cp-sat-recovery-v1"
+            INVESTIGATION_HELP if recovery_mode == "investigation"
+            else PREPARE_ONLY_HELP if recovery_mode == "prepare-only"
+            else RECOVERY_HELP if planner_profile == "cp-sat-recovery-v1"
             else NATIVE_PLANNER_HELP if planner_profile in NATIVE_PLANNER_PROFILES else PLANNER_HELP
         )
     if appended:
@@ -254,6 +315,82 @@ def build_pi_command(
         "set -euo pipefail; "
         f"{invocation} 2>&1 </dev/null | tee {shlex.quote(output_file)}"
     )
+
+
+def _build_business_audit_command(phase: str) -> str:
+    """Root-only, consistent read transaction; persist counts/digests, never rows."""
+    if phase not in {"before", "after"}:
+        raise ValueError("Unknown business audit phase.")
+    program = f'''
+import json, os, stat, subprocess
+from pathlib import Path
+from datetime import UTC, datetime
+assert os.geteuid() == 0
+root = Path({EXECUTOR_STORE!r}) / 'business-audit'
+root.mkdir(mode=0o700, parents=True, exist_ok=True)
+info = root.lstat()
+if not stat.S_ISDIR(info.st_mode) or info.st_uid != 0 or stat.S_IMODE(info.st_mode) != 0o700:
+    raise RuntimeError('unsafe_business_audit_directory')
+tables = {BUSINESS_AUDIT_TABLES!r}
+report = dict(schema_version=1, phase={phase!r}, status='failed', tables=None,
+              captured_at=datetime.now(UTC).isoformat(), read_only_transaction=True,
+              scope='sixteen_business_tables_not_system_metadata', error=None)
+try:
+    statements = ["BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;"]
+    for table in tables:
+        statements.append("SELECT '" + table + "', count(*), coalesce(md5(string_agg("
+                          "row_to_json(t)::text,',' ORDER BY id)),'empty') FROM " + table + " t;")
+    statements.append('COMMIT;')
+    result = subprocess.run(['runuser', '-u', 'postgres', '--', 'psql', '-d', 'bench',
+                             '-qAt', '-F', '\\t', '-v', 'ON_ERROR_STOP=1', '-c', '\\n'.join(statements)],
+                            text=True, capture_output=True, check=True, timeout=8)
+    rows = {{}}
+    for line in result.stdout.splitlines():
+        table, count, digest = line.split('\\t')
+        if table not in tables or table in rows or not count.isdigit():
+            raise ValueError('invalid_business_audit_rows')
+        if digest != 'empty' and (len(digest) != 32 or any(c not in '0123456789abcdef' for c in digest)):
+            raise ValueError('invalid_business_audit_digest')
+        rows[table] = dict(count=int(count), digest=digest)
+    if set(rows) != set(tables):
+        raise ValueError('incomplete_business_audit_rows')
+    report.update(status='captured', tables=rows)
+except Exception as error:
+    report['error'] = type(error).__name__
+fd = os.open(root / {phase + '.json'!r}, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o400)
+with os.fdopen(fd, 'w') as handle:
+    json.dump(report, handle, sort_keys=True)
+    handle.write('\\n')
+'''
+    return "python3 - <<'FORGEFLOW_BUSINESS_AUDIT'\n" + program + "\nFORGEFLOW_BUSINESS_AUDIT\n"
+
+
+def _build_investigation_result_command() -> str:
+    """Generate the default card as root, after worker/executor quiescence."""
+    program = f'''
+import os, sys
+from pathlib import Path
+assert os.geteuid() == 0
+sys.path.insert(0, {PLANNER_ROOT!r})
+from forgeflow.investigation.report import trusted_summary, render_report
+from forgeflow.recovery.storage import read_json, atomic_json
+store = Path({EXECUTOR_STORE!r})
+root = store / 'investigation'
+if root.is_dir() and not root.is_symlink():
+    try:
+        state = read_json(root / 'state.json')
+        review = read_json(root / 'review.json') if state['status'] == 'prepared' else None
+        result = trusted_summary(state, review, store=store)
+        report = render_report(state, review, store=store)
+        atomic_json(root / 'trusted-summary.json', result, replace=True)
+        (root / 'trusted-report.md').write_text(report, encoding='utf-8')
+        os.chmod(root / 'trusted-summary.json', 0o400)
+        os.chmod(root / 'trusted-report.md', 0o400)
+    except Exception:
+        atomic_json(root / 'summary-error.json', {{'status': 'unavailable',
+                    'reason': 'trusted_artifact_verification_failed'}}, replace=True)
+'''
+    return shlex.join(["/opt/forgeflow/planner-env/bin/python", "-E", "-s", "-B", "-c", program]) + "; "
 
 
 def _build_log_export_command(
@@ -268,7 +405,7 @@ import shutil
 source_dir = Path({source_dir!r})
 destination_dir = Path({destination_dir!r})
 for name in ('isolation.json', 'pi.txt', 'provider-request-policy.jsonl',
-             'recovery-route.jsonl', 'tool-audit.jsonl'):
+             'recovery-route.jsonl', 'tool-audit.jsonl', 'token-budget.json', 'terminal-control.json'):
     source = source_dir / name
     if source.is_file() and not source.is_symlink():
         shutil.copy2(source, destination_dir / name, follow_symlinks=False)
@@ -307,7 +444,7 @@ if recovery.exists() or recovery.is_symlink():
     limits = dict(file_bytes=16*1024*1024, total_bytes=128*1024*1024,
                   directory_entries=4096, files=4096, plans=16, failures=128,
                   readbacks_per_plan=64, binding_groups_per_plan=4,
-                  bindings_per_group=2000, binding_bytes=64*1024)
+                  bindings_per_group=2000, binding_bytes=64*1024, query_pages=120)
     report = dict(schema_version=1, complete=True,
                   completeness_scope='allowlisted_recovery_artifacts', limits=limits,
                   copied_files=[], skipped=[], skipped_count=0, ignored_entries=0,
@@ -344,7 +481,7 @@ if recovery.exists() or recovery.is_symlink():
             if not stat.S_ISDIR(parent.lstat().st_mode):
                 raise OSError('unsafe_destination')
         return parent / relative.name
-    def copy(relative, maximum=None):
+    def copy(relative, maximum=None, root_read_only=False, expected_json_digest=None):
         maximum = limits['file_bytes'] if maximum is None else maximum
         fd = None
         try:
@@ -357,6 +494,9 @@ if recovery.exists() or recovery.is_symlink():
             if not stat.S_ISREG(info.st_mode):
                 skip(relative, 'not_regular_file')
                 return
+            if root_read_only and (info.st_uid != 0 or stat.S_IMODE(info.st_mode) != 0o400):
+                skip(relative, 'untrusted_business_audit')
+                return
             if info.st_size > maximum:
                 skip(relative, 'file_size_limit')
                 return
@@ -368,13 +508,26 @@ if recovery.exists() or recovery.is_symlink():
             if len(data) > maximum or report['total_bytes'] + len(data) > limits['total_bytes']:
                 skip(relative, 'read_size_limit')
                 return
+            if expected_json_digest is not None:
+                try:
+                    value = json.loads(data)
+                    canonical = (json.dumps(value, sort_keys=True, allow_nan=False,
+                                             ensure_ascii=False) + '\\n').encode()
+                    if hashlib.sha256(canonical).hexdigest() != expected_json_digest:
+                        raise ValueError('receipt_changed')
+                except (ValueError, TypeError):
+                    skip(relative, 'query_receipt_digest_mismatch')
+                    return
             target = destination(relative)
             output = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
             with os.fdopen(output, 'wb') as handle:
                 handle.write(data)
             report['copied_files'].append(dict(path=str(relative), bytes=len(data),
                                                sha256=hashlib.sha256(data).hexdigest()))
+            if root_read_only:
+                report['copied_files'][-1]['root_owned_read_only'] = True
             report['total_bytes'] += len(data)
+            return data
         except OSError:
             skip(relative, 'copy_unavailable_or_unsafe')
         finally:
@@ -389,6 +542,51 @@ if recovery.exists() or recovery.is_symlink():
     for name in root_names or ():
         if name == 'active-plan.json':
             copy(Path(name))
+        elif name == 'investigation':
+            relative = Path(name)
+            names = directory(recovery / relative, relative)
+            raw_state = copy(relative / 'state.json') if 'state.json' in (names or ()) else None
+            pages = dict()
+            if raw_state is not None:
+                try:
+                    receipts = json.loads(raw_state).get('query_receipts', dict())
+                    if not isinstance(receipts, dict) or len(receipts) > limits['query_pages']:
+                        raise ValueError('receipt_limit')
+                    for identity, receipt in receipts.items():
+                        if (not re.fullmatch(r'[0-9a-f]{64}', identity)
+                                or not isinstance(receipt, dict)
+                                or not re.fullmatch(r'[0-9a-f]{64}', receipt.get('request_sha256', ''))
+                                or not re.fullmatch(r'[0-9a-f]{64}', receipt.get('response_sha256', ''))):
+                            raise ValueError('invalid_receipt')
+                        pages['query-page-' + identity + '.json'] = receipt['response_sha256']
+                except (ValueError, TypeError, AttributeError):
+                    pages = dict()
+                    skip(relative / 'state.json', 'invalid_query_receipts')
+            for missing in pages.keys() - set(names or ()):
+                skip(relative / missing, 'query_receipt_missing')
+            for child in names or ():
+                if child == 'state.json':
+                    continue
+                if child in pages:
+                    copy(relative / child, 65536, expected_json_digest=pages[child])
+                elif child in ('review.json', 'summary-error.json'):
+                    copy(relative / child)
+                elif child in ('trusted-summary.json', 'trusted-report.md'):
+                    copy(relative / child, root_read_only=True)
+                else:
+                    report['ignored_entries'] += 1
+        elif name == 'business-audit':
+            relative = Path(name)
+            names = directory(recovery / relative, relative)
+            info = (recovery / relative).lstat()
+            if info.st_uid != 0 or stat.S_IMODE(info.st_mode) != 0o700:
+                skip(relative, 'untrusted_business_audit')
+                continue
+            for child in names or ():
+                if child in ('before.json', 'after.json'):
+                    copy(relative / child, 16*1024, root_read_only=True)
+                else:
+                    report['ignored_entries'] += 1
         elif re.fullmatch(r'failure-[0-9a-f]{32}\\.json', name):
             failures += 1
             if failures <= limits['failures']:
@@ -543,19 +741,20 @@ class PiNebius(UpstreamPi):
         pi_source_dir: str | Path | None = None,
         model_data_dir: str | Path | None = None,
         max_output_tokens: int | None = None,
+        max_total_tokens: int | None = None,
         thinking_mode: str = "provider-default",
         execution_guidance: str = "none",
         planner_profile: str = "none",
         security_profile: str = "none",
-        agent_budget_sec: float = 600.0,
+        recovery_mode: str = "autonomous",
+        agent_budget_sec: float = 3600.0,
         **kwargs: Any,
     ) -> None:
         self.agent_budget_sec = positive_seconds(agent_budget_sec, name="agent_budget_sec")
+        self.max_total_tokens = resolve_total_token_budget(max_total_tokens, agent="pi", recovery_mode=recovery_mode)
         self._budget_recorder: BudgetRecorder | None = None
         self.thinking_mode = validate_thinking_mode(thinking_mode)
-        self.max_output_tokens = (
-            None if max_output_tokens is None else validate_max_output_tokens(max_output_tokens)
-        )
+        self.max_output_tokens = resolve_max_output_tokens(max_output_tokens)
         validate_execution_guidance(
             execution_guidance, agent="pi", planner_profile=planner_profile,
         )
@@ -568,9 +767,27 @@ class PiNebius(UpstreamPi):
         self.contract_payload = None
         if raw_contract:
             payload = json.loads(raw_contract)
-            contract_from_payload(payload)
+            if recovery_mode == "investigation":
+                from forgeflow.investigation.policy import load_investigation_policy
+                load_investigation_policy(payload)
+            else:
+                contract_from_payload(payload)
             self.contract_payload = payload
         self.contract_guidance = os.environ.get("FORGEFLOW_CONTRACT_GUIDANCE", "none")
+        self.recovery_mode = validate_recovery_mode(
+            recovery_mode, agent="pi", planner_profile=planner_profile,
+            security_profile=security_profile, execution_guidance=execution_guidance,
+            contract_guidance=self.contract_guidance,
+        )
+        if self.recovery_mode == "investigation" and self.contract_payload is None:
+            raise ValueError("Investigation recovery_mode requires a reviewed task contract or investigation policy.")
+        self.investigation_event = None
+        if self.recovery_mode == "investigation":
+            try:
+                event = json.loads(os.environ.get("FORGEFLOW_INVESTIGATION_EVENT_JSON", "null"))
+            except ValueError:
+                raise ValueError("Investigation requires a trusted event envelope.") from None
+            self.investigation_event = validate_investigation_event_payload(event)
         resolve_contract_guidance(self.contract_guidance, self.contract_payload)
         if self.contract_guidance != "none" and planner_profile != "cp-sat-recovery-v1":
             raise ValueError("Contract guidance requires cp-sat-recovery-v1.")
@@ -782,11 +999,15 @@ class PiNebius(UpstreamPi):
                 ),
             )
         if self.planner_profile == "cp-sat-recovery-v1":
-            await environment.upload_file(NATIVE_RECOVERY_SOURCE, NATIVE_RECOVERY_EXTENSION)
+            source, extension = (
+                (NATIVE_INVESTIGATION_SOURCE, NATIVE_INVESTIGATION_EXTENSION)
+                if self.recovery_mode == "investigation"
+                else (NATIVE_RECOVERY_SOURCE, NATIVE_RECOVERY_EXTENSION)
+            )
+            await environment.upload_file(source, extension)
             await self.exec_as_root(
                 environment,
-                command=(f"chown root:root {NATIVE_RECOVERY_EXTENSION}; "
-                         f"chmod 444 {NATIVE_RECOVERY_EXTENSION}"),
+                command=(f"chown root:root {extension}; chmod 444 {extension}"),
             )
         if self.planner_profile != "none":
             with tempfile.TemporaryDirectory(prefix="forgeflow-planner-") as directory:
@@ -819,6 +1040,16 @@ class PiNebius(UpstreamPi):
         """Start the root executor and prove it is running as uid 0."""
         policy_setup = ""
         policy_arg = ""
+        event_setup = ""
+        event_arg = ""
+        if self.recovery_mode == "investigation":
+            event = validate_investigation_event_payload(self.investigation_event)
+            event_encoded = base64.b64encode(event["text"].encode("utf-8")).decode("ascii")
+            event_setup = (
+                "printf '%s' '" + event_encoded + "' | base64 -d > " + EXECUTOR_EVENT + "; "
+                "chmod 0400 " + EXECUTOR_EVENT + "; "
+            )
+            event_arg = "--investigation-event-file " + EXECUTOR_EVENT + " "
         if self.contract_payload is not None:
             encoded = base64.b64encode(
                 json.dumps(self.contract_payload, sort_keys=True).encode("utf-8")
@@ -834,7 +1065,7 @@ class PiNebius(UpstreamPi):
             "install -d -o root -g root -m 0711 /run/forgeflow; "
             "install -d -o root -g root -m 0700 /var/lib/forgeflow "
             "/var/lib/forgeflow/recovery /var/lib/forgeflow/approvals /var/log/forgeflow; "
-            + policy_setup +
+            + policy_setup + event_setup +
             "rm -f " + EXECUTOR_READY + " " + EXECUTOR_SOCKET + "; "
             "chown root:root /etc/odoo/api_key; chmod 0400 /etc/odoo/api_key; "
             "chmod 0600 /etc/odoo/odoo.conf; "
@@ -844,8 +1075,10 @@ class PiNebius(UpstreamPi):
             "--socket " + EXECUTOR_SOCKET + " --store " + EXECUTOR_STORE + " "
             "--bundle " + PLANNER_ROOT + " --key /etc/odoo/api_key "
             "--agent-user forgeflow --approval-store " + EXECUTOR_APPROVALS + " "
-            + policy_arg +
-            "--autonomous </dev/null >>" + EXECUTOR_LOG + " 2>&1; "
+            + policy_arg + event_arg
+            + ("--autonomous " if self.recovery_mode == "autonomous" else
+               "--investigation " if self.recovery_mode == "investigation" else "") +
+            "</dev/null >>" + EXECUTOR_LOG + " 2>&1; "
             "for _ in $(seq 1 100); do [ -s " + EXECUTOR_READY + " ] && break; sleep 0.2; done; "
             "if [ ! -s " + EXECUTOR_READY + " ]; then "
             "echo 'executor did not publish readiness' >&2; "
@@ -1010,11 +1243,16 @@ raise SystemExit(0 if all(checks.values()) else 1)
                 "result = {",
             )
         if self.planner_profile == "cp-sat-recovery-v1":
-            recovery_hash = hashlib.sha256(NATIVE_RECOVERY_SOURCE.read_bytes()).hexdigest()
+            source, extension = (
+                (NATIVE_INVESTIGATION_SOURCE, NATIVE_INVESTIGATION_EXTENSION)
+                if self.recovery_mode == "investigation"
+                else (NATIVE_RECOVERY_SOURCE, NATIVE_RECOVERY_EXTENSION)
+            )
+            recovery_hash = hashlib.sha256(source.read_bytes()).hexdigest()
             permission_check = permission_check.replace(
                 "result = {",
                 "import hashlib\n"
-                f"recovery_extension = pathlib.Path({NATIVE_RECOVERY_EXTENSION!r})\n"
+                f"recovery_extension = pathlib.Path({extension!r})\n"
                 "checks['native_recovery_read_only'] = root_owned_read_only(recovery_extension)\n"
                 "checks['native_recovery_hash_matches'] = "
                 f"hashlib.sha256(recovery_extension.read_bytes()).hexdigest() == {recovery_hash!r}\n"
@@ -1048,7 +1286,9 @@ started = float(pathlib.Path('/proc/uptime').read_text().split()[0])
 record = {{'mechanism': {BUDGET_MECHANISM_VERSION!r},
           'started_boottime_sec': started,
           'deadline_boottime_sec': started + {remaining!r},
-          'deadline_utc_sec': {utc_deadline!r}}}
+          'deadline_utc_sec': {utc_deadline!r},
+          'token_budget': {({'mechanism': TOKEN_BUDGET_MECHANISM, 'max_total_tokens': self.max_total_tokens,
+                             'min_next_call_tokens': MIN_NEXT_CALL_TOKENS} if self.max_total_tokens is not None else None)!r}}}
 path = root / 'budget.json'
 temporary = root / 'budget.json.tmp'
 temporary.unlink(missing_ok=True)
@@ -1100,6 +1340,9 @@ print(json.dumps({{'utc_sec': time.time(), 'boottime_sec': started,
             "exit \"$cleanup_status\"; "
             "for _ in $(seq 1 10); do pgrep -u forgeflow >/dev/null || break; sleep 0.1; done; "
             "if pgrep -u forgeflow >/dev/null; then exit 75; fi; "
+            + (_build_business_audit_command("after")
+               if self.recovery_mode in {"prepare-only", "investigation"} else "")
+            + (_build_investigation_result_command() if self.recovery_mode == "investigation" else "")
             + _build_log_export_command(
                 recovery_dir=EXECUTOR_STORE if self.security_profile == PERMISSION_PROFILE else None,
             )))
@@ -1151,6 +1394,7 @@ print(json.dumps({{'utc_sec': time.time(), 'boottime_sec': started,
             "NEBIUS_API_KEY": config.api_key,
             "PI_CODING_AGENT_DIR": PI_HOME,
             "FORGEFLOW_OUTPUT_POLICY_AUDIT_PATH": f"{AGENT_LOG_DIR}/provider-request-policy.jsonl",
+            "FORGEFLOW_RECOVERY_MODE": self.recovery_mode,
             "PATH": "/opt/forgeflow/node/bin:/usr/local/bin:/usr/bin:/bin",
             # Build-only host proxies must not route model/tool traffic.
             # This is hygiene; the external network policy enforces access.
@@ -1161,6 +1405,8 @@ print(json.dumps({{'utc_sec': time.time(), 'boottime_sec': started,
             "https_proxy": "",
             "all_proxy": "",
         }
+        if os.environ.get("FORGEFLOW_RUN_ID"):
+            agent_env["FORGEFLOW_RUN_ID"] = os.environ["FORGEFLOW_RUN_ID"]
         if self.security_profile == PERMISSION_PROFILE:
             agent_env["FORGEFLOW_ODOO_KEY_FILE"] = READ_KEY_PATH
             agent_env["FORGEFLOW_EXECUTOR_SOCKET"] = EXECUTOR_SOCKET
@@ -1170,6 +1416,9 @@ print(json.dumps({{'utc_sec': time.time(), 'boottime_sec': started,
         async def execute() -> None:
             await self._configure_budget(environment, deadline)
             await self.validate_isolation(environment)
+            if self.recovery_mode in {"prepare-only", "investigation"}:
+                await self.exec_as_root(environment, command=_build_business_audit_command("before"),
+                                        timeout_sec=min(10, max(1, math.ceil(deadline.remaining()))))
             with environment.with_default_user(AGENT_USER):
                 await self._upload_config_text(
                     environment,
@@ -1183,12 +1432,15 @@ print(json.dumps({{'utc_sec': time.time(), 'boottime_sec': started,
                 await self.exec_as_agent(
                     environment,
                     command=build_pi_command(
-                        instruction, self.nebius_model_id,
+                        self.investigation_event["text"] if self.recovery_mode == "investigation" else instruction,
+                        self.nebius_model_id,
                         execution_guidance=self.execution_guidance,
                         provider_default_output=self.max_output_tokens is None,
                         planner_profile=self.planner_profile,
                         contract_guidance=self.contract_guidance,
                         contract_payload=self.contract_payload,
+                        recovery_mode=self.recovery_mode,
+                        security_profile=self.security_profile,
                         budget_guard=True,
                     ),
                     cwd="/workspace",

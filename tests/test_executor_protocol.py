@@ -217,4 +217,4 @@ def test_classify_unknown_reason_defaults_by_operation(
 
 
 def test_ops_are_the_closed_endpoint_set() -> None:
-    assert OPS == ("prepare", "apply", "status", "health", "reconcile", "product")
+    assert OPS == ("prepare", "apply", "status", "health", "reconcile", "product", "investigation")

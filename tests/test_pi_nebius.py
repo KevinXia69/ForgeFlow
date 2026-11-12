@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -20,6 +21,7 @@ pytest.importorskip("harbor")
 from forgeflow.agents.pi_nebius import (
     AGENT_USER,
     DEFAULT_MODEL,
+    DEFAULT_MODEL_MAX_OUTPUT_TOKENS,
     MODEL_CONTEXT_WINDOW,
     MODEL_DATA_PACKAGE_INTEGRITY,
     NATIVE_FEEDBACK_EXTENSION,
@@ -37,6 +39,7 @@ from forgeflow.agents.pi_nebius import (
     _validate_pi_source,
     build_models_config,
     build_pi_command,
+    resolve_max_output_tokens,
 )
 from forgeflow.agents.pi_source_patch import PROVIDER_SOURCE, patch_provider_source
 from forgeflow.config import NebiusConfig, resolve_execution_guidance
@@ -49,7 +52,7 @@ def test_config_is_secret_free_and_uses_pinned_pi_environment_syntax(tmp_path):
     assert provider["apiKey"] == "$NEBIUS_API_KEY"
     assert provider["api"] == "openai-completions"
     assert provider["models"][0]["id"] == DEFAULT_MODEL
-    assert "maxTokens" not in provider["models"][0]
+    assert provider["models"][0]["maxTokens"] == DEFAULT_MODEL_MAX_OUTPUT_TOKENS
     assert provider["compat"]["maxTokensField"] == "max_tokens"
     assert "private-nebius-secret" not in json.dumps(result)
 
@@ -59,8 +62,41 @@ def test_output_budget_experiment_changes_only_max_tokens(tmp_path):
     baseline = build_models_config(config, DEFAULT_MODEL)
     experiment = build_models_config(config, DEFAULT_MODEL, max_output_tokens=32768)
     assert experiment["providers"]["nebius"]["models"][0]["maxTokens"] == 32768
-    del experiment["providers"]["nebius"]["models"][0]["maxTokens"]
+    baseline["providers"]["nebius"]["models"][0]["maxTokens"] = 32768
     assert experiment == baseline
+
+
+def test_verified_model_ceiling_resolves_default_and_preserves_explicit_limits(tmp_path):
+    assert MODEL_CONTEXT_WINDOW == 1048576
+    assert DEFAULT_MODEL_MAX_OUTPUT_TOKENS == 32768
+    assert resolve_max_output_tokens(None) == 32768
+    assert resolve_max_output_tokens(32768) == 32768
+    with pytest.raises(ValueError):
+        resolve_max_output_tokens(1048576)
+    agent = PiNebius(logs_dir=tmp_path / "logs")
+    assert agent.max_output_tokens == 32768
+    assert agent.agent_budget_sec == 3600
+
+
+def test_pinned_pi_clamps_ceiling_after_real_usage_and_tool_results():
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("Node is needed for pinned Pi's actual context clamp")
+    source = Path(__file__).resolve().parents[1] / "vendor/pi-mono/packages/ai/src/api/simple-options.ts"
+    result = subprocess.run([node, "--input-type=module", "-", str(source)], input=r'''
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+const {buildBaseOptions}=await import(pathToFileURL(process.argv[2]));
+const model={contextWindow:1048576,maxTokens:1048576};
+const first=buildBaseOptions(model,{messages:[{role:'user',content:'12345678',timestamp:0}]});
+assert.equal(first.maxTokens,1048576-4096-2);
+const context={messages:[{role:'assistant',timestamp:1,stopReason:'toolUse',
+ usage:{totalTokens:6000},content:[]},
+ {role:'toolResult',timestamp:2,content:'x'.repeat(4000)}]};
+assert.equal(buildBaseOptions(model,context).maxTokens,1048576-4096-6000-1000);
+assert.equal(buildBaseOptions(model,context,{maxTokens:32768}).maxTokens,32768);
+''', text=True, capture_output=True, timeout=10)
+    assert result.returncode == 0, result.stderr
 
 
 @pytest.mark.parametrize("output_budget", [None, 32768])
@@ -96,12 +132,12 @@ def test_reviewed_mode_does_not_allow_arbitrary_thinking_kwargs(tmp_path):
         PiNebius(logs_dir=tmp_path / "logs", thinking_mode="off", thinking="high")
 
 
-def test_provider_default_uses_only_explicit_extension_and_explicit_limit_bypasses_it():
-    default = shlex.split(build_pi_command("task", DEFAULT_MODEL))
+def test_legacy_provider_default_requires_explicit_opt_in():
+    default = shlex.split(build_pi_command("task", DEFAULT_MODEL, provider_default_output=True))
     assert "--no-extensions" in default
     assert default[default.index("-e") + 1] == OUTPUT_POLICY_EXTENSION
     explicit = shlex.split(build_pi_command(
-        "task", DEFAULT_MODEL, provider_default_output=False,
+        "task", DEFAULT_MODEL,
     ))
     assert "--no-extensions" in explicit
     assert [explicit[i + 1] for i, item in enumerate(explicit) if item == "-e"] == [
@@ -163,7 +199,7 @@ def test_native_planner_is_explicitly_loaded_with_default_policy_and_both_are_in
         "task", DEFAULT_MODEL, planner_profile=profile,
     ))
     extensions = [default[i + 1] for i, value in enumerate(default) if value == "-e"]
-    assert extensions == [OUTPUT_POLICY_EXTENSION, TOOL_AUDIT_EXTENSION, expected_extension]
+    assert extensions == [TOOL_AUDIT_EXTENSION, expected_extension]
     tool_name = "prepare_recovery" if profile == "cp-sat-recovery-v1" else "plan_recovery"
     assert tool_name in default[default.index("--append-system-prompt") + 1]
     assert default.index("--append-system-prompt") < default.index("--")
@@ -211,7 +247,7 @@ def test_provider_patch_is_only_in_build_archive_and_after_existing_payload_hook
     assert pinned_path.read_bytes() == original
 
 
-@pytest.mark.parametrize("value", [0, -1, True, 1.5, "32768", MODEL_CONTEXT_WINDOW])
+@pytest.mark.parametrize("value", [0, -1, True, 1.5, "32768", MODEL_CONTEXT_WINDOW + 1])
 def test_output_budget_rejected_before_model_config_or_agent_creation(tmp_path, value):
     config = NebiusConfig(tmp_path, api_key="private-nebius-secret", model=DEFAULT_MODEL)
     with pytest.raises(ValueError, match="max_output_tokens"):
@@ -548,8 +584,7 @@ def test_run_passes_only_nebius_key_via_env_with_private_config(
     upload = agent._upload_config_text.call_args.kwargs
     assert "private-nebius-secret" not in upload["content"]
     uploaded_model = json.loads(upload["content"])["providers"]["nebius"]["models"][0]
-    assert uploaded_model.get("maxTokens") == max_output_tokens
-    assert ("maxTokens" in uploaded_model) == (max_output_tokens is not None)
+    assert uploaded_model["maxTokens"] == resolve_max_output_tokens(max_output_tokens)
     expected_sampling = {"temperature": 1.0, "top_p": 0.95}
     if thinking_mode == "off":
         expected_sampling["chat_template_kwargs"] = {"enable_thinking": False}
@@ -668,12 +703,20 @@ def test_permission_profile_requires_the_recovery_planner(tmp_path):
                  planner_profile="none", security_profile="permission-split-v1")
 
 
-def test_permission_profile_run_exports_the_executor_settings(tmp_path, monkeypatch):
+@pytest.mark.parametrize("mode", ["autonomous", "prepare-only", "investigation"])
+def test_permission_profile_run_exports_the_executor_settings(tmp_path, monkeypatch, mode):
+    from test_contract import supplier_contract
+    from test_recovery_modes import event_payload
+    monkeypatch.setenv("FORGEFLOW_CONTRACT_JSON", json.dumps(supplier_contract().payload()))
+    event = event_payload("Investigate only this public event.\n")
+    monkeypatch.setenv("FORGEFLOW_INVESTIGATION_EVENT_JSON", json.dumps(event))
+    monkeypatch.setenv("FORGEFLOW_RUN_ID", "stable-episode-1")
     config = NebiusConfig(tmp_path, api_key="private-nebius-secret", model=DEFAULT_MODEL)
     monkeypatch.setattr("forgeflow.agents.pi_nebius.load_config", lambda root: config)
     agent = PiNebius(
         logs_dir=tmp_path / "logs", workspace_root=tmp_path,
         planner_profile="cp-sat-recovery-v1", security_profile="permission-split-v1",
+        recovery_mode=mode,
     )
     agent.validate_isolation = AsyncMock()
     agent._configure_budget = AsyncMock()
@@ -690,7 +733,13 @@ def test_permission_profile_run_exports_the_executor_settings(tmp_path, monkeypa
     env = agent.exec_as_agent.call_args_list[-1].kwargs["env"]
     assert env["FORGEFLOW_ODOO_KEY_FILE"] == "/etc/odoo/api_key.read"
     assert env["FORGEFLOW_EXECUTOR_SOCKET"] == "/run/forgeflow/executor.sock"
-    stop = agent.exec_as_root.call_args_list[1].kwargs["command"]
+    assert env["FORGEFLOW_RECOVERY_MODE"] == mode
+    assert env["FORGEFLOW_RUN_ID"] == "stable-episode-1"
+    assert "FORGEFLOW_INVESTIGATION_EVENT_JSON" not in env
+    command = shlex.split(agent.exec_as_agent.call_args_list[-1].kwargs["command"])
+    expected = event["text"] if mode == "investigation" else "Inspect current orders."
+    assert command[command.index("--") + 1] == expected
+    stop = agent.exec_as_root.call_args_list[1 if mode == "autonomous" else 2].kwargs["command"]
     assert "executor.ready" in stop
     export = agent.exec_as_root.call_args_list[-1].kwargs["command"]
     assert "/var/lib/forgeflow/recovery" in export

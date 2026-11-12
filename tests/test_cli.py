@@ -5,6 +5,30 @@ import pytest
 from forgeflow.cli import build_parser, main
 
 
+@pytest.mark.parametrize("mode", ["autonomous", "prepare-only", "investigation"])
+def test_recovery_mode_cli_is_explicit_and_forwarded(monkeypatch, mode):
+    assert build_parser().parse_args(["run", "A", "--agent", "pi"]).recovery_mode == "autonomous"
+    calls = []
+    monkeypatch.setattr("forgeflow.runner.run_task", lambda *args, **kwargs: calls.append(kwargs) or Path("/tmp/run"))
+    monkeypatch.setattr("forgeflow.runner.summarize_run", lambda path: {
+        "strict_success": True, "environment_chain_ok": True, "preparation_success": True,
+    })
+    assert main(["run", "A", "--agent", "pi", "--recovery-mode", mode]) == 0
+    assert calls[0]["recovery_mode"] == mode
+
+
+@pytest.mark.parametrize(("summary", "expected"), [
+    ({"preparation_success": True, "strict_success": False}, 0),
+    ({"investigation_completed": True, "preparation_success": False}, 0),
+    ({"preparation_success": False, "strict_success": True}, 1),
+    ({"state": "interrupted", "preparation_success": True}, 130),
+])
+def test_investigation_exit_uses_preparation_outcome_not_erp_reward(monkeypatch, summary, expected):
+    monkeypatch.setattr("forgeflow.runner.run_task", lambda *args, **kwargs: Path("/tmp/run"))
+    monkeypatch.setattr("forgeflow.runner.summarize_run", lambda path: summary)
+    assert main(["run", "A", "--agent", "pi", "--recovery-mode", "investigation"]) == expected
+
+
 @pytest.mark.parametrize(
     ("agent", "summary", "expected_exit"),
     [
@@ -69,6 +93,14 @@ def test_run_output_budget_is_pi_only(tmp_path, capsys):
     ]) == 2
     assert "only for the Pi agent" in capsys.readouterr().out
     assert not (tmp_path / "runs").exists()
+
+
+def test_total_token_budget_cli_forwards_explicit_value(monkeypatch):
+    calls=[]
+    monkeypatch.setattr("forgeflow.runner.run_task", lambda *args, **kwargs: calls.append(kwargs) or Path("/tmp/run"))
+    monkeypatch.setattr("forgeflow.runner.summarize_run", lambda path: {"preparation_success": True})
+    assert main(["run", "A", "--agent", "pi", "--recovery-mode", "prepare-only", "--max-total-tokens", "4096"]) == 0
+    assert calls[0]["max_total_tokens"] == 4096
 
 
 @pytest.mark.parametrize("mode", ["provider-default", "off"])

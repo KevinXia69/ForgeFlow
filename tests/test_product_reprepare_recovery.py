@@ -5,6 +5,7 @@ import copy
 import json
 import os
 from concurrent.futures import ThreadPoolExecutor
+from types import SimpleNamespace
 
 import pytest
 import test_product_cases as api_tests
@@ -354,3 +355,26 @@ def test_reprepare_qa_keeps_failed_and_retired_versions_distinct(question):
     response = answer_case(question, case)
     assert "旧方案保持退役" in response["answer"] or "earlier plans remain retired" in response["answer"]
     assert {row["field"] for row in response["citations"]} >= {"revision.version", "repreparation_request.version"}
+
+
+def test_reprepare_success_refreshes_the_handoff_order(failed_revision, monkeypatch):
+    (cases, case_id, _, _, _, _, _), _, _ = failed_revision
+    calls = []
+    original = cases._update_handoff_order
+
+    def spy(case, raw):
+        calls.append(raw)
+        return original(case, raw)
+
+    monkeypatch.setattr(cases, "_update_handoff_order", spy)
+    result = retry(cases, case_id)
+    assert result["state"] == "awaiting_approval"
+    assert result["revision"]["version"] == 3
+    assert calls, "repreparation success must refresh the case order summary"
+
+
+def test_update_handoff_order_replaces_the_case_summary():
+    case = SimpleNamespace(handoff={"case_id": "x"}, order={"units": 10, "due_days": 5})
+    ProductCaseService._update_handoff_order(
+        case, {"_handoff_order": {"units": 12, "due_days": 4}})
+    assert case.order == {"units": 12, "due_days": 4}

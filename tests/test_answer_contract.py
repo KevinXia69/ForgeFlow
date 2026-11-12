@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_fallback_prompt_has_first_time_contract() -> None:
     prompt = SYSTEM_PROMPT.lower()
-    for phrase in ("knows nothing", "what happened", "two or three", "two decision", "never open with an id", "planned, applied, verified and unknown", "at most one natural next question"):
+    for phrase in ("knows nothing", "what happened", "two or three", "two decision", "never open with an id", "planned, applied, verified and unknown", "then stop", "clarifying question", "current request", "do not append"):
         assert phrase in prompt, phrase
 
 
@@ -18,7 +18,7 @@ def test_dsh_persona_has_first_time_contract() -> None:
     patch = dsh_patch({"python": "/test/python", "repo_root": str(ROOT)}, "test-model", "https://test.invalid/v1")
     prompt = next(row["config"] for row in patch if row.get("id") == "system-prompt")
     persona = " ".join(prompt["personaPrefix"].lower().split())
-    for phrase in ("knows nothing", "first sentence", "two or three", "at most two decision", "never open with an id", "planned, applied, verified, and unknown", "at most one natural next question"):
+    for phrase in ("knows nothing", "first sentence", "two or three", "at most two decision", "never open with an id", "planned, applied, verified, and unknown", "then stop", "clarifying question", "current request", "do not append"):
         assert phrase in persona, phrase
 
 

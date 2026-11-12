@@ -1,0 +1,8 @@
+id,name,model_id,group_id/id,operation,domain
+access_forgeflow_exception_user,forgeflow.exception_event user,forgeflow.exception_event,base.group_user,crud,
+access_forgeflow_plan_user,forgeflow.recovery_plan user,forgeflow.recovery_plan,base.group_user,crud,
+access_forgeflow_rule_user,forgeflow.business_rule user,forgeflow.business_rule,base.group_user,crud,
+access_forgeflow_decision_user,forgeflow.decision_record user,forgeflow.decision_record,base.group_user,crud,
+access_forgeflow_operation_user,forgeflow.execution_operation user,forgeflow.execution_operation,base.group_user,crud,
+access_forgeflow_receipt_user,forgeflow.execution_receipt user,forgeflow.execution_receipt,base.group_user,crud,
+access_forgeflow_outbox_user,forgeflow.event_outbox user,forgeflow.event_outbox,base.group_user,crud,

@@ -2,7 +2,7 @@ import { RecordedRules } from "./RecordedRules";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { JsonTree } from "@forgeflow/dsh-primitives";
 import { getRun, getPlans, getPlan, getApprovals } from "./api";
-import { formatDateTime, shortId, stateLabel } from "./caseUi";
+import { formatDateTime, phaseLabel, shortId } from "./caseUi";
 import { SelectMenu } from "./SelectMenu";
 import { useI18n, type Translate } from "./i18n";
 import { runTaskLabel, profileLabel } from "./runLabels";
@@ -16,6 +16,12 @@ function orderedConfig(value: unknown): unknown {
   if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).filter(([key]) => key !== "label").sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, orderedConfig(item)]));
   return value;
 }
+function recordedResult(strict: boolean | null | undefined, valid: boolean | null | undefined) {
+  if (strict === false || valid === false) return "failed";
+  return strict === true && valid === true ? "verified" : "unknown";
+}
+const resultLabels = { verified: "v9.verified", failed: "v9.failedResults", unknown: "v9.verificationUnknown" } as const;
+
 const configKey = (run: RunSummary) => run.experiment ? JSON.stringify(orderedConfig(run.experiment)) : "unknown";
 type Experiment = NonNullable<RunSummary["experiment"]>;
 const compact = (value: unknown, max = 26) => {
@@ -74,7 +80,7 @@ function planExecutionLabel(plan: Plan, t: Translate): string {
   if (plan.state === "prepared") return t("runs.planPrepared");
   if (plan.state === "stopped") return t("runs.planStopped");
   if (plan.state === "completed" || plan.state === "succeeded") return t("case.state.succeeded");
-  return stateLabel(plan.state, t);
+  return phaseLabel(plan.state, t);
 }
 const experimentCategory = (run: RunSummary) => run.agent?.category || "unclassified";
 export function RunsView({ runs, selected, error, onSelect, onRefresh }: Props) {
@@ -128,15 +134,14 @@ export function RunsView({ runs, selected, error, onSelect, onRefresh }: Props) 
     && (validity === "all" || (validity === "valid" ? run.evaluation_valid === true : validity === "invalid" ? run.evaluation_valid === false : run.evaluation_valid == null))
     && (!dateFrom || !!run.started_at && run.started_at.slice(0, 10) >= dateFrom)
     && (!dateTo || !!run.started_at && run.started_at.slice(0, 10) <= dateTo)
-    && (filter === "all" || (filter === "verified" ? run.strict_success === true && run.evaluation_valid === true : filter === "failed" ? run.strict_success === false || run.evaluation_valid === false : run.strict_success == null || run.evaluation_valid == null)));
+    && (filter === "all" || recordedResult(run.strict_success, run.evaluation_valid) === filter));
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const actualPage = Math.max(1, Math.min(page, pages));
-  const resultLabel = (strict: boolean | null | undefined, valid: boolean | null | undefined) => t(strict === true && valid === true ? "v9.verified" : strict === false || valid === false ? "v9.failedResults" : "v9.verificationUnknown");
+  const resultLabel = (strict: boolean | null | undefined, valid: boolean | null | undefined) => t(resultLabels[recordedResult(strict, valid)]);
   const jsonLabels = { copyValue: t("v9.copy"), copyJson: t("v9.copy"), copyPath: t("v9.copy"), copyPrettyJson: t("v9.copy"), copyCompactJson: t("v9.copy"), copied: t("v9.copied"), copyFailed: t("v9.copyFailed"), collapseNode: t("sidebar.collapse"), expandNode: t("sidebar.expand"), copyButtonTitle: (action: string) => action };
   if (selected) return <div className="view evidence-detail" data-evidence-detail="true">
     <button type="button" className="secondary" onClick={() => navigate("#runs")}>{t("v9.backRuns")}</button>
     <h1 tabIndex={-1} ref={heading}>{detail ? runTaskLabel(detail.task?.id, detail.task?.label, t) : t("runs.detailTitle")}</h1>
-    <p className="muted">{t("v9.historicalOnly")}</p>
     {status && <p role="status">{status}</p>}
     {detail && <>
       <section className="panel evidence-panel" data-evidence="panel" aria-label={t("runs.evidenceTitle")}>
@@ -156,7 +161,7 @@ export function RunsView({ runs, selected, error, onSelect, onRefresh }: Props) 
         </dl>
       </section>
       <RecordedRules evaluation={detail.evaluation} />
-      {plans.length > 0 && <section className="panel"><h2>{t("runs.plansTitle")}</h2><p className="muted">{t("runs.planStateScope")}</p><div className="plan-picker">{plans.map(item => <button key={item.plan_id} type="button" className="secondary" aria-pressed={planId === item.plan_id} onClick={() => setPlanId(item.plan_id)}>{shortId(item.plan_id, 16)} · {t("case.executionStatus")}: {planExecutionLabel(item, t)}</button>)}</div>
+      {plans.length > 0 && <section className="panel"><h2>{t("runs.plansTitle")}</h2><div className="plan-picker">{plans.map(item => <button key={item.plan_id} type="button" className="secondary" aria-pressed={planId === item.plan_id} onClick={() => setPlanId(item.plan_id)}>{shortId(item.plan_id, 16)} · {t("case.executionStatus")}: {planExecutionLabel(item, t)}</button>)}</div>
         {plan && <><dl className="facts"><dt>{t("runs.colSteps")}</dt><dd>{plan.prepared?.step_count ?? "—"}</dd><dt>{t("runs.colExpectedSpend")}</dt><dd>{plan.prepared?.expected_new_spend ?? "—"}</dd></dl>
           <details><summary>{t("v9.technical")}</summary><JsonTree data={{ plan, approvals }} label={t("v9.evidenceJson")} copyable labels={jsonLabels} /></details></>}
       </section>}
@@ -164,9 +169,13 @@ export function RunsView({ runs, selected, error, onSelect, onRefresh }: Props) 
     </>}
   </div>;
   return <div className="view" data-runs-list="true">
-    <div className="view-head"><h1>{t("runs.title")}</h1><p>{t("v9.historicalOnly")}</p></div>
+    <div className="view-head"><h1>{t("runs.title")}</h1></div>
     <div className="evidence-filters">
       <input type="search" aria-label={t("v9.searchRuns")} placeholder={t("v9.searchRuns")} value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} />
+      <button className="secondary" onClick={onRefresh}>{t("runs.refresh")}</button>
+      <details className="evidence-filters-more">
+        <summary>{t("v9.moreFilters")}</summary>
+        <div className="evidence-filters-grid">
       <SelectMenu
         ariaLabel={t("v9.resultFilter")}
         value={filter}
@@ -222,14 +231,15 @@ export function RunsView({ runs, selected, error, onSelect, onRefresh }: Props) 
       <label>{t("v9.dateFrom")}<input type="date" aria-label={t("v9.dateFrom")} value={dateFrom} onChange={event => { setDateFrom(event.target.value); setPage(1); }} /></label>
       <label>{t("v9.dateTo")}<input type="date" aria-label={t("v9.dateTo")} value={dateTo} onChange={event => { setDateTo(event.target.value); setPage(1); }} /></label>
       <button className="secondary" onClick={() => { setSearch(""); setFilter("all"); setCategory("all"); setConfiguration("all"); setTask("all"); setValidity("all"); setDateFrom(""); setDateTo(""); setPage(1); }}>{t("v9.clearFilters")}</button>
-      <button className="secondary" onClick={onRefresh}>{t("runs.refresh")}</button>
+        </div>
+      </details>
     </div>
-    <section className="evidence-counts" data-evidence-counts="true"><strong>{t("v9.filteredCounts", { passed: filtered.filter(run => run.strict_success === true && run.evaluation_valid === true).length, total: filtered.length })}</strong><p className="muted">{t("v9.countScope")}</p>{configuration !== "all" && configuration !== "unknown" && <details><summary>{t("v9.configDetails")}</summary><JsonTree data={JSON.parse(configuration)} label={t("v9.configuration")} copyable labels={jsonLabels} /></details>}</section>
+    {filtered.length !== runs.length && <section className="evidence-counts" data-evidence-counts="true"><strong>{t("v9.filteredCounts", { passed: filtered.filter(run => recordedResult(run.strict_success, run.evaluation_valid) === "verified").length, total: filtered.length })}</strong>{configuration !== "all" && configuration !== "unknown" && <details><summary>{t("v9.configDetails")}</summary><JsonTree data={JSON.parse(configuration)} label={t("v9.configuration")} copyable labels={jsonLabels} /></details>}</section>}
     {error && <p role="alert">{error}</p>}
     <section className="panel" aria-label={t("runs.recordsAria")}><div className="table-wrap"><table><thead><tr><th>{t("runs.colTask")}</th><th>{t("runs.colScore")}</th><th>{t("v9.resultFilter")}</th></tr></thead>
       <tbody>{filtered.slice((actualPage - 1) * PAGE_SIZE, actualPage * PAGE_SIZE).map(run => <tr key={run.run_id}><td><button className="run-link" onClick={() => onSelect(run.run_id)}><strong>{title(run)}</strong><small>{shortId(run.run_id, 30)}</small></button></td><td>{run.score ?? "—"}</td><td>{resultLabel(run.strict_success, run.evaluation_valid)}</td></tr>)}</tbody></table></div>
       {filtered.length === 0 && <p>{t("v9.noRuns")}</p>}
     </section>
-    <div className="pagination"><button className="secondary" disabled={actualPage <= 1} onClick={() => setPage(actualPage - 1)}>{t("v9.prev")}</button><span>{t("v9.page", { page: actualPage, pages, count: filtered.length })}</span><button className="secondary" disabled={actualPage >= pages} onClick={() => setPage(actualPage + 1)}>{t("v9.next")}</button></div>
+    {pages > 1 && <div className="pagination"><button className="secondary" disabled={actualPage <= 1} onClick={() => setPage(actualPage - 1)}>{t("v9.prev")}</button><span>{t("v9.page", { page: actualPage, pages, count: filtered.length })}</span><button className="secondary" disabled={actualPage >= pages} onClick={() => setPage(actualPage + 1)}>{t("v9.next")}</button></div>}
   </div>;
 }

@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ForgeFlow · 供应异常评审</title><link rel="stylesheet" href="/static/investigation.css">
+<script type="module" src="/static/recovery-review.js"></script></head>
+<body><header><a class="brand" href="/">ForgeFlow</a><span>本机 · 供应异常评审</span></header>
+<main><section id="login" class="panel compact" hidden><h1>登录本机工作台</h1>
+<form id="login-form"><label>邀请码<input id="invite" type="password" autocomplete="current-password" required></label><button>登录</button></form></section>
+<section id="review" class="panel" hidden><p class="eyebrow">制造履约 · 可核验的恢复方案</p><h1>调查供应异常</h1>
+<p>从供应商原通知开始，核查承诺和订单。准备的方案需要单独批准。</p>
+<h2>登记的事件</h2><p id="event"></p>
+<form id="question-form"><label for="question">你需要调查什么？</label><textarea id="question" rows="3" maxlength="4000" required></textarea><button id="send">开始调查</button></form>
+<div id="turns" aria-live="polite"></div>
+<form id="clarify-form" hidden><h2>补充业务来源</h2><p>核对原件并选择它所指的采购行。</p>
+<label>来源凭证<select id="notice" required></select></label><label>取消的承诺<select id="line" required></select></label>
+<button>提交澄清并继续调查</button></form></section>
+<p id="message" role="alert"></p></main></body></html>

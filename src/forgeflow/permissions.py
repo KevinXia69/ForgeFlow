@@ -55,12 +55,18 @@ READ_ONLY_MODELS = (
 # silently re-grant write access.
 WRITE_GATED_MODELS = READ_ONLY_MODELS
 
+# Host-only continuation intake must verify the company's actual currency.
+# Legacy benchmark provisioning keeps its original model surface unchanged.
+CONTINUATION_READ_ONLY_MODELS = (*READ_ONLY_MODELS, "res.company")
+CONTINUATION_WRITE_GATED_MODELS = (*WRITE_GATED_MODELS, "res.company")
+
 # Optional groups that only widen readability:
 # * api_doc.group_allow_doc: odoolib introspects through /doc-bearer/<model>.json
 #   when an ad-hoc agent script passes positional arguments; ForgeFlow itself
 #   calls JSON-2 with keyword arguments and never introspects.
-# * product.group_discount_per_so_line: sale.order.line.discount is a
-#   group-gated field; without it prepare fails closed when reading SO lines.
+# * product.group_discount_per_so_line (sale.group_discount_per_so_line on
+#   Odoo 19): sale.order.line.discount can be group-gated. The narrowly named
+#   compatibility alias still has to pass the complete no-write self-check.
 # None of these grants write access to the models above.
 AUXILIARY_GROUPS = ("api_doc.group_allow_doc", "product.group_discount_per_so_line")
 
@@ -137,7 +143,14 @@ for xmlid in AUXILIARY:
     try:
         group_ids.append(env.ref(xmlid).id)
     except ValueError:
-        print("MISSING:" + xmlid)
+        if xmlid == "product.group_discount_per_so_line":
+            try:
+                group_ids.append(env.ref("sale.group_discount_per_so_line").id)
+                print("AUXILIARY_ALIAS:product.group_discount_per_so_line=sale.group_discount_per_so_line")
+            except ValueError:
+                print("MISSING:" + xmlid)
+        else:
+            print("MISSING:" + xmlid)
 values = {{
     "name": "ForgeFlow Read Only",
     "login": LOGIN,

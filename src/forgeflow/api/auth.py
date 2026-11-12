@@ -16,6 +16,8 @@ from fastapi import HTTPException, Request
 from .settings import Settings
 
 UID = re.compile(r"[0-9a-f]{26}")
+#: The account session cookie is separate from the legacy invite cookie.
+ACCOUNT_COOKIE = "forgeflow_account"
 MAX_COOKIE_LEN = 4096
 Now = datetime | float | int | None
 
@@ -138,13 +140,31 @@ def verify_cookie(
 
 
 def optional_principal(request: Request) -> str | None:
-    """Return the cookie's uid when present and valid, without raising."""
+    """Return the authenticated principal, without raising.
+
+    When an account store is installed, only a revocable account session is a
+    login identity.  The legacy invite cookie is not a fallback: an invite code
+    creates an account, it does not authenticate one.  Deployments without the
+    account store keep the development invite session.
+    """
     settings = getattr(request.app.state, "settings", None)
     if not isinstance(settings, Settings):
         return None
+    accounts = getattr(request.app.state, "accounts", None)
+    if accounts is not None:
+        verified = accounts.verify_session(request.cookies.get(ACCOUNT_COOKIE))
+        if verified is None:
+            return None
+        account, _session_id = verified
+        return account.principal_id
     value = request.cookies.get(settings.cookie_name)
     host = request.headers.get("host") or request.url.netloc
     return verify_cookie(settings, value, audience=host) if value else None
+
+
+def workspace_scope(settings: Settings, uid: str) -> str:
+    material = f"{settings.deployment}\0{settings.data_root.resolve()}\0{uid}"
+    return hmac.new(settings.session_secret.encode(), material.encode(), hashlib.sha256).hexdigest()
 
 
 def require_principal(request: Request) -> str:
@@ -152,4 +172,11 @@ def require_principal(request: Request) -> str:
     uid = optional_principal(request)
     if uid is None:
         raise HTTPException(status_code=401, detail="authentication required")
+    expected = request.headers.get("x-forgeflow-workspace")
+    # Native EventSource cannot attach a custom header to the progress subscription.
+    if expected is None and request.method == "GET" and request.url.path.endswith("/events"):
+        expected = request.query_params.get("workspace_scope")
+    if expected is not None and expected != workspace_scope(request.app.state.settings, uid):
+        raise HTTPException(status_code=409, detail="workspace_changed",
+                            headers={"X-ForgeFlow-Workspace-Changed": "1"})
     return uid

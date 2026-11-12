@@ -6,7 +6,6 @@
  */
 
 export type ModelProfile =
-  | "nemotron"
   | "deepseek_flash"
   | "openai"
   | "openrouter"
@@ -29,18 +28,13 @@ export type ModelProfilePreset = {
 export const MODEL_STORAGE_KEY = "forgeflow.model";
 
 export const MODEL_PROFILES: Record<ModelProfile, ModelProfilePreset> = {
-  nemotron: {
-    label: "Nemotron 3.5 Super VL",
-    base_url: "https://api.tokenfactory.nebius.com/v1",
-    model: "nvidia/Nemotron-3.5-Super-VL",
-  },
   deepseek_flash: {
     label: "DeepSeek V4.1 Flash 1017",
     base_url: "https://api.deepseek.com/v1",
     model: "deepseek-flash",
   },
   openai: {
-    label: "OpenAI",
+    label: "OpenAI-compatible",
     base_url: "https://api.openai.com/v1",
     model: "gpt-4o-mini",
   },
@@ -50,7 +44,7 @@ export const MODEL_PROFILES: Record<ModelProfile, ModelProfilePreset> = {
     model: "openai/gpt-4o-mini",
   },
   gemini: {
-    label: "Google Gemini",
+    label: "Gemini-compatible",
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai/",
     model: "gemini-3-flash-preview",
   },
@@ -62,7 +56,6 @@ export const MODEL_PROFILES: Record<ModelProfile, ModelProfilePreset> = {
 };
 
 export const PROFILE_ORDER: ModelProfile[] = [
-  "nemotron",
   "deepseek_flash",
   "openai",
   "openrouter",

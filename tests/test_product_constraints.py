@@ -215,12 +215,16 @@ def test_only_observed_primary_infeasibility_is_classified(monkeypatch, tmp_path
     def capture():
         yield SimpleNamespace(model_dump=lambda **kwargs: payload)
 
-    def fail():
-        raise RuntimeError("status=INFEASIBLE private-canary; untrusted prose")
+    class FailingGenerator:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def solve_plan_for_objective(self):
+            raise RuntimeError("status=INFEASIBLE private-canary; untrusted prose")
 
     replacement = SimpleNamespace(
         ScenarioBlueprint=SimpleNamespace(model_validate=lambda value: value),
-        ScenarioGenerator=lambda *args, **kwargs: SimpleNamespace(solve_plan_for_objective=fail),
+        ScenarioGenerator=FailingGenerator,
         capture_procurement_solver_trace=capture,
     )
     monkeypatch.setitem(sys.modules, "procurement.solver", replacement)
@@ -229,6 +233,9 @@ def test_only_observed_primary_infeasibility_is_classified(monkeypatch, tmp_path
     if infeasible:
         assert isinstance(caught.value, SolverFailure)
         assert str(caught.value) == "planning_model_infeasible" and caught.value.trace == payload
+    elif status == "UNKNOWN":
+        assert isinstance(caught.value, SolverFailure)
+        assert str(caught.value) == "solver_incomplete" and caught.value.trace == payload
     else:
         assert type(caught.value) is RuntimeError and "private-canary" in str(caught.value)
 

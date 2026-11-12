@@ -48,6 +48,7 @@ PREPARE_ERROR_CODES = frozenset({
     "prepare_rejected",
 })
 CHANGE_SET_REASONS = frozenset({
+    "unsupported_recovery_scope", "additional_purchase_cancellation_unsupported",
     "change_set_binding_mismatch", "change_set_supply_quantity_mismatch",
     "change_set_existing_offer_ambiguous", "change_set_mapping_unproven",
     "change_set_origin_capacity_mismatch",
@@ -59,6 +60,7 @@ PREPARE_REASONS = frozenset({
     "another_recovery_operation_running", "recovery_bundle_required",
     "policy_file_untrusted", "source_bytes_changed", "source_file_missing",
     "invalid_source_manifest", "details_unavailable",
+    "planning_model_infeasible", "solver_incomplete",
 }) | CHANGE_SET_REASONS
 
 
@@ -213,7 +215,7 @@ def prepare(
 def product(socket_path: str, run_id: str, action: str, payload: dict, *, timeout: float = 300) -> dict:
     """Product-only root decisions; autonomous executors reject this operation."""
     _check_run_id(run_id)
-    if (not isinstance(action, str) or action not in {"prepare", "decide", "authorize", "status", "cancel_unstarted", "artifact"}
+    if (not isinstance(action, str) or action not in {"prepare", "decide", "authorize", "status", "cancel_unstarted", "artifact", "comparison"}
             or not isinstance(payload, dict)):
         raise ExecutorError("invalid_field", reason="invalid product request")
     return request(socket_path, _envelope("product", run_id=run_id, action=action,

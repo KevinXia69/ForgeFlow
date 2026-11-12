@@ -1,6 +1,7 @@
 import type { ModelConfig } from "./modelConfig";
 import type {
   Answer,
+  ConversationAttachment,
   Approval,
   AssistantHistoryTurn,
   Capabilities,
@@ -13,6 +14,10 @@ import type {
   RunDetail,
   RunSummary,
   ActivityState,
+  ChatImage,
+  AccountSession,
+  OnboardingTarget,
+  Workspace,
 } from "./types";
 
 export class ApiError extends Error {
@@ -23,12 +28,34 @@ export class ApiError extends Error {
   }
 }
 
+let activeScope = "";
+export function bindWorkspace(scope: string) { activeScope = scope; }
+export const SESSION_CHANGE = "forgeflow.session-change";
+
+async function workspaceFetch(path: string, init: RequestInit): Promise<Response> {
+  const login = (path === "/api/auth/session" || path === "/api/accounts/login"
+    || path === "/api/accounts/mfa") && init.method === "POST";
+  const scoped = activeScope && !login && path !== "/api/auth/me" && path !== "/api/config";
+  const headers = new Headers(init.headers);
+  if (scoped) headers.set("X-ForgeFlow-Workspace", activeScope);
+  const response = await fetch(path, { ...init, credentials: "same-origin", headers });
+  if (scoped && (response.status === 401 || response.headers.get("X-ForgeFlow-Workspace-Changed") === "1")) {
+    window.dispatchEvent(new Event(SESSION_CHANGE));
+  }
+  if (response.ok && (path === "/api/auth/session" || path === "/api/accounts/login"
+    || path === "/api/accounts/mfa")) {
+    try { localStorage.setItem(SESSION_CHANGE, crypto.randomUUID()); } catch { /* Focus also rechecks identity. */ }
+  }
+  return response;
+}
+
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const isForm = typeof FormData !== "undefined" && init.body instanceof FormData;
   const headers: Record<string, string> = {
-    ...(init.body ? { "Content-Type": "application/json" } : {}),
+    ...(init.body && !isForm ? { "Content-Type": "application/json" } : {}),
     ...((init.headers as Record<string, string>) ?? {}),
   };
-  const response = await fetch(path, { credentials: "same-origin", ...init, headers });
+  const response = await workspaceFetch(path, { ...init, headers });
   let body: unknown = null;
   try {
     body = await response.json();
@@ -109,12 +136,16 @@ export const reconcileProductCase = (caseId: string) =>
  * Optional case Q&A. The route may not exist yet; callers fall back to a
  * deterministic answer built from the current case fields.
  */
-export const askProductCase = (caseId: string, question: string, conversationId?: string, signal?: AbortSignal) =>
+export const askProductCase = (caseId: string, question: string, conversationId?: string, signal?: AbortSignal, image?: ChatImage) =>
   api<ProductAskAnswer>(`/api/product/cases/${encodeURIComponent(caseId)}/ask`, {
     method: "POST",
-    body: JSON.stringify({ question, conversation_id: conversationId }),
+    body: JSON.stringify({ question, conversation_id: conversationId, ...(image ? { image: imagePayload(image) } : {}) }),
     signal,
   });
+
+function imagePayload(image: ChatImage) {
+  return { data: image.data, mime_type: image.mimeType, name: image.name };
+}
 
 const MAX_CONVERSATION_ID_CHARS = 64;
 
@@ -154,6 +185,9 @@ export const askAssistant = (
   conversationId?: string,
   lang: "zh" | "en" = "zh",
   signal?: AbortSignal,
+  image?: ChatImage,
+  attachmentText?: string,
+  attachments?: ConversationAttachment[],
 ) => {
   const body: Record<string, unknown> = {
     question,
@@ -162,12 +196,35 @@ export const askAssistant = (
   };
   if (model) body.model = model;
   if (history && history.length > 0) body.history = history;
+  if (image) body.image = imagePayload(image);
+  if (attachmentText) body.attachment_text = attachmentText;
+  if (attachments?.length) body.attachments = attachments;
   return api<Answer>("/api/assistant/answer", {
     method: "POST",
     signal,
     body: JSON.stringify(body),
   });
 };
+
+export async function uploadAttachment(file: File): Promise<ConversationAttachment> {
+  const form = new FormData();
+  form.append("file", file);
+  const response = await workspaceFetch("/api/attachments", {
+    method: "POST", body: form, credentials: "same-origin",
+  });
+  if (!response.ok) throw new ApiError("attachment_upload_failed", response.status);
+  return response.json() as Promise<ConversationAttachment>;
+}
+
+export async function extractDocumentText(file: File): Promise<{ text: string; truncated: boolean }> {
+  const form = new FormData();
+  form.append("file", file);
+  const response = await workspaceFetch("/api/knowledge/extract-text", {
+    method: "POST", body: form, credentials: "same-origin",
+  });
+  if (!response.ok) throw new ApiError("extract_failed", response.status);
+  return response.json() as Promise<{ text: string; truncated: boolean }>;
+}
 
 /** Read the server-side platform default; the response never contains a key. */
 export const getModelSettings = () => api<ModelSettingsInfo>("/api/settings/model");
@@ -199,12 +256,12 @@ export const cancelAssistantTurn = (conversationId: string, turnId: string) =>
 export const cancelCaseTurn = (caseId: string, conversationId: string, turnId: string) =>
   api<void>(`/api/product/cases/${encodeURIComponent(caseId)}/ask/cancel`, { method: "POST", body: JSON.stringify({ conversation_id: conversationId, turn_id: turnId }), signal: AbortSignal.timeout(10_000) });
 
-export function streamProductCase(caseId: string, question: string, conversationId: string, onTrace: (activity: ActivityState) => void, signal: AbortSignal | undefined, turn: StreamTurn): Promise<ProductAskAnswer> {
-  return streamReply(`/api/product/cases/${encodeURIComponent(caseId)}/ask/stream`, { question, conversation_id: conversationId }, onTrace, signal, turn);
+export function streamProductCase(caseId: string, question: string, conversationId: string, onTrace: (activity: ActivityState) => void, signal: AbortSignal | undefined, turn: StreamTurn, image?: ChatImage): Promise<ProductAskAnswer> {
+  return streamReply(`/api/product/cases/${encodeURIComponent(caseId)}/ask/stream`, { question, conversation_id: conversationId, ...(image ? { image: imagePayload(image) } : {}) }, onTrace, signal, turn);
 }
 
-export function streamAssistant(question: string, history: AssistantHistoryTurn[] | undefined, conversationId: string, lang: "zh" | "en", onTrace: (activity: ActivityState) => void, signal?: AbortSignal, turn?: StreamTurn): Promise<Answer> {
-  return streamReply("/api/assistant/stream", { question, lang, conversation_id: conversationId, ...(history?.length ? { history } : {}) }, onTrace, signal, turn);
+export function streamAssistant(question: string, history: AssistantHistoryTurn[] | undefined, conversationId: string, lang: "zh" | "en", onTrace: (activity: ActivityState) => void, signal?: AbortSignal, turn?: StreamTurn, image?: ChatImage, attachmentText?: string, attachments?: ConversationAttachment[]): Promise<Answer> {
+  return streamReply("/api/assistant/stream", { question, lang, conversation_id: conversationId, ...(history?.length ? { history } : {}), ...(image ? { image: imagePayload(image) } : {}), ...(attachmentText ? { attachment_text: attachmentText } : {}), ...(attachments?.length ? { attachments } : {}) }, onTrace, signal, turn);
 }
 
 /** A transport reconnect only subscribes to the existing turn; it never starts another model call. */
@@ -221,7 +278,7 @@ async function streamReply<T>(path: string, body: Record<string, unknown>, onTra
 async function readStream<T>(path: string, body: Record<string, unknown>, onTrace: (activity: ActivityState) => void, signal: AbortSignal | undefined, cursor: { lastEventId: string }, turn: StreamTurn | undefined, resume: boolean): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (cursor.lastEventId) headers["Last-Event-ID"] = cursor.lastEventId;
-  const response = await fetch(path, { method: "POST", credentials: "same-origin", signal, headers,
+  const response = await workspaceFetch(path, { method: "POST", signal, headers,
     body: JSON.stringify({ ...body, ...(turn ? { turn_id: turn.id, resume } : {}) }),
   });
   if (!response.ok || !response.body) {
@@ -261,3 +318,31 @@ async function readStream<T>(path: string, body: Record<string, unknown>, onTrac
   }
   throw new ApiError("stream_incomplete", 503);
 }
+
+export const getWorkspaces = () => api<Workspace[]>("/api/workspaces");
+export const getOnboardingTargets = () => api<{ models: OnboardingTarget[] }>("/api/onboarding/targets");
+export const createWorkspace = (body: { name: string; industry: string; modules: string[]; description?: string }) =>
+  api<Workspace>("/api/workspaces", { method: "POST", body: JSON.stringify(body) });
+export const getWorkspace = (id: string) => api<Workspace>(`/api/workspaces/${encodeURIComponent(id)}`);
+export const addWorkspaceSource = (id: string, body: { filename: string; media_type: string; content: string }) =>
+  api<Workspace>(`/api/workspaces/${encodeURIComponent(id)}/sources`, { method: "POST", body: JSON.stringify(body) });
+export const confirmWorkspace = (id: string, mappings: { id: string; target_model?: string; target_field?: string; ignored?: boolean }[]) =>
+  api<Workspace>(`/api/workspaces/${encodeURIComponent(id)}/confirm`, { method: "POST", body: JSON.stringify({ mappings }) });
+
+export const accountLogin = (email: string, password: string) =>
+  api<AccountSession>("/api/accounts/login", { method: "POST", body: JSON.stringify({ email, password }) });
+export const accountMfa = (challenge: string, code: string) =>
+  api<AccountSession>("/api/accounts/mfa", { method: "POST", body: JSON.stringify({ challenge, code }) });
+export const accountLogout = () => api<void>("/api/accounts/session", { method: "DELETE" });
+export const intakeWorkspaceMaterial = (workspaceId: string, title: string, content: string) =>
+  api<Workspace>("/api/workspaces/intake", { method: "POST", body: JSON.stringify({ workspace_id: workspaceId, title, content }) });
+export const getOnboardingCompanies = () =>
+  api<{ companies: { id: number; name: string }[]; can_authorize: boolean }>("/api/onboarding/companies");
+export const previewWorkspaceImport = (id: string, companyId?: number) =>
+  api<Workspace>(`/api/workspaces/${encodeURIComponent(id)}/import/preview${companyId ? `?company_id=${companyId}` : ""}`, { method: "POST" });
+export const authorizeWorkspaceImport = (id: string, previewSha256: string) =>
+  api<Workspace>(`/api/workspaces/${encodeURIComponent(id)}/import/authorize`, { method: "POST", body: JSON.stringify({ preview_sha256: previewSha256 }) });
+export const applyWorkspaceImport = (id: string, previewSha256: string) =>
+  api<Workspace>(`/api/workspaces/${encodeURIComponent(id)}/import/apply`, { method: "POST", body: JSON.stringify({ preview_sha256: previewSha256 }) });
+export const readbackWorkspaceImport = (id: string) =>
+  api<Workspace>(`/api/workspaces/${encodeURIComponent(id)}/import/readback`, { method: "POST" });

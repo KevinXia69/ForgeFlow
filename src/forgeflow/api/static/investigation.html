@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer"><title>ForgeFlow · 调查续接</title>
+  <link rel="stylesheet" href="/static/investigation.css">
+  <script type="module" src="/static/investigation.js"></script>
+</head>
+<body>
+  <header><a class="brand" href="/">ForgeFlow</a><span>调查与预算补充</span><a href="/">返回工作台</a></header>
+  <main>
+    <section id="login" class="panel compact" hidden>
+      <h1>继续处理这件业务</h1><p>使用工作台邀请码登录，查看属于你的调查。</p>
+      <form id="login-form"><label for="invite">邀请码</label><input id="invite" type="password" autocomplete="current-password" required>
+        <button type="submit">登录</button></form>
+    </section>
+    <div id="workspace" hidden>
+      <div class="heading"><div><p class="eyebrow">供应中断 · 恢复准备</p><h1>补齐决定，再准备方案</h1>
+        <p class="intro">确认预算只补充业务输入。具体恢复方案仍需另行审批后才能执行。</p></div>
+        <button id="create" type="button">开始已配置的调查</button></div>
+      <div class="toolbar"><label for="case-picker">当前事项</label><select id="case-picker"><option value="">选择一项调查</option></select>
+        <button id="refresh" type="button" class="secondary">刷新</button><span id="phase" class="pill"></span></div>
+      <p id="background-status" class="notice" role="status" aria-live="polite" hidden></p>
+      <p id="empty" class="empty">这里会显示需要你补充的决定、确认卡和后续方案。</p>
+      <div id="case-panels" class="grid" hidden>
+        <section class="panel" aria-labelledby="question-title"><p class="step">01 · 业务决定</p><h2 id="question-title">补充预算决定</h2>
+          <p id="question-reason" class="hint" hidden></p><p id="question" class="question"></p><div id="reply-history" class="reply-history"></div>
+          <div id="budget-history" class="reply-history" aria-label="预算输入历史" hidden></div>
+          <form id="budget-form" hidden>
+            <div class="budget-context"><div><label for="budget-order">订单</label><input id="budget-order" readonly></div>
+              <div><label for="budget-currency">币种</label><input id="budget-currency" readonly></div></div>
+            <label for="budget-amount">该订单的预算上限</label>
+            <input id="budget-amount" type="text" inputmode="decimal" autocomplete="off" maxlength="64" pattern="[0-9]+([.][0-9]{1,2})?" aria-describedby="budget-help" required>
+            <p id="budget-help" class="hint">输入正数，最多两位小数，不使用逗号或货币符号。保存后还需要单独确认；更正不会沿用旧确认。</p>
+            <button id="budget-submit" type="submit">保存待确认预算</button>
+          </form>
+          <div id="budget-controls" class="budget-controls" hidden>
+            <p id="budget-paused" class="notice" hidden>已暂停等待。未确认候选已失效；继续后需要重新输入预算，不会自动确认。</p>
+            <button id="budget-withdraw" class="secondary" type="button" hidden>撤回未确认预算</button>
+            <button id="budget-pause" class="secondary" type="button" hidden>暂停等待</button>
+            <button id="budget-resume" type="button" hidden>继续填写预算</button>
+          </div>
+          <form id="reply-form"><label for="reply">你的答复</label><textarea id="reply" maxlength="8000" rows="3" placeholder="例如：SO-30 最多批准 800，其他条件照旧。" required></textarea>
+            <p class="hint">报价、收入和合计金额不会自动成为单笔订单预算。</p><button id="reply-button" type="submit">提交答复</button></form>
+          <p id="reply-followup" class="notice" hidden></p>
+        </section>
+        <section class="panel" aria-labelledby="confirmation-title"><p class="step">02 · 明确确认</p><h2 id="confirmation-title">预算变更</h2>
+          <p id="confirmation-empty" class="muted">保存预算后，会在这里展示待确认的单字段变更。</p>
+          <p id="draft-invalidated" class="notice" hidden></p>
+          <form id="confirm-form" hidden><dl><dt>订单</dt><dd id="confirm-order"></dd><dt>原预算</dt><dd>缺失</dd>
+            <dt>新预算上限</dt><dd id="confirm-amount" class="amount"></dd><dt id="confirm-source-label">你的原始输入</dt><dd id="confirm-source" class="source-text"></dd><dt>本次变更</dt><dd>仅补齐该订单预算；其他政策保持不变。</dd></dl>
+            <label class="check"><input id="confirm-check" type="checkbox">我确认上述订单和预算金额。</label>
+            <p class="hint">此操作不批准或执行 ERP 单据。</p><button id="confirm-button" type="submit" disabled>确认预算并继续调查</button></form>
+          <p id="confirmed" class="notice success" hidden></p>
+        </section>
+        <section class="panel" aria-labelledby="history-title"><p class="step">03 · 连续调查</p><h2 id="history-title">调查与政策历史</h2>
+          <ol id="episodes" class="episodes"></ol><p id="usage" class="hint"></p><p id="stop-reason" class="notice" hidden></p>
+        </section>
+        <section class="panel" aria-labelledby="handoff-title"><p class="step">04 · 方案审批</p><h2 id="handoff-title">进入恢复方案</h2>
+          <p id="handoff-note">重新取证并准备完成后，可以进入既有方案审批流程。</p>
+          <button id="handoff-button" type="button" hidden>准备可审批的产品方案</button>
+          <a id="product-link" class="button" hidden>查看方案并审批</a>
+          <dl class="outcomes" aria-label="准备、执行与验收结果"><dt>方案准备</dt><dd id="prepared-outcome">尚未完成</dd>
+            <dt>执行回读</dt><dd id="execution-outcome">尚未核验</dd><dt>原任务验收</dt><dd id="verifier-outcome">需查看独立验收回执</dd></dl>
+          <p class="hint">审批绑定具体方案；预算确认不会代替方案批准。</p>
+        </section>
+      </div>
+      <section id="closure-panel" class="panel closure-panel" hidden aria-labelledby="closure-title">
+        <h2 id="closure-title">结束本次事项</h2><p id="closure-status" role="status" aria-live="polite"></p>
+        <p class="hint">请求结束会停止后续业务推进。已批准或已执行的操作仍须核对原结果，不会因取消而回滚；尚未核清的操作会继续占用当前环境。</p>
+        <button id="cancel-button" class="secondary" type="button" hidden>请求结束本次事项</button>
+        <button id="expire-button" class="secondary" type="button" hidden>结束已过期事项</button>
+        <button id="closure-reconcile" class="secondary" type="button" hidden>核对结束状态</button>
+        <p id="closure-pending" class="notice" hidden>结束请求的响应未完整收到。原工作和原答复仍保留，可重取同一结束请求的回执。</p>
+        <button id="closure-retry" class="secondary" type="button" hidden>重取结束回执</button>
+      </section>
+    </div>
+    <p id="message" role="status" aria-live="polite" hidden></p>
+    <div id="pending" class="notice" hidden><p id="pending-note">上次请求的响应未完整收到。先核对当前状态，或重取同一操作的回执。</p>
+      <button id="retry" type="button" class="secondary">重取操作回执</button></div>
+  </main>
+</body>
+</html>

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import pwd
 import signal
@@ -16,7 +17,8 @@ from forgeflow.executor import main
 from forgeflow.executor.daemon import ExecutorServer, Handlers
 
 USER = pwd.getpwuid(os.getuid()).pw_name
-PATH_FLAGS = ("--socket", "--store", "--bundle", "--key", "--approval-store", "--policy-file")
+PATH_FLAGS = ("--socket", "--store", "--bundle", "--key", "--approval-store", "--policy-file",
+              "--investigation-event-file")
 REQUIRED = ("--socket", "--store", "--bundle", "--key", "--agent-user")
 
 
@@ -151,6 +153,7 @@ def test_build_server_wires_handlers(tmp_path: Path, monkeypatch: pytest.MonkeyP
         "approval_store": tmp_path / "approvals", "require_grant": False,
         "policy_file": tmp_path / "policy.json",
         "retention_profile": None,
+        "investigation_mode": False,
     }
     assert server.handlers == Handlers(recovery.prepare, recovery.apply, recovery.status)
     assert server.handlers.health is None
@@ -168,6 +171,59 @@ def test_build_server_explicit_handlers(tmp_path: Path, monkeypatch: pytest.Monk
 
     monkeypatch.setattr(main, "RecoveryHandlers", forbidden)
     assert main.build_server(_config(tmp_path), handlers=handlers).handlers is handlers
+
+
+def test_investigation_event_reaches_only_investigation_handler(tmp_path, monkeypatch):
+    event_path = tmp_path / "event.txt"
+    event = "供应商取消供货，请调查。\n"
+    event_path.write_text(event, encoding="utf-8")
+    event_path.chmod(0o400)
+    made = []
+
+    class Recorder:
+        def __init__(self, **kwargs):
+            made.append(kwargs)
+
+        def prepare(self, *_args):
+            return {}
+
+        apply = status = investigation = prepare
+
+    monkeypatch.setattr(main, "RecoveryHandlers", Recorder)
+    config = _config(tmp_path, investigation=True, policy_file=tmp_path / "policy.json",
+                     investigation_event_file=event_path)
+    server = main.build_server(config)
+    assert made[0]["investigation_event"] == {
+        "text": event, "sha256": hashlib.sha256(event.encode()).hexdigest(),
+    }
+    assert server.handlers.investigation is not None
+    assert server.handlers.product is None and server.handlers.reconcile is None
+
+
+@pytest.mark.parametrize("reason", ["missing", "mode", "symlink", "directory", "owner",
+                                   "empty", "whitespace", "oversize", "utf8", "nul"])
+def test_executor_rejects_untrusted_investigation_event(tmp_path, monkeypatch, reason):
+    event = tmp_path / "event.txt"
+    content = {"empty": b"", "whitespace": b" \n", "oversize": b"a" * (16 * 1024 + 1),
+               "utf8": b"\xff", "nul": b"event\x00"}.get(reason, b"supplier cancelled")
+    if reason == "directory":
+        event.mkdir()
+    elif reason != "missing":
+        event.write_bytes(content)
+        event.chmod(0o400 if reason != "mode" else 0o600)
+    if reason == "symlink":
+        link = tmp_path / "link"
+        link.symlink_to(event)
+        event = link
+    if reason == "owner":
+        monkeypatch.setattr(main.os, "geteuid", lambda: event.stat().st_uid + 1)
+    with pytest.raises(RuntimeError, match="^investigation_event_untrusted$"):
+        main.read_investigation_event(event)
+
+
+def test_event_argument_cannot_be_used_outside_investigation(tmp_path):
+    with pytest.raises(SystemExit):
+        main.config_from_args(_args(tmp_path, investigation_event_file=str(tmp_path / "event")))
 
 
 class FakeServer:

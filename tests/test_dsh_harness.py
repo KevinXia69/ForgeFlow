@@ -7,9 +7,29 @@ from forgeflow.api.dsh_harness import (
     MAX_RESULT_SUMMARY,
     DshHarness,
     DshUnavailable,
+    _knowledge_passages,
     _result_summary,
     _tool_input,
 )
+
+
+def test_knowledge_tool_keeps_cited_document_version_and_locator():
+    passage = {"path": "document://reference/policy.md", "start_line": 1,
+               "end_line": 10, "text": "original text", "document_version": 1,
+               "locator": "paragraph:2", "document_id": "source-1"}
+    citations = ["document://reference/policy.md#paragraph:2"]
+    actual, refs = _knowledge_passages("mcp__forgeflow__project_knowledge",
+                                      {"passages": [passage], "citations": citations})
+    assert actual == [passage]
+    assert refs == citations
+
+
+def test_knowledge_tool_does_not_invent_version_for_legacy_or_invalid_metadata():
+    base = {"path": "document://old.md", "start_line": 1, "end_line": 1, "text": "old"}
+    for version in (None, 0, -1, True, "2"):
+        actual, _ = _knowledge_passages("project_knowledge", {
+            "passages": [base | {"document_version": version}]})
+        assert actual == [base]
 
 
 def _events(*items: dict) -> str:
@@ -211,17 +231,49 @@ def test_case_brief_payload_is_bounded_for_json_tree(tmp_path: Path):
     assert step["payload"]["state"] == "awaiting_approval"
 
 
-def test_scoped_cli_keeps_legacy_cost_semantics_in_one_existing_prompt(tmp_path):
-    from forgeflow.api.app import _case_question_prompt
+def test_scoped_cli_preserves_home_and_case_prompts(tmp_path):
+    from forgeflow.api.app import _case_question_prompt, _home_question_prompt
     from forgeflow.api.case_qa import PLANNED_COST_CONTEXT
 
     harness = _harness(tmp_path)
     harness.evidence_path = tmp_path / "scoped-evidence.json"
-    for question in (
-        "What does the current case cost?",
-        _case_question_prompt({"plan": {"new_spend": 133394.07}}, "Explain this amount."),
-    ):
+    home = _home_question_prompt("可以给我介绍一下这个项目吗？")
+    case = _case_question_prompt({"plan": {"new_spend": 133394.07}}, "Explain this amount.")
+    assert PLANNED_COST_CONTEXT not in home
+    assert case.count(PLANNED_COST_CONTEXT) == 1
+    for question in (home, case):
         command = harness._command(question, "retained-session")
         assert command[-4:-1] == ["--session-id", "retained-session", "--"]
-        assert command[-1].count(PLANNED_COST_CONTEXT) == 1
-        assert command[-1].endswith(question)
+        assert command[-1] == question
+
+
+def test_home_reply_language_can_differ_from_navigation_labels(tmp_path):
+    from forgeflow.api.app import _home_question_prompt
+
+    guides = tmp_path / "docs"
+    (guides / "en").mkdir(parents=True)
+    (guides / "WORKBENCH_GUIDE.md").write_text("查看案例", encoding="utf-8")
+    (guides / "en/workbench-guide.md").write_text("View cases", encoding="utf-8")
+    for question, locale, label, language in (
+        ("Where do I click to see an example?", "zh", "查看案例", "English"),
+        ("我该点哪里查看案例？", "en", "View cases", "Chinese"),
+    ):
+        prompt = _home_question_prompt(question, tmp_path, locale)
+        assert label in prompt
+        assert f"Respond in {language} unless the user asks for another language." in prompt
+        assert prompt.endswith(f"\n\nQuestion: {question}")
+
+
+def test_evidence_activity_displays_records_without_the_model_field_guide():
+    from forgeflow.api.case_qa import PLANNED_COST_CONTEXT
+    from forgeflow.api.dsh_harness import _finish_tool_step
+
+    data = json.dumps({"state": "awaiting_approval"})
+    for result in (
+        [{"type": "text", "text": data}, {"type": "text", "text": PLANNED_COST_CONTEXT}],
+        [{"type": "text", "text": data + "\n" + PLANNED_COST_CONTEXT}],
+    ):
+        step = {"kind": "mcp__forgeflow__get_case"}
+        _finish_tool_step(step, {"status": "completed", "result": result})
+        assert step["payload"] == {"state": "awaiting_approval"}
+        assert PLANNED_COST_CONTEXT not in str(step)

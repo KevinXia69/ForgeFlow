@@ -32,7 +32,7 @@ from forgeflow.recovery.storage import StorageError
 
 from .candidate_store import CandidateStore
 from .candidates import normalize_comparison, project_comparison
-from .executor import ProductExecutor
+from .executor import ProductExecutionError, ProductExecutor
 from .lease import EnvironmentLease, EnvironmentLeaseError
 from .state import (
     AWAITING_APPROVAL,
@@ -51,16 +51,19 @@ from .state import (
     ProductCase,
     _project_plan,
     approval_decision,
+    approval_payload,
     failed_execution,
     new_nonce,
     normalize_execution,
     normalize_plan,
+    unstarted_receipt_matches,
     utc_stamp,
 )
 
 SUBDIR = "product-cases"
 MAX_CASE_BYTES = 512 * 1024
 APPROVAL_TTL_SECONDS = 900
+REVIEW_SCOPE_DENIALS = {"review_notice_line_mismatch", "additional_purchase_cancellation_unsupported"}
 SAFE_REASON = re.compile(r"[a-z0-9_]{1,64}")
 
 
@@ -282,23 +285,85 @@ class ProductCaseService:
             raise ProductCaseError(error.code, error.status) from None
 
     @contextmanager
-    def _mutation(self):
+    def _mutation(self, *, wait=True):
         """Serialize decisions across threads AND API processes, before dispatch."""
-        with self._lock:
+        if not self._lock.acquire(blocking=wait):
+            raise ProductCaseError("product_handoff_not_closed", 409)
+        try:
             self._ensure_root()
             fd = os.open(self.root / ".decisions.lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
             try:
-                fcntl.flock(fd, fcntl.LOCK_EX)
+                try:
+                    fcntl.flock(fd, fcntl.LOCK_EX | (0 if wait else fcntl.LOCK_NB))
+                except BlockingIOError:
+                    raise ProductCaseError("product_handoff_not_closed", 409) from None
                 yield
             finally:
                 fcntl.flock(fd, fcntl.LOCK_UN)
                 os.close(fd)
+        finally:
+            self._lock.release()
+
+    def _assemble_evidence(self, case: ProductCase, view: dict[str, Any]):
+        """Attach current and historical candidate evidence without enabling actions."""
+        comparison = None
+        evidence_error = False
+        if case.comparison is not None:
+            try:
+                comparison = self._load_comparison(case)
+                if self._supports_review(case):
+                    from .review_facts import compare_candidates
+                    view["review_comparison"] = compare_candidates(comparison["plans"])
+                view["comparison"] = {"status": "ready", **project_comparison(comparison)}
+            except (ProductCaseError, ValueError):
+                comparison = None
+                evidence_error = True
+                view["comparison"] = {"status": "unavailable", "version": case.revision["version"],
+                                      "reason": "candidate_evidence_unavailable"}
+        for raw, projected in zip(case.history, view["history"], strict=True):
+            if raw.get("comparison") is None:
+                continue
+            historical = copy.deepcopy(case)
+            historical.revision = {"version": raw["version"]}
+            try:
+                historical_comparison = CandidateStore(self.root).load(historical, raw["comparison"])
+                projected["comparison"] = {"status": "ready", **project_comparison(historical_comparison)}
+                selected = self._selected_plan(historical_comparison)
+                projected["plan"] = None if selected is None else _project_plan(selected)
+            except (OSError, ValueError, KeyError, TypeError, StorageError):
+                projected["comparison"] = {"status": "unavailable", "version": raw["version"],
+                                           "reason": "candidate_evidence_unavailable"}
+        return comparison, evidence_error
+
+    def _historical_view(self, case: ProductCase, reason: str) -> dict[str, Any]:
+        """Keep historical facts readable when their execution binding is gone."""
+        view = case.view()
+        self._assemble_evidence(case, view)
+        view["revision_limits"] = None
+        view["historical"] = True
+        view["historical_reason"] = reason
+        view["read_only"] = True
+        decision = view.get("decision")
+        if isinstance(decision, dict):
+            decision.update(
+                can_approve=False, can_reject=False, can_request_changes=False,
+                can_reconcile=False, can_cancel_unstarted=False, can_reprepare=False,
+                can_resume_preparation=False, can_resume_revision=False,
+                can_resume_repreparation=False, can_select_candidate=False,
+                can_resume_selection=False, reason=reason, revision_reason=reason,
+            )
+        return view
 
     def _view(self, case: ProductCase) -> dict[str, Any]:
         view = case.view()
         limits = getattr(self.executor, "revision_limits", None)
         if callable(limits):
-            view["revision_limits"] = limits(self._executor_view(case))
+            try:
+                view["revision_limits"] = limits(self._executor_view(case))
+            except ProductExecutionError as error:
+                if error.code != "environment_generation_changed":
+                    raise
+                return self._historical_view(case, error.code)
         decision = view["decision"]
         if self.executor is None and decision["can_approve"]:
             decision.update(can_approve=False, reason="product_execution_unavailable")
@@ -331,6 +396,8 @@ class ProductCaseService:
             decision["can_reconcile"] = False
             if case.state == AWAITING_APPROVAL:
                 decision["authorization_pending"] = True
+        if self._unresolved_review_authorization(case):
+            decision["can_reject"] = scenario_supported
         if (case.execution or {}).get("status") == "not_started":
             decision["can_reconcile"] = False
         if callable(getattr(self.executor, "cancel_unstarted", None)):
@@ -364,18 +431,13 @@ class ProductCaseService:
             view["repreparation_request"] = {"version": saved["intent"]["version"],
                 "failed_version": saved["origin"]["version"], "changes": copy.deepcopy(saved["changes"]),
                 "reason": saved["reason"], "requested_at": saved["requested_at"], "error": saved.get("error")}
+        comparison, evidence_error = self._assemble_evidence(case, view)
         if case.comparison is not None:
-            comparison = None
-            try:
-                comparison = self._load_comparison(case)
-                view["comparison"] = {"status": "ready", **project_comparison(comparison)}
-            except ProductCaseError:
-                view["comparison"] = {"status": "unavailable", "version": case.revision["version"],
-                                      "reason": "candidate_evidence_unavailable"}
+            if evidence_error:
                 decision.update(can_approve=False, can_reject=False, can_request_changes=False,
                                 reason="candidate_evidence_unavailable")
             ready = (comparison is not None and scenario_supported
-                     and getattr(self.executor, "supports_candidates", False) is True
+                     and self._candidate_capable(case)
                      and callable(getattr(self.executor, "continue_selection", None))
                      and case.state in {AWAITING_SELECTION, AWAITING_APPROVAL}
                      and case.approval is None and case.execution is None
@@ -391,19 +453,15 @@ class ProductCaseService:
                     "selection_revision": saved["intent"]["expected_revision"],
                     "comparison_id": saved["intent"]["comparison_id"],
                     "requested_at": saved["requested_at"], "error": saved["error"]}
-        for raw, projected in zip(case.history, view["history"], strict=True):
-            if raw.get("comparison") is None:
-                continue
-            historical = copy.deepcopy(case)
-            historical.revision = {"version": raw["version"]}
-            try:
-                comparison = CandidateStore(self.root).load(historical, raw["comparison"])
-                projected["comparison"] = {"status": "ready", **project_comparison(comparison)}
-                selected = self._selected_plan(comparison)
-                projected["plan"] = None if selected is None else _project_plan(selected)
-            except (OSError, ValueError, KeyError, TypeError, StorageError):
-                projected["comparison"] = {"status": "unavailable", "version": raw["version"],
-                                           "reason": "candidate_evidence_unavailable"}
+        if self._supports_review(case):
+            pending = self._open_objection(case)
+            decision["can_review"] = (case.state == AWAITING_APPROVAL and case.plan is not None
+                                      and case.approval is None and case.execution is None
+                                      and decision["can_approve"] and not self._selection_pending(case)
+                                      and not self._revision_pending(case) and not pending)
+            if pending:
+                decision.update(can_approve=False, can_select_candidate=False, can_request_changes=False,
+                                reason="review_pending")
         if self.environment_lease is not None:
             try:
                 self.environment_lease.require(case.uid, case.case_id)
@@ -436,17 +494,35 @@ class ProductCaseService:
         except (OSError, ValueError, KeyError, TypeError, StorageError):
             raise ProductCaseError("candidate_evidence_unavailable", 409) from None
 
+    def _candidate_capable(self, case):
+        checker = getattr(self.executor, "candidate_capable", None)
+        if callable(checker):
+            return checker(self._executor_view(case)) is True
+        return getattr(self.executor, "supports_candidates", False) is True
+
     def _normalize_prepared(self, case, raw):
         if isinstance(raw, dict) and "candidate_set" in raw:
-            if set(raw) != {"candidate_set"} or getattr(self.executor, "supports_candidates", False) is not True:
+            if set(raw) != {"candidate_set"} or not self._candidate_capable(case):
                 raise ValueError("invalid_comparison")
             comparison = normalize_comparison(case, raw["candidate_set"])
+            if self._supports_review(case):
+                from .review_facts import compare_candidates
+                compare_candidates(comparison["plans"])
             try:
                 reference = CandidateStore(self.root).save(case, comparison)
             except (OSError, StorageError):
                 raise ProductCaseError("product_store_unavailable", 503) from None
             return self._selected_plan(comparison), reference
         return normalize_plan(case, raw), None
+
+    @staticmethod
+    def _update_handoff_order(case, raw):
+        if case.handoff is None:
+            return
+        first = raw["candidate_set"]["plans"][0] if "candidate_set" in raw else raw
+        actual = first.get("_handoff_order")
+        if isinstance(actual, dict):
+            case.order = copy.deepcopy(actual)
 
     @staticmethod
     def _archive_plan(case, *, retired_at, reason):
@@ -476,11 +552,19 @@ class ProductCaseService:
         saved = case.preparation or {}
         return saved.get("kind") == "revision" and saved.get("phase") == "pending"
 
-    @staticmethod
-    def _can_cancel_unstarted(case: ProductCase) -> bool:
-        return (case.plan is not None and (case.approval or {}).get("phase") == "dispatching"
-                and case.state in {EXECUTING, EXECUTION_UNKNOWN, FAILED}
-                and ((case.execution or {}).get("readback") or {}).get("execution_validated") is not True)
+    def _can_cancel_unstarted(self, case: ProductCase) -> bool:
+        # A denied review authorization is not an unstarted root cancellation:
+        # the denied grant must be retired through the review closure path, not
+        # turned into a new cancellation decision.
+        if (case.state == EXPIRED and case.reason == "approval_expired"
+                and (case.approval or {}).get("authorization_error") in REVIEW_SCOPE_DENIALS):
+            return False
+        return (self._pending_authorization(case)
+                or self._unresolved_authorization(case)
+                or self._unresolved_review_authorization(case)
+                or (case.plan is not None and (case.approval or {}).get("phase") == "dispatching"
+                    and case.state in {EXECUTING, EXECUTION_UNKNOWN, FAILED}
+                    and ((case.execution or {}).get("readback") or {}).get("execution_validated") is not True))
 
     @staticmethod
     def _executor_view(case: ProductCase) -> dict[str, Any]:
@@ -488,7 +572,8 @@ class ProductCaseService:
         return {**case.view(), "_owner_sha256": hashlib.sha256(case.uid.encode()).hexdigest(),
                 "_preparation": copy.deepcopy(case.preparation),
                 "_plan": copy.deepcopy(case.plan),
-                "approval": copy.deepcopy(case.approval)}
+                "approval": copy.deepcopy(case.approval),
+                **({"_handoff": copy.deepcopy(case.handoff)} if case.handoff is not None else {})}
 
     @staticmethod
     def _text(value: Any, *, required: bool = False) -> str:
@@ -503,6 +588,194 @@ class ProductCaseService:
                            "at": utc_stamp(), "plan_id": (case.plan or {}).get("plan_id"), **details})
 
     # -- public service API -------------------------------------------------
+
+    def create_from_handoff(self, uid: str, binding: dict) -> dict[str, Any]:
+        """Trusted-host entry only; never expose arbitrary binding upload in HTTP.
+
+        The caller obtains this exact binding from InvestigationCases. Creating
+        a product case grants no approval and does not reuse the prior plan.
+        The normal prepare method must read and solve again through its executor.
+        """
+        from .handoff import handoff_summary, validate_handoff
+
+        binding = validate_handoff(binding)
+        if binding["owner"] != uid:
+            raise ProductCaseError("product_owner_mismatch", 403)
+        summary = handoff_summary(binding)
+        with self._mutation():
+            register = getattr(self._require_executor(), "register_handoff", None)
+            if not callable(register):
+                raise ProductCaseError("product_handoff_unavailable", 503)
+            existing = self._read(binding["product_case_id"])
+            if existing is not None:
+                if existing.uid != uid or existing.handoff != summary:
+                    raise ProductCaseError("product_handoff_binding_changed", 409)
+                return self._view(existing)
+            if os.path.lexists(self.path_for(binding["product_case_id"])):
+                raise ProductCaseError("product_handoff_binding_changed", 409)
+            try:
+                registered = register(binding)
+            except Exception as error:
+                raise ProductCaseError(_reason(error, "product_handoff_unavailable"), 409) from None
+            if registered != summary:
+                raise ProductCaseError("product_handoff_binding_changed", 409)
+            case = ProductCase.new(uid, "A")
+            case.case_id = binding["product_case_id"]
+            case.handoff = summary
+            # The handoff proves these identities, not a live order quantity or
+            # deadline. Do not display the unrelated fixed Scenario A numbers.
+            case.order = {"ref": "Order IDs: " + ", ".join(map(str, summary["sales_order_ids"])),
+                          "product": summary["product_code"], "units": None, "due_days": None,
+                          "customer": "Authorized recovery scope"}
+            disruption = binding["request"]["disruption"]
+            case.disruption = {"kind": disruption["kind"], "vendor": disruption["vendor_ref"]}
+            if self.environment_lease is not None:
+                try:
+                    self.environment_lease.claim(uid, case.case_id)
+                except EnvironmentLeaseError as error:
+                    raise ProductCaseError(error.code, error.status) from None
+            self._audit(case, uid, "investigation_handoff", **summary)
+            self._write(case)
+            return self._view(case)
+
+    def handoff_receipt(self, case_id: str, uid: str) -> dict[str, Any]:
+        """Stable host receipt for completing the originating handoff intent."""
+        with self._mutation():
+            case = self._owned(case_id, uid)
+            if case.handoff is None:
+                raise ProductCaseError("product_handoff_unavailable", 409)
+            return {"schema_version": 1, "case_id": case_id,
+                    **{key: case.handoff[key] for key in
+                       ("binding_sha256", "request_sha256", "policy_sha256", "generation")}}
+
+    def handoff_closure_receipt(self, case_id: str, uid: str) -> dict[str, Any]:
+        """Host-only proof for releasing a finished source case's environment."""
+        with self._mutation():
+            return self._handoff_closure_receipt(self._owned(case_id, uid))
+
+    @staticmethod
+    def _pending_authorization(case):
+        """A grant was saved, but the dispatch intent was never persisted."""
+        approval = case.approval or {}
+        plan = case.plan or {}
+        return (case.state in {AWAITING_APPROVAL, EXPIRED, FAILED}
+                and (case.handoff or {}).get("review_profile") != "recovery-review-v1"
+                and case.execution is None
+                and isinstance(plan.get("executor_binding"), dict)
+                and approval.get("phase") == "authorized"
+                and isinstance(approval.get("executor_grant"), dict)
+                and approval.get("plan_id") == plan.get("plan_id"))
+
+    def _unresolved_authorization(self, case):
+        """An ordinary case whose authorization reply was never saved, after expiry."""
+        approval = case.approval or {}
+        plan = case.plan or {}
+        return (case.state in {AWAITING_APPROVAL, EXPIRED, FAILED}
+                and case.execution is None
+                and isinstance(plan.get("executor_binding"), dict)
+                and approval.get("phase") == "authorizing"
+                and "executor_grant" not in approval
+                and approval.get("approver") == case.uid
+                and approval.get("plan_id") == plan.get("plan_id")
+                and (case.state == EXPIRED or self._approval_expired(case)))
+
+    @staticmethod
+    def _unresolved_review_authorization(case):
+        approval = case.approval or {}
+        denial = approval.get("authorization_error")
+        # Expiry can precede the next freshness check after a lost grant
+        # response. Both closure operations still require positive root proof.
+        unresolved = ((case.state == FAILED and case.reason == denial and denial in REVIEW_SCOPE_DENIALS)
+                      or (case.state == EXPIRED and case.reason == "approval_expired"))
+        return (unresolved
+                and (case.handoff or {}).get("review_profile") == "recovery-review-v1"
+                and case.execution is None and case.plan is not None and "executor_binding" in case.plan
+                and approval.get("phase") == "authorizing" and "executor_grant" not in approval
+                and approval.get("approver") == case.uid and approval.get("plan_id") == case.plan["plan_id"])
+
+    def _retire_denied_review(self, case, uid, *, comment=""):
+        """A lost earlier grant response makes the local denial alone insufficient proof."""
+        try:
+            receipt = self._require_executor().retire(self._executor_view(case), copy.deepcopy(case.plan))
+        except Exception as error:
+            raise ProductCaseError(_reason(error, "product_retirement_unconfirmed"), 409) from None
+        if (not isinstance(receipt, dict) or receipt.get("plan_id") != case.plan["plan_id"]
+                or receipt.get("plan_retired") is not True
+                or receipt.get("revision") != case.plan["executor_binding"]["revision"] + 1):
+            raise ProductCaseError("product_retirement_unconfirmed", 409)
+        self._record_denied_review(case, uid, retired_revision=receipt["revision"], comment=comment)
+
+    def _record_denied_review(self, case, uid, **evidence):
+        if case.approval.get("authorization_error") in REVIEW_SCOPE_DENIALS:
+            case.reason = case.approval["authorization_error"]
+        self._audit(case, uid, "authorization_denied", reason=case.reason,
+                    requested_at=case.approval["issued_at"], dispatch_state="not_dispatched",
+                    **evidence)
+        # The intent lives on in the approval_requested and authorization_denied
+        # audit entries. There was no grant to publish as a business approval.
+        case.approval = None
+        case.state = REJECTED
+        case.updated_at = utc_stamp()
+        self._write(case)
+
+    def close_handoff(self, case_id: str, uid: str, *, binding_sha256: str) -> dict[str, Any]:
+        """Close an existing handoff under the approval lock; never create/prepare/apply."""
+        with self._mutation(wait=False):
+            case = self._owned(case_id, uid)
+            if case.handoff is None or case.handoff["binding_sha256"] != binding_sha256:
+                raise ProductCaseError("product_handoff_not_closed", 409)
+            if self._unresolved_review_authorization(case):
+                self._retire_denied_review(case, uid)
+            if case.approval is None and case.execution is None and case.state not in {REJECTED, EXPIRED, FAILED}:
+                if ((case.preparation or {}).get("phase") == "pending"
+                        or self._selection_pending(case) or self._revision_pending(case)):
+                    raise ProductCaseError("product_handoff_not_closed", 409)
+                if case.comparison is not None:
+                    raise ProductCaseError("product_handoff_not_closed", 409)
+                if case.plan is not None:
+                    retire = getattr(self._require_executor(), "retire", None)
+                    if not callable(retire):
+                        raise ProductCaseError("product_handoff_not_closed", 409)
+                    try:
+                        retire(self._executor_view(case), copy.deepcopy(case.plan))
+                    except Exception as error:
+                        raise ProductCaseError(_reason(error, "product_handoff_not_closed"), 409) from None
+                case.state, case.reason = REJECTED, "source_case_closed"
+                case.updated_at = utc_stamp()
+                self._audit(case, uid, "source_case_closed")
+                self._write(case)
+            # Approval won the same lock: preserve its actual outcome. An
+            # uncertain execution cannot be turned into a cancellation receipt.
+            return self._handoff_closure_receipt(case)
+
+    def _handoff_closure_receipt(self, case):
+        from forgeflow.recovery.storage import digest
+
+        if case.handoff is None or case.state not in {SUCCEEDED, FAILED, REJECTED, EXPIRED}:
+            raise ProductCaseError("product_handoff_not_closed", 409)
+        execution = case.execution or {}
+        cancellation = (case.approval or {}).get("unstarted_cancellation") or {}
+        if case.approval is None and case.execution is None:
+            outcome = "never_approved"
+        elif (execution.get("readback") or {}).get("execution_validated") is True:
+            outcome = "execution_validated"
+        elif (execution.get("status") == "not_started" and cancellation.get("approval_invalidated") is True
+                and cancellation.get("plan_retired") is True
+                and cancellation.get("plan_id") == (case.plan or {}).get("plan_id")):
+            outcome = "not_started"
+        else:
+            raise ProductCaseError("product_handoff_not_closed", 409)
+        close = getattr(self._require_executor(), "handoff_closure", None)
+        if not callable(close):
+            raise ProductCaseError("product_handoff_unavailable", 409)
+        try:
+            environment = close(self._executor_view(case))
+        except Exception as error:
+            raise ProductCaseError(_reason(error, "product_handoff_not_closed"), 409) from None
+        return {"schema_version": 1, "case_id": case.case_id,
+                "binding_sha256": case.handoff["binding_sha256"], "state": case.state,
+                "outcome": outcome, "plan_id": (case.plan or {}).get("plan_id"),
+                "case_record_sha256": digest(case.to_record()), **environment}
 
     def create(self, uid: str, scenario: str) -> dict[str, Any]:
         """Create a preparing case; the API calls ``prepare`` immediately."""
@@ -586,6 +859,7 @@ class ProductCaseService:
                 self._write(case)
                 return self._view(case)
             case.plan = plan
+            self._update_handoff_order(case, raw_plan)
             case.comparison = comparison
             case.selection = None
             if case.preparation is not None:
@@ -613,6 +887,8 @@ class ProductCaseService:
                 "plan_id": plan_id, "comparison_id": comparison_id, "expected_revision": selection_revision}.items())
             if same and saved["phase"] == "completed":
                 return self._view(case)
+            if self._open_objection(case):
+                raise ProductCaseError("review_pending")
             if self._selection_pending(case) and not same:
                 raise ProductCaseError("selection_confirmation_pending", 409)
             if (case.approval is not None or case.execution is not None
@@ -621,7 +897,7 @@ class ProductCaseService:
                 raise ProductCaseError("candidate_selection_unavailable", 409)
             executor = self._require_executor()
             self._require_scenario(case.scenario)
-            if (getattr(executor, "supports_candidates", False) is not True
+            if (not self._candidate_capable(case)
                     or not callable(getattr(executor, "continue_selection", None))):
                 raise ProductCaseError("candidate_selection_unsupported", 409)
             comparison = self._load_comparison(case)
@@ -669,6 +945,131 @@ class ProductCaseService:
             self._audit(case, uid, "candidate_selected", plan_id=plan_id)
             self._write(case)
             return self._view(case)
+
+    @staticmethod
+    def _supports_review(case):
+        from .handoff import REVIEW_PROFILE
+
+        return (case.handoff or {}).get("review_profile") == REVIEW_PROFILE
+
+    @staticmethod
+    def _open_objection(case):
+        if case.reviews and case.reviews[-1]["status"] in {"pending", "held", "repreparing"}:
+            return case.reviews[-1]
+        return None
+
+    def review_sources(self, case_id, uid, plan_id):
+        """Read only the source snapshot pinned by this case's current comparison."""
+        with self._mutation():
+            case = self._owned(case_id, uid)
+            if not self._supports_review(case):
+                raise ProductCaseError("review_unsupported")
+            plans = self._load_comparison(case)["plans"] if case.comparison else [case.plan]
+            plan = next((item for item in plans if item and item["plan_id"] == plan_id), None)
+            if not plan:
+                raise ProductCaseError("plan_mismatch")
+            try:
+                return self.executor.review_sources(self._executor_view(case), plan)
+            except Exception as error:
+                raise ProductCaseError(_reason(error, "review_sources_unavailable")) from None
+
+    def open_review(self, case_id, uid, *, operation_id, plan_id, expected_version, kind,
+                    order_id=None, note=""):
+        """Save a bounded lead or reason, without accepting facts or authorizing work."""
+        if (not isinstance(operation_id, str) or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}", operation_id)
+                or type(expected_version) is not int or expected_version < 1
+                or kind not in {"reason", "deadline", "unmodeled"}
+                or (order_id is not None and (type(order_id) is not int or order_id <= 0))
+                or kind == "deadline" and order_id is None):
+            raise ProductCaseError("invalid_review", 422)
+        request = {"operation_id": operation_id, "plan_id": plan_id, "version": expected_version,
+                   "kind": kind, "order_id": order_id, "note": self._text(note, required=True)}
+        with self._mutation():
+            case = self._owned(case_id, uid)
+            if not self._supports_review(case):
+                raise ProductCaseError("review_unsupported")
+            previous = next((row for row in case.reviews if row["operation_id"] == operation_id), None)
+            if previous:
+                if any(previous[key] != value for key, value in request.items()):
+                    raise ProductCaseError("review_operation_conflict")
+                return self._view(case)
+            if (case.revision["version"] != expected_version or (case.plan or {}).get("plan_id") != plan_id
+                    or not self._view(case)["decision"].get("can_review")):
+                raise ProductCaseError("review_version_unavailable")
+            if order_id is not None and order_id not in case.handoff["sales_order_ids"]:
+                raise ProductCaseError("review_order_unavailable")
+            if len(case.reviews) >= 64:
+                raise ProductCaseError("product_history_limit")
+            status = {"reason": "noted", "deadline": "pending", "unmodeled": "held"}[kind]
+            item = {**request, "status": status, "opened_at": utc_stamp(),
+                    "snapshot_sha256": case.plan["snapshot_sha256"]}
+            if kind == "reason":
+                previous_reason = next((row for row in reversed(case.reviews) if row["kind"] == "reason"
+                                        and row["version"] == expected_version and row["plan_id"] == plan_id), None)
+                if previous_reason:
+                    item["supersedes"] = previous_reason["operation_id"]
+            if kind == "unmodeled":
+                item["resolution"] = "external_evidence_required"
+            case.reviews.append(item)
+            case.updated_at = item["opened_at"]
+            self._audit(case, uid, "review_opened", operation_id=operation_id, kind=kind)
+            self._write(case)
+            return self._view(case)
+
+    def check_review(self, case_id, uid, operation_id, *, return_prepare=False):
+        """Resolve a held deadline only from the bound ERP and reprepare once if stale."""
+        def finish(value, prepared=False):
+            return (value, prepared) if return_prepare else value
+
+        with self._mutation():
+            case = self._owned(case_id, uid)
+            item = next((row for row in case.reviews if row["operation_id"] == operation_id), None)
+            if not self._supports_review(case) or item is None:
+                raise ProductCaseError("review_unavailable", 404)
+            if item is not self._open_objection(case) or item["kind"] != "deadline":
+                return finish(self._view(case))
+            if (case.approval is not None or case.execution is not None
+                    or case.revision["version"] != item["version"]
+                    or (case.plan or {}).get("plan_id") != item["plan_id"]):
+                raise ProductCaseError("review_version_unavailable")
+            if self._revision_pending(case) and case.preparation.get("review_operation") == operation_id:
+                return finish(self._continue_revision_locked(case, uid))
+            if case.state != AWAITING_APPROVAL:
+                raise ProductCaseError("review_version_unavailable")
+            executor = self._require_executor()
+            context = self._executor_view(case)
+            try:
+                result = executor.check_deadline(context, case.plan, item["order_id"])
+                if (result["model"] != "sale.order" or result["id"] != item["order_id"]
+                        or result["field"] != "commitment_date" or type(result["changed"]) is not bool
+                        or result["snapshot_sha256"] != item["snapshot_sha256"]):
+                    raise ValueError
+                item["evidence"] = result
+                item.pop("error", None)
+                if result["changed"]:
+                    intent = executor.fact_revision_intent(context, case.plan)
+                    if (intent["version"] != item["version"] + 1 or intent["parent_plan_id"] != item["plan_id"]
+                            or intent["constraints"] != case.revision["changes"]):
+                        raise ValueError
+            except Exception as error:
+                item.update(status="held", error=_reason(error, "review_evidence_unavailable"))
+                self._write(case)
+                return finish(self._view(case))
+            case.updated_at = utc_stamp()
+            if not result["changed"]:
+                item.update(status="retained", resolved_at=case.updated_at)
+                self._audit(case, uid, "review_retained", operation_id=operation_id)
+                self._write(case)
+                return finish(self._view(case))
+            case.preparation = {"kind": "revision", "review_operation": operation_id, "phase": "pending",
+                                "intent": intent, "changes": copy.deepcopy(case.revision["changes"]),
+                                "reason": "order_deadline_changed", "requested_at": case.updated_at, "error": None}
+            case.state, case.reason = REVISION_REQUESTED, "revision_confirmation_pending"
+            item.update(status="repreparing")
+            self._audit(case, uid, "review_deadline_changed", operation_id=operation_id,
+                        version=item["version"], order_id=item["order_id"])
+            self._write(case)
+            return finish(self._continue_revision_locked(case, uid), True)
 
     def approve(self, case_id: str, uid: str, plan_id: str, *, comment: str = "") -> dict[str, Any]:
         """Apply one approved plan; repeating the same approval is a no-op."""
@@ -747,7 +1148,8 @@ class ProductCaseService:
                     code = _reason(error, "authorization_unavailable")
                     case.reason = "approval_authorization_pending"
                     case.approval["authorization_error"] = code
-                    if code in {"product_plan_retired", "product_plan_not_selected", "product_already_authorized",
+                    if code in REVIEW_SCOPE_DENIALS or code in {
+                                "product_plan_retired", "product_plan_not_selected", "product_already_authorized",
                                 "product_binding_changed", "product_version_required", "product_revision_conflict",
                                 "product_owner_mismatch", "product_decision_corrupt", "product_decision_missing"}:
                         case.state, case.reason = FAILED, code
@@ -755,6 +1157,13 @@ class ProductCaseService:
                         case.state, case.reason = EXPIRED, code
                     case.updated_at = utc_stamp()
                     self._write(case)
+                    if self._unresolved_review_authorization(case):
+                        try:
+                            self._retire_denied_review(case, uid)
+                        except ProductCaseError:
+                            # Keep the intent for explicit never-issued retirement
+                            # or cancellation of the original undispatched grant.
+                            pass
                     return self._view(case)
                 case.approval.update(phase="authorized", executor_grant=copy.deepcopy(grant))
                 case.approval.pop("authorization_error", None)
@@ -829,6 +1238,9 @@ class ProductCaseService:
                          else {(case.plan or {}).get("plan_id")})
             if plan_id is not None and plan_id not in valid_ids:
                 raise ProductCaseError("plan_mismatch", 409)
+            if self._unresolved_review_authorization(case):
+                self._retire_denied_review(case, uid, comment=reason)
+                return self._view(case)
             if case.approval is not None or case.execution is not None:
                 raise ProductCaseError("already_approved", 409)
             if case.state == REJECTED:
@@ -846,6 +1258,9 @@ class ProductCaseService:
                     retire(self._executor_view(case), copy.deepcopy(case.plan))
                 except Exception as error:
                     raise ProductCaseError(_reason(error, "retirement_unavailable"), 503) from None
+            pending = self._open_objection(case)
+            if pending:
+                pending.update(status="rejected", resolved_at=utc_stamp())
             case.state = REJECTED
             case.reason = "rejected"
             case.updated_at = utc_stamp()
@@ -958,6 +1373,8 @@ class ProductCaseService:
             self._audit(case, uid, "revision_retired", version=case.revision["version"])
             case.revision = next_revision
             case.plan = plan if status == "prepared" else None
+            if status == "prepared":
+                self._update_handoff_order(case, outcome["plan"])
             case.comparison = comparison if status == "prepared" else None
             case.selection = None
             saved.update(phase="completed" if status == "prepared" else "failed",
@@ -966,6 +1383,15 @@ class ProductCaseService:
             case.reason = saved["error"]
             self._audit(case, uid, "prepared" if status == "prepared" else "revision_failed",
                         version=case.revision["version"], reason=case.reason)
+        review_operation = saved.get("review_operation")
+        if review_operation:
+            item = next(row for row in case.reviews if row["operation_id"] == review_operation)
+            if status in {"prepared", "failed"}:
+                item.update(status="corrected", resolved_at=utc_stamp(), result_version=case.revision["version"],
+                            preparation_status=status, result_plan_id=(case.plan or {}).get("plan_id"),
+                            result_comparison_id=(case.comparison or {}).get("comparison_id"))
+            else:
+                item.update(status="held", error=case.reason)
         case.updated_at = utc_stamp()
         self._write(case)
         return self._view(case)
@@ -1034,6 +1460,8 @@ class ProductCaseService:
         if status != "conflict":
             case.revision = next_revision
         case.plan = plan if status == "prepared" else None
+        if status == "prepared":
+            self._update_handoff_order(case, outcome["plan"])
         case.comparison = comparison if status == "prepared" else None
         case.selection = None
         saved.update(phase="completed" if status == "prepared" else "failed",
@@ -1052,32 +1480,45 @@ class ProductCaseService:
             case = self._owned(case_id, uid)
             if plan_id != (case.plan or {}).get("plan_id"):
                 raise ProductCaseError("plan_mismatch", 409)
-            if (case.execution or {}).get("status") == "not_started":
+            last = case.audit[-1] if case.audit else {}
+            if ((case.execution or {}).get("status") == "not_started" or
+                    (case.state == REJECTED and last.get("action") == "authorization_denied"
+                     and last.get("plan_id") == plan_id and last.get("receipt_sha256"))):
                 return self._view(case)
             self._require_scenario(case.scenario)
             cancel = getattr(self.executor, "cancel_unstarted", None)
             if not callable(cancel) or not self._can_cancel_unstarted(case):
                 raise ProductCaseError("unstarted_cancellation_unavailable", 409)
             try:
-                receipt = cancel(self._executor_view(case), copy.deepcopy(case.plan))
-                if (not isinstance(receipt, dict) or receipt.get("outcome") != "not_started"
-                        or receipt.get("approval_invalidated") is not True or receipt.get("plan_retired") is not True
-                        or receipt.get("plan_id") != plan_id or receipt.get("run_id") != f"local-{case_id}"
-                        or receipt.get("policy_sha256") != case.plan["policy_sha256"]
-                        or receipt.get("snapshot_sha256") != case.plan["snapshot_sha256"]
-                        or not isinstance(receipt.get("observed_at"), str)
-                        or not isinstance(receipt.get("receipt_sha256"), str)
-                        or re.fullmatch(r"[a-f0-9]{64}", receipt["receipt_sha256"]) is None):
+                recover_grant = (self._unresolved_authorization(case)
+                                 or self._unresolved_review_authorization(case)
+                                 or self._pending_authorization(case))
+                allow_never_accepted = self._unresolved_authorization(case)
+                if getattr(self.executor, "supports_never_accepted_closure", False):
+                    receipt = cancel(self._executor_view(case), copy.deepcopy(case.plan),
+                                     allow_never_accepted=allow_never_accepted)
+                else:
+                    receipt = cancel(self._executor_view(case), copy.deepcopy(case.plan))
+                grant = approval_payload(case_id, case.approval, case.plan)
+                if not unstarted_receipt_matches(receipt, grant, allow_unissued=recover_grant):
                     raise ProductCaseError("product_cancellation_unconfirmed", 409)
             except Exception as error:
                 raise ProductCaseError(_reason(error, "product_cancellation_unconfirmed"), 409) from None
+            if receipt["outcome"] == "never_approved":
+                self._record_denied_review(case, uid, receipt_sha256=receipt["receipt_sha256"],
+                                           observed_at=receipt["observed_at"], intent_sha256=receipt["intent_sha256"])
+                return self._view(case)
+            if recover_grant:
+                case.approval.update(phase="authorized", executor_grant=grant)
             case.approval["unstarted_cancellation"] = copy.deepcopy(receipt)
             case.execution = {"status": "not_started", "readback": None,
                               "verifier": {"status": "not_run"}, "writes": []}
             case.state, case.reason = REJECTED, "unstarted_execution_cancelled"
             case.updated_at = utc_stamp()
             self._audit(case, uid, "unstarted_cancelled", receipt_sha256=receipt["receipt_sha256"],
-                        observed_at=receipt["observed_at"])
+                        observed_at=receipt["observed_at"],
+                        **({"approval_sha256": receipt["approval_sha256"],
+                            "authorization_error": case.approval.get("authorization_error")} if recover_grant else {}))
             self._write(case)
             return self._view(case)
 

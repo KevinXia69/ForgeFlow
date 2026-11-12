@@ -5,7 +5,7 @@ import threading
 
 import pytest
 
-from forgeflow.api.stream_hub import MAX_EVENTS, AssistantStreamHub, TurnJournal
+from forgeflow.api.stream_hub import MAX_EVENTS, AssistantStreamHub, StreamJob, TurnJournal
 
 
 def _frames(text: str) -> list[dict]:
@@ -280,3 +280,193 @@ def test_reconnecting_inside_the_grace_keeps_the_turn(monkeypatch) -> None:
     finally:
         again.close()
         release.set()
+
+
+def test_on_create_runs_only_when_the_job_is_created():
+    hub = AssistantStreamHub()
+    calls = []
+
+    def callback():
+        calls.append("created")
+
+    release = threading.Event()
+
+    def producer():
+        yield {"type": "trace", "activity": []}
+        release.wait(2)
+        yield {"type": "final", "answer": "done"}
+
+    first = hub.start("same", producer, on_create=callback)
+    second = hub.start("same", producer, on_create=callback)
+    assert first is second
+    assert calls == ["created"]
+    release.set()
+    first._thread.join(2)
+
+
+def test_early_cancel_records_are_bounded_by_capacity(tmp_path):
+    journal = TurnJournal(tmp_path / "journal")
+    hub = AssistantStreamHub(max_jobs=2, journal=journal)
+    for index in range(8):
+        assert hub.cancel(f"early-{index}") is True
+    assert len(hub._jobs) == 0
+    assert len(list(journal.root.glob("*.json"))) <= 2
+
+
+def test_restoring_completed_turns_obeys_memory_capacity(tmp_path):
+    journal = TurnJournal(tmp_path / "journal", max_records=10)
+    for index in range(5):
+        job = StreamJob(f"done-{index}", (), on_finish=journal.save)
+        job._done = True
+        journal.save(job.snapshot())
+    hub = AssistantStreamHub(max_jobs=2, journal=journal)
+    restored = [hub.get(f"done-{index}") for index in range(5)]
+    assert all(item is not None for item in restored)
+    assert len(hub._jobs) == 2
+
+
+def test_cancelled_worker_keeps_the_execution_slot_until_it_exits(tmp_path):
+    from forgeflow.api.stream_hub import StreamCapacityError
+
+    hub = AssistantStreamHub(max_jobs=1)
+    release = threading.Event()
+
+    def producer():
+        release.wait(2)
+        yield {"type": "final", "answer": "done"}
+
+    job = hub.start("cancelled", producer)
+    hub.cancel("cancelled")
+    with pytest.raises(StreamCapacityError):
+        hub.start("next", lambda: iter([]))
+    release.set()
+    job._thread.join(2)
+    next_job = hub.start("next", lambda: iter([{"type": "final", "answer": "next"}]))
+    assert next_job is not None
+
+
+def test_expired_journal_record_is_not_restored(tmp_path):
+    import time
+
+    journal = TurnJournal(tmp_path / "journal", retention_seconds=1)
+    job = StreamJob("expired", (), on_finish=journal.save)
+    job._done = True
+    record = job.snapshot()
+    record["updated_at"] = time.time() - 2
+    journal.save(record)
+    hub = AssistantStreamHub(journal=journal)
+    assert hub.get("expired") is None
+    assert not journal._path("expired").exists()
+
+
+def test_restored_turn_inherits_its_original_age(tmp_path):
+    import time
+
+    journal = TurnJournal(tmp_path / "journal", retention_seconds=100)
+    job = StreamJob("aged", (), on_finish=journal.save)
+    job._done = True
+    record = job.snapshot()
+    record["updated_at"] = time.time() - 60
+    journal.save(record)
+    hub = AssistantStreamHub(retention_seconds=100, journal=journal)
+    assert hub.get("aged") is not None
+    age = time.monotonic() - hub._finished_at["aged"]
+    assert age > 50
+
+
+def test_early_cancel_blocks_a_later_start_without_running_the_producer(tmp_path):
+    journal = TurnJournal(tmp_path / "journal")
+    hub = AssistantStreamHub(journal=journal)
+    assert hub.cancel("racing-turn") is True
+    started = []
+    job = hub.start("racing-turn", lambda: started.append("started") or iter([]))
+    assert job.cancelled is True
+    assert started == []
+
+
+def test_completion_timestamp_not_first_access_drives_expiry(tmp_path):
+    import time
+
+    hub = AssistantStreamHub(retention_seconds=50)
+    job = hub.start("idle", lambda: iter([{"type": "final", "answer": "old"}]))
+    job._thread.join(2)
+    assert job.done and job.finished_at is not None
+    job._finished_monotonic = time.monotonic() - 100
+    hub._purge_locked()
+    assert hub.get("idle") is None
+
+
+def test_break_closes_the_suspended_generator():
+    import threading
+    import time
+
+    started, release, closed = threading.Event(), threading.Event(), threading.Event()
+
+    def producer():
+        try:
+            yield {"type": "trace"}
+            started.set()
+            release.wait(2)
+            yield {"type": "trace"}
+        finally:
+            closed.set()
+
+    job = StreamJob("close-me", producer())
+    job.start()
+    assert started.wait(1)
+    job.cancel()
+    release.set()
+    assert closed.wait(1)
+    for _ in range(20):
+        if job.done:
+            break
+        time.sleep(0.01)
+    assert job.done
+
+
+def test_delayed_start_reuses_a_complete_journal_record(tmp_path):
+    journal = TurnJournal(tmp_path / "journal")
+    hub = AssistantStreamHub(max_jobs=1, journal=journal)
+    calls = []
+
+    def producer():
+        calls.append("run")
+        yield {"type": "final", "answer": "done"}
+
+    first = hub.start("same-turn", producer, request_hash="same")
+    first._thread.join(2)
+    assert first.done and calls == ["run"]
+    # Simulate memory eviction while the complete journal record remains.
+    hub._jobs.clear()
+    hub._finished_at.clear()
+    created = []
+    second = hub.start("same-turn", lambda: calls.append("again"), request_hash="same",
+                       reuse_completed=True, on_create=lambda: created.append(True))
+    assert second.done and calls == ["run"] and created == []
+    assert second.cancelled is False
+    assert any(event.get("type") == "final" for _, event in second._events)
+
+
+def test_legacy_repeat_recomputes_even_when_a_complete_record_exists(tmp_path):
+    journal = TurnJournal(tmp_path / "journal")
+    hub = AssistantStreamHub(max_jobs=1, journal=journal)
+    calls = []
+
+    def first_producer():
+        calls.append("first")
+        yield {"type": "final", "answer": "first"}
+
+    first = hub.start("legacy-key", first_producer, request_hash="same")
+    first._thread.join(2)
+    assert first.done
+    hub._jobs.clear()
+    hub._finished_at.clear()
+
+    def second_producer():
+        calls.append("second")
+        yield {"type": "final", "answer": "second"}
+
+    second = hub.start("legacy-key", second_producer, request_hash="same", reuse_completed=False)
+    second._thread.join(2)
+    assert calls == ["first", "second"]
+    assert second.done

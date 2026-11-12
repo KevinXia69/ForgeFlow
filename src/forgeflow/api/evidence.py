@@ -7,7 +7,6 @@ identity. Building a snapshot has no execution/approval dependency.
 from __future__ import annotations
 
 import hashlib
-import hmac
 import json
 import os
 import tempfile
@@ -18,8 +17,10 @@ from typing import Any
 from ..product import ProductCaseService
 from ..product.service import actor_label
 from ..runview import RUN_ID, build_run_view
+from .auth import workspace_scope
 from .runs import RunService
 from .settings import Settings
+from .workspace_summary import case_home_views
 
 PRIVATE_KEYS = {
     "uid", "approver", "nonce", "api_key", "token", "secret", "invite_code",
@@ -48,9 +49,8 @@ def public_evidence(value: Any) -> Any:
 
 
 def principal_view(settings: Settings, uid: str) -> dict[str, str]:
-    material = f"{settings.deployment}\0{settings.data_root.resolve()}\0{uid}"
-    scope_id = hmac.new(settings.session_secret.encode(), material.encode(), hashlib.sha256).hexdigest()
-    return {"scope_id": scope_id, "display_name": actor_label(uid), "deployment": settings.deployment}
+    return {"scope_id": workspace_scope(settings, uid), "display_name": actor_label(uid),
+            "deployment": settings.deployment}
 
 
 def _order_key(record: dict[str, Any]) -> tuple[datetime, str]:
@@ -71,6 +71,7 @@ class ReadOnlyEvidenceProjection:
 
     def _case_view(self, case: dict[str, Any], connection: dict[str, Any] | None) -> dict[str, Any]:
         view = public_evidence(case)
+        view["home_views"] = case_home_views(view)
         decision = view.get("decision")
         if not isinstance(decision, dict):
             return view
@@ -88,6 +89,9 @@ class ReadOnlyEvidenceProjection:
                             can_reprepare=False, can_resume_repreparation=False,
                             can_select_candidate=False, can_resume_selection=False,
                             revision_reason="product_execution_unavailable")
+        if "can_review" in decision and (self.settings.deployment == "review"
+                or connection is not None and connection.get("ready") is not True):
+            decision["can_review"] = False
         return view
 
     def list_cases(self, uid: str) -> list[dict[str, Any]]:

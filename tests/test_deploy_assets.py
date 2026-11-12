@@ -71,7 +71,9 @@ def test_dockerfile_uses_unprivileged_user_and_healthcheck():
 
 def test_dockerfile_pins_runtime_dependencies():
     text = DOCKERFILE.read_text(encoding="utf-8")
-    assert "pip install --no-cache-dir ." in text
+    assert "npm ci --no-audit --no-fund" in text
+    assert "npm install" not in text
+    assert "pip install --no-cache-dir '.[planning,dsh-sdk]'" in text
     assert "fastapi==0.152.0" in text
     assert "uvicorn[standard]==0.54.0" in text
     assert "cryptography==50.0.2" in text
@@ -149,6 +151,43 @@ def test_image_initializes_both_deployments_approval_directories_for_runtime_use
             owned.update(words[words.index("10001:10001") + 1:])
     assert expected <= created
     assert expected <= owned
+
+
+def test_assistant_state_has_an_owned_writable_volume_outside_recorded_runs():
+    text = DOCKERFILE.read_text(encoding="utf-8")
+    paths = [re.search(rf"{key}=(\S+)", text).group(1)
+             for key in ("FORGEFLOW_DSH_HOME", "FORGEFLOW_DSH_WORKSPACE")]
+    root = Path(paths[0]).parent
+    assert root == Path(paths[1]).parent
+    assert not root.is_relative_to("/data/runs")
+    setup = text.split("\nUSER ", 1)[0].replace("\\\n", " ")
+    assert any(str(root) in shlex.split(command)[1:]
+               for command in re.findall(r"mkdir\s+[^&\n]+", setup))
+    assert any(str(root) in shlex.split(command)[2:]
+               for command in re.findall(r"chown\s+-R\s+10001:10001[^&\n]+", setup))
+    service = _compose_service()
+    mount = f"forgeflow-dsh:{root}"
+    if service is None:
+        assert mount in COMPOSE.read_text(encoding="utf-8")
+    else:
+        assert mount in service["volumes"]
+
+
+def test_attachments_have_an_owned_writable_volume_outside_recorded_runs():
+    text = DOCKERFILE.read_text(encoding="utf-8")
+    root = re.search(r"FORGEFLOW_ATTACHMENTS_ROOT=(\S+)", text).group(1)
+    assert not Path(root).is_relative_to("/data/runs")
+    setup = text.split("\nUSER ", 1)[0].replace("\\\n", " ")
+    assert any(root in shlex.split(command)[1:]
+               for command in re.findall(r"mkdir\s+[^&\n]+", setup))
+    assert any(root in shlex.split(command)[2:]
+               for command in re.findall(r"chown\s+-R\s+10001:10001[^&\n]+", setup))
+    mount = f"forgeflow-attachments:{root}"
+    service = _compose_service()
+    if service is None:
+        assert mount in COMPOSE.read_text(encoding="utf-8")
+    else:
+        assert mount in service["volumes"]
 
 
 def test_env_example_has_required_keys_and_safe_placeholders():

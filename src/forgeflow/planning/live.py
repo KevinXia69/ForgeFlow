@@ -119,9 +119,12 @@ def validate_request(request: dict) -> dict:
     _need(isinstance(disruption, dict), "disruption object required")
     kind = disruption.get("kind")
     if kind == "supplier_cancellation":
+        scope = {"purchase_order_id", "purchase_line_id"}
         _need(
-            set(disruption) in ({"kind", "vendor_ref"}, {"kind", "vendor_ref", "offer_key"}),
-            "Supplier disruption requires vendor_ref and optional offer_key",
+            (set(disruption) - scope) in ({"kind", "vendor_ref"}, {"kind", "vendor_ref", "offer_key"})
+            and (not scope.intersection(disruption) or
+                 all(type(disruption.get(key)) is int and disruption[key] > 0 for key in scope)),
+            "Supplier disruption requires vendor_ref and an optional exact purchase order/line pair",
         )
         _need(
             isinstance(disruption.get("vendor_ref"), str) and bool(disruption["vendor_ref"]),
@@ -281,7 +284,7 @@ def collect_snapshot(client: Any, request: dict) -> dict:
     models: dict[str, dict[int, dict]] = defaultdict(dict)
     schemas: dict[str, dict[str, str]] = {}
 
-    def fetch(model: str, *, domain=None, ids=None) -> list[dict]:
+    def fetch(model: str, *, domain=None, ids=None, retain=True, max_records=None) -> list[dict]:
         proxy = client.get_model(model)
         if model not in schemas:
             fields = FIELDS[model]
@@ -303,8 +306,11 @@ def collect_snapshot(client: Any, request: dict) -> dict:
             isinstance(ids, list) and all(isinstance(i, int) for i in ids),
             f"{model}: malformed search() IDs",
         )
+        if max_records is not None:
+            _need(len(ids) <= max_records, "Purchase protection exceeds 10000-record bound")
         if not ids:
-            models[model]  # Keep an explicitly collected empty table.
+            if retain:
+                models[model]  # Keep an explicitly collected empty table.
             return []
         selected = schemas[model]
         rows = _records(proxy.read(ids=ids, fields=list(selected.values())), model)
@@ -313,10 +319,11 @@ def collect_snapshot(client: Any, request: dict) -> dict:
         for row in rows:
             _need(all(actual in row for actual in selected.values()), f"{model}: incomplete record")
             normalized.append({canonical: row[actual] for canonical, actual in selected.items()})
-        models[model].update({r["id"]: r for r in normalized})
+        if retain:
+            models[model].update({r["id"]: r for r in normalized})
         return normalized
 
-    fetch("sale.order", ids=request["sales_order_ids"])
+    requested_orders = fetch("sale.order", ids=request["sales_order_ids"])
     target = fetch(
         "product.product", domain=[("default_code", "=", request["target_product_code"])]
     )
@@ -353,6 +360,20 @@ def collect_snapshot(client: Any, request: dict) -> dict:
     po_ids = sorted({_relation(r["order_id"]) for r in po_lines})
     fetch("purchase.order", ids=po_ids)
     fetch("purchase.order.line", domain=[("order_id", "in", po_ids)])
+    # The execution guard protects all existing company purchases, including
+    # those outside the planning product closure. Bind that inventory at the
+    # initial snapshot too: it must not appear for the first time after solving.
+    # These records are deliberately separate from models, so neither their
+    # products nor their quantities become planner inputs or recovery targets.
+    companies = {_relation(row["company_id"]) for row in requested_orders}
+    _need(len(companies) == 1 and None not in companies, "Exactly one explicit company required")
+    company = next(iter(companies))
+    company_purchases = fetch("purchase.order", domain=[("company_id", "=", company)],
+                              retain=False, max_records=10000)
+    protected_purchases = [row for row in company_purchases if row["id"] not in po_ids]
+    protected_lines = fetch("purchase.order.line",
+                            domain=[("order_id", "in", [row["id"] for row in protected_purchases])],
+                            retain=False, max_records=10000)
     fetch("mrp.production", domain=[("state", "not in", ["done", "cancel"])])
     fetch("mrp.workorder", domain=[("state", "not in", ["done", "cancel"])])
     fetch("mrp.workcenter", domain=[])
@@ -372,7 +393,7 @@ def collect_snapshot(client: Any, request: dict) -> dict:
         for r in models[model].values()
     }
     fetch("res.currency", ids=sorted(currency_ids - {None}))
-    return {
+    snapshot = {
         "schema_version": 1,
         "collected_at_utc": datetime.now(timezone.utc).isoformat(),
         "models": {name: list(rows.values()) for name, rows in models.items()},
@@ -382,6 +403,13 @@ def collect_snapshot(client: Any, request: dict) -> dict:
             "active_manufacturing_global": True,
         },
     }
+    if protected_purchases:
+        snapshot["protection"] = {
+            "schema_version": 1, "company_id": company,
+            "models": {"purchase.order": protected_purchases,
+                       "purchase.order.line": protected_lines},
+        }
+    return snapshot
 
 
 def _metadata(center: dict) -> tuple[int, dict[str, dict]]:
@@ -878,6 +906,7 @@ def build_blueprint(snapshot: dict, request: dict) -> dict:
         baseline_mfg[(products[pid]["default_code"], center["code"])] += quantity
 
     seeded_pos = []
+    purchase_subjects = defaultdict(list)
     baseline_offers = defaultdict(int)
     for po in rows("purchase.order"):
         if po["state"] == "cancel":
@@ -935,6 +964,7 @@ def build_blueprint(snapshot: dict, request: dict) -> dict:
             }
         )
         baseline_offers[key] += quantity
+        purchase_subjects[key].append((po["id"], line["id"], po["name"]))
 
     disruption = request["disruption"]
     repair = {
@@ -990,10 +1020,20 @@ def build_blueprint(snapshot: dict, request: dict) -> dict:
                 },
             )
         broken = candidates[0]
+        subjects = purchase_subjects[broken]
+        if "purchase_order_id" in disruption and len(subjects) > 1:
+            # This solver disables an entire offer. It cannot preserve another
+            # open commitment on that lane when only one purchase was cancelled.
+            raise LiveInputError("Multiple open purchases share the cancelled offer",
+                                 code="shared_offer_cancellation_unsupported")
+        if "purchase_order_id" in disruption and (not subjects or subjects[0][:2] != (
+                disruption["purchase_order_id"], disruption["purchase_line_id"])):
+            raise LiveInputError("The live purchase differs from the bound cancellation",
+                                 code="cancellation_subject_changed")
         repair.update(
             broken_supplier_offer_key=broken,
             broken_supplier_vendor_ref=disruption["vendor_ref"],
-            broken_purchase_order_refs=[p["ref"] for p in seeded_pos if p["offer_key"] == broken],
+            broken_purchase_order_refs=[ref for _, _, ref in subjects],
             broken_manufacturing_order_refs=[],
         )
         _need(

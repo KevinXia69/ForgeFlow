@@ -65,15 +65,16 @@ def test_html_references_no_external_scripts_or_styles(settings: Settings) -> No
     assert not any(url.lower().startswith(("http://", "https://", "//")) for url in urls)
 
 
-def test_javascript_uses_the_approval_endpoints_and_same_origin_credentials(
+def test_historical_plan_approvals_are_displayed_read_only(
     settings: Settings,
 ) -> None:
     with _client(settings) as client:
         script = client.get("/static/app.js").text
     assert 'credentials: "same-origin"' in script
     assert "/approvals" in script
-    assert "ttl_seconds" in script
-    assert '"POST"' in script or "method: \"POST\"" in script
+    assert "loadApprovals" in script
+    assert "ttl_seconds" not in script and "/revoke" not in script
+    assert 'id="approve-button"' not in (web.STATIC_DIR / "index.html").read_text()
 
 
 def test_missing_static_directory_leaves_the_api_working(

@@ -80,7 +80,15 @@ export type Approval = {
   snapshot_sha256?: string;
 };
 
-export type Config = { deployment: string; runner_enabled: boolean; scope_id?: string; display_name?: string };
+export type Config = {
+  /** Independent account sessions replace invite login when enabled. */
+  accounts_enabled?: boolean;
+  deployment: string;
+  runner_enabled: boolean;
+  scope_id?: string;
+  display_name?: string;
+  workbenches?: { investigation: boolean; recovery_review: boolean };
+};
 
 /** Authenticated runtime capabilities; product_approval gates live case writes. */
 export type Capabilities = {
@@ -107,6 +115,7 @@ export type Capabilities = {
 
 export type ProductOrder = {
   ref: string;
+  order_count?: number;
   product: string;
   units: number;
   due_days: number;
@@ -300,6 +309,8 @@ export type ProductExecution = {
     | {
         records?: ProductReadbackRecord[];
         execution_validated?: boolean;
+        receipt_sha256?: string;
+        readback_sha256?: string;
         verified_steps?: number;
       }
     | null;
@@ -352,6 +363,7 @@ export type ProductAskAnswer = {
 
 /** The server's public CaseFile projection; it never includes an owner uid. */
 export type CaseFile = {
+  home_views?: ("decision" | "executing" | "verified")[];
   case_id: string;
   scenario: string;
   state: string;
@@ -384,6 +396,15 @@ export type Passage = {
   end_line: number;
   text: string;
   score: number;
+  locator?: string | null;
+  document_id?: string | null;
+  document_version?: number | null;
+};
+
+export type ChatImage = {
+  data: string;
+  mimeType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+  name: string;
 };
 
 export type AnswerMode = "model" | "retrieval" | "harness";
@@ -449,4 +470,124 @@ export type ActivityState = {
   /** Harness runs can retry a failed tool without failing the answer. */
   outcome?: "success" | "failed";
   openByDefault?: boolean;
+};
+
+/** Read-only tenant context onboarding; no Odoo records are written here. */
+export type WorkspaceMapping = {
+  id: string;
+  source_id: string;
+  source_field: string;
+  sample: string;
+  target_model: string;
+  target_field: string;
+  confidence: string;
+  status: "suggested" | "unmapped" | "confirmed" | "ignored";
+};
+
+export type WorkspaceSource = {
+  id: string;
+  filename: string;
+  media_type: string;
+  size_bytes: number;
+  kind: string;
+  row_count: number;
+  headers: string[];
+  samples: string[][];
+  status: string;
+};
+
+export type WorkspaceImportRow = {
+  key: string;
+  model: string;
+  identity_field: string | null;
+  identity: string | null;
+  action: "create" | "update" | "unchanged" | "conflict";
+  existing_id: number | null;
+  changes: Record<string, unknown>;
+  values?: Record<string, unknown>;
+  problems?: string[];
+};
+
+export type WorkspaceImportPreview = {
+  access_scope?: { company_id: number };
+  preview_sha256: string;
+  importable: boolean;
+  counts: Record<string, number>;
+  rows: WorkspaceImportRow[];
+  blocking: { code: string; source_id?: string; field?: string }[];
+};
+
+export type WorkspaceImportExecution = {
+  status: string;
+  preview_sha256: string;
+  executed_at: string;
+  counts: Record<string, number>;
+  rows: { key: string; status: string; model: string; identity: string | null; operation?: string; error?: string }[];
+};
+
+export type Workspace = {
+  schema_version: number;
+  id: string;
+  name: string;
+  industry: string;
+  description: string;
+  modules: string[];
+  status:
+    | "draft"
+    | "mapping_confirmed"
+    | "import_authorized"
+    | "imported"
+    | "import_partial"
+    | "readback_passed"
+    | "readback_failed";
+  version: number;
+  created_at: string;
+  updated_at: string;
+  confirmed_at?: string;
+  sources: WorkspaceSource[];
+  mappings: WorkspaceMapping[];
+  warnings: string[];
+  states: {
+    saved: boolean;
+    mapping_confirmed: boolean;
+    context_adopted: boolean;
+    import_executed: boolean;
+    import_readback_passed: boolean;
+  };
+  mapping_adoption?: { status: string; models: string[]; counts: Record<string, number>; mapping_sha256: string } | null;
+  import?: {
+    preview?: WorkspaceImportPreview;
+    preview_sha256?: string;
+    authorized?: { by: string; at: string; preview_sha256: string } | null;
+    execution?: WorkspaceImportExecution | null;
+    readback?: { passed: boolean; status: string; rows: { key: string; readback: string; mismatched?: string[] }[] } | null;
+  } | null;
+};
+
+export type OnboardingTarget = {
+  model: string;
+  label: string;
+  fields: string[];
+};
+
+export type AccountSession = {
+  account: {
+    id: string;
+    tenant_id: string;
+    email: string;
+    display_name: string;
+    role: "admin" | "planner" | "approver" | "observer";
+    state: string;
+    mfa_enabled: boolean;
+  };
+  expires_at?: number;
+  mfa_required?: boolean;
+  challenge?: string;
+};
+
+export type ConversationAttachment = {
+  digest: string;
+  name: string;
+  media_type: string;
+  size: number;
 };

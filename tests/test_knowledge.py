@@ -5,8 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from support.legacy_index import DocumentIndex
 
-from forgeflow.knowledge import DocumentIndex, answer, evidence_lines
+from forgeflow.knowledge import answer, evidence_lines
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -68,7 +69,11 @@ def test_symlinked_document_is_skipped(tmp_path: Path) -> None:
 def test_internal_workbench_backlogs_are_not_shipped_capability_evidence(tmp_path: Path) -> None:
     docs = tmp_path / "docs"
     docs.mkdir()
-    for name in ("ForgeFlow_下一阶段开发方案_v9.md", "ForgeFlow_下一阶段开发方案_v10.md", "V9_实施记录.md", "NEXT_PHASE_DEVELOPMENT_PLAN.md", "RECORDING_CORRECTIONS.md"):
+    for name in (
+        "ForgeFlow_下一阶段开发方案_v9.md", "ForgeFlow_下一阶段开发方案_v10.md", "V9_实施记录.md",
+        "NEXT_PHASE_DEVELOPMENT_PLAN.md", "INVESTIGATION_DEVELOPMENT_PLAN.md",
+        "REVIEW_UTILITY_DEVELOPMENT_PLAN.md", "RECORDING_CORRECTIONS.md",
+    ):
         (docs / name).write_text("# Proposed\n\nUnimplemented future automatic approvals.")
     (docs / "verified.md").write_text("# Verified\n\nApprovals remain required.")
     assert {p.path for p in DocumentIndex(tmp_path).passages()} == {"docs/verified.md"}
@@ -97,3 +102,86 @@ def test_long_chinese_question_does_not_turn_one_incidental_bigram_into_evidence
     assert answer("只读", tmp_path)["found"]
     assert answer("说明只读回放保留哪些原始记录", tmp_path)["found"]
     assert answer("ERP", tmp_path)["found"]
+
+
+@pytest.mark.parametrize(("question", "locale", "subject"), [
+    ("可以给我介绍一下这个项目吗？", "zh", "计划员"),
+    ("这个项目是做什么的？", "zh", "计划员"),
+    ("简单介绍一下 ForgeFlow", "zh", "计划员"),
+    ("一句话介绍这个工具。", "zh", "计划员"),
+    ("用一句话向不懂技术的新同事介绍 ForgeFlow。", "zh", "计划员"),
+    ("新来的同事想了解这个工作台。一句话：它能帮什么忙？", "zh", "计划员"),
+    ("我想换个话题，向新来的同事介绍一下这个工具。", "zh", "计划员"),
+    ("它主要帮谁解决什么问题？两句话概括就好。", "zh", "计划员"),
+    ("What does this project do?", "en", "production planners"),
+    ("Could you give me an overview of ForgeFlow?", "en", "production planners"),
+])
+def test_intro_quotes_the_localized_project_overview(question, locale, subject):
+    result = answer(question, ROOT, locale=locale)
+    passage, = result["passages"]
+    citation, = result["citations"]
+    assert subject in passage["text"] and "ForgeFlow" in passage["text"]
+    assert "\n".join(evidence_lines(ROOT, citation)) == passage["text"]
+
+
+@pytest.mark.parametrize("question", [
+    "可以给我介绍一下这个项目的成本是怎么计算的吗？",
+    "ForgeFlow 里的 plan.new_spend 是什么？",
+    "我知道这个工具了，可以给新人介绍一下你怎么计算采购成本吗？",
+    "先给我介绍一下项目，不过我主要想知道 plan.new_spend 是什么。",
+    "What does ForgeFlow do after approval?",
+])
+def test_intro_does_not_replace_a_question_about_a_specific_subject(question):
+    from forgeflow.knowledge.answer import asks_for_project_overview
+
+    assert not asks_for_project_overview(question)
+
+
+@pytest.mark.parametrize("lang,question,expected", [
+    ("zh", "我第一次打开这里，想看一个例子，应该先点哪里？", "点左侧「案例」"),
+    ("en", "I am new. Where should I click to see an example?", "Open “Cases”"),
+    ("zh", "这真的能帮工厂省钱吗？目前有什么证据？", "尚未测量"),
+    ("en", "How much money has ForgeFlow actually saved?", "has not been measured"),
+    ("en", "Can I save money using ForgeFlow?", "has not been measured"),
+    ("zh", "原来的安排没留下可比金额，能算出新方案多花多少钱吗？", "差额未知"),
+    ("zh", "看到的订单还没付，要怎么核对实际支付？", "付款记录"),
+    ("zh", "模拟演示里计划成本便宜五美元，意味着每一次处理都能省钱吗？", "尚未测量"),
+    ("zh", "供应商不送货了，谁决定怎么办？", "生产计划员"),
+    ("en", "Can we schedule a whole factory with products that share parts?", "one finished product"),
+    ("zh", "一句话说说，谁会在什么情况下用到它？", "生产计划员"),
+    ("en", "Who would use it and when?", "production planners"),
+])
+def test_newcomer_questions_prefer_the_relevant_shipping_guidance(lang, question, expected):
+    result = answer(question, ROOT, locale=lang)
+    first, = result["passages"]
+    assert expected in first["text"]
+    assert "\n".join(evidence_lines(ROOT, result["citations"][0])) == first["text"]
+
+
+@pytest.mark.parametrize("lang,question,expected", [
+    ("zh", "现在有几件事等我决定？只告诉我数量就好。", "文档里没有当前工作区的实时数量"),
+    ("en", "How many cases are awaiting approval?", "The guide has no live workspace counts"),
+    ("zh", "轮到我拍板的还有几件？报个数。", "文档里没有当前工作区的实时数量"),
+    ("zh", "我手里还有几份方案没签字？", "文档里没有当前工作区的实时数量"),
+    ("en", "How many things need my sign-off?", "The guide has no live workspace counts"),
+])
+def test_static_retrieval_never_supplies_a_live_queue_count(tmp_path, lang, question, expected):
+    result = answer(question, ROOT, locale=lang)
+    passage, = result["passages"]
+    assert expected in passage["text"]
+    assert "\n".join(evidence_lines(ROOT, result["citations"][0])) == passage["text"]
+    # Old document bundles can have historical counts but lack the new guide section.
+    docs = tmp_path / "docs" / "en"
+    docs.mkdir(parents=True)
+    (docs / "old.md").write_text(f"{question} 17.")
+    (tmp_path / "docs" / "old.md").write_text(f"{question} 17.")
+    assert not answer(question, tmp_path, locale=lang)["found"]
+
+
+def test_explaining_approval_steps_does_not_require_a_live_case_count():
+    from forgeflow.knowledge.answer import asks_for_workspace_count
+
+    assert not asks_for_workspace_count("If a case is pending, how many approval steps are needed?")
+    assert not asks_for_workspace_count("一个待批案例需要几步操作？")
+    assert not asks_for_workspace_count("工厂每批货需要几份签字文件？")
+    assert not asks_for_workspace_count("How many sign-off steps does each plan require?")

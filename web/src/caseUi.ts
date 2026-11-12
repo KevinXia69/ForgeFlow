@@ -1,11 +1,13 @@
-import { planningAttention, decisionFactLines, hasNewSpendBasis, marginLabel, marginValue } from "./decisionSummary";
+import { recordedApproval, planningAttention, decisionFactLines, hasNewSpendBasis, marginLabel, marginValue } from "./decisionSummary";
 import { impactAnswer, impactIntent, disruptionScopeLines } from "./impactFacts";
 import { recordedDueRange } from "./orderReadinessDates";
 import { originalScoreThresholdMiss } from "./verificationExplanation";
 import { ApiError } from "./api";
 import { costMoney } from "./costAmounts";
 import { environmentAccessNotice } from "./environmentAccess";
+import { orderCount } from "./orderCount";
 import type { Lang, MessageKey, Translate } from "./i18n";
+import { caseUserState, taskStateKey } from "./taskState";
 import type {
   ActivityState,
   Capabilities,
@@ -52,9 +54,22 @@ const TERMINAL_STATES = new Set([
   "expired",
 ]);
 
+//: Screen-only markers, not business states: these keep their own labels.
+const UI_ONLY_STATES = new Set(["loading", "demo", "ready"]);
+
+/** Outward state: always one of the seven shared task states. */
 export function stateLabel(state: string, t: Translate): string {
+  if (UI_ONLY_STATES.has(state)) {
+    const key = STATE_LABELS[state];
+    return key ? t(key) : state;
+  }
+  return t(taskStateKey(caseUserState(state)));
+}
+
+/** Finer internal phase, for step-level detail where the seven would be too coarse. */
+export function phaseLabel(state: string, t: Translate): string {
   const key = STATE_LABELS[state];
-  return key ? t(key) : state;
+  return key ? t(key) : t(taskStateKey(caseUserState(state)));
 }
 
 export function errorDetail(error: unknown): string {
@@ -107,7 +122,9 @@ export function shortId(value: string | null | undefined, length = 8): string {
 
 export function formatDateTime(
   value: string | null | undefined,
-  lang: Lang,
+  // The public bundle is English-only at the type level, so this takes a plain
+  // string and keeps the zh formatting branch reachable, like costMoney().
+  lang: string,
 ): string {
   if (!value) return "—";
   const date = new Date(value);
@@ -169,19 +186,7 @@ export function formatCheckValue(
   return value;
 }
 
-/** Count sales orders from the compact ``SO-1..5`` reference. */
-export function orderCount(ref: string | null | undefined): number | null {
-  if (!ref) return null;
-  const range = /(\d+)\s*\.\.\s*(\d+)/.exec(ref);
-  if (range) {
-    const start = Number(range[1]);
-    const end = Number(range[2]);
-    if (Number.isFinite(start) && Number.isFinite(end) && end >= start) {
-      return end - start + 1;
-    }
-  }
-  return null;
-}
+export { orderCount } from "./orderCount";
 
 export function severityOf(caseFile: CaseFile): Severity {
   if (["failed", "execution_unknown"].includes(caseFile.state)) return "high";
@@ -331,6 +336,9 @@ export function isCaseVerified(caseFile: CaseFile): boolean {
 export type SavedCaseView = "decision" | "risk" | "executing" | "verified" | "all";
 
 export function matchesSavedView(item: CaseFile, view: SavedCaseView): boolean {
+  if ((view === "decision" || view === "executing" || view === "verified") && item.home_views) {
+    return item.home_views.includes(view);
+  }
   if (view === "decision") return ["awaiting_selection", "awaiting_approval"].includes(item.state);
   if (view === "executing") return ["preparing", "executing"].includes(item.state);
   if (view === "verified") return isCaseVerified(item);
@@ -515,7 +523,7 @@ export function effectiveChecks(
       derived: false,
     };
   }
-  const orders = orderCount(caseFile.order.ref);
+  const orders = orderCount(caseFile.order);
   return {
     derived: true,
     checks: [
@@ -614,8 +622,6 @@ export type ApprovalBlock = {
   kind: "deployment" | "environment" | "scenario" | "blocked" | "missing" | "state" | "legacy" | "unknown";
   reason: string;
   recovery: string | null;
-  /** A second, independent reason that also has to be fixed. */
-  also?: string | null;
 };
 
 export type ApprovalGate = { canApprove: boolean; block: ApprovalBlock | null };
@@ -656,17 +662,9 @@ export function approvalGate(input: {
   const names = (codes: string[]) => codes.map((code) => checkDisplayName(code, t)).join(t("v13.checkNameSeparator"));
   if (canApprove) return { canApprove: true, block: null };
   if (!approvalCapable || reason === "product_execution_unavailable") {
-    // Connecting an executor is not enough when a required check was never
-    // recorded, so say that here instead of letting the reader find out later.
-    const also = missing.length > 0 || reason === "required_checks_unknown"
-      ? t("v14.blockAlsoMissing", { names: names(missing) })
-      : null;
-    return {
-      canApprove: false,
-      block: { kind: "deployment",
-        reason: t(input.capabilities?.deployment === "hosted" ? "environment.unavailable" : "v13.blockDeployment"),
-        recovery: t(input.capabilities?.deployment === "hosted" ? "environment.unavailableRecovery" : "v13.recoveryDeployment"), also },
-    };
+    return { canApprove: false, block: { kind: "deployment",
+      reason: t(input.capabilities?.deployment === "hosted" ? "environment.unavailable" : "v13.blockDeployment"),
+      recovery: t(input.capabilities?.deployment === "hosted" ? "environment.unavailableRecovery" : "v13.recoveryDeployment") } };
   }
   if (reason === "product_scenario_unavailable") {
     return { canApprove: false, block: { kind: "scenario", reason: t("v13.blockScenario"), recovery: t("v13.recoveryScenario") } };
@@ -688,9 +686,6 @@ export function approvalGate(input: {
   }
   if (reason === "approval_expired") {
     return { canApprove: false, block: { kind: "state", reason: t("v13.blockExpired"), recovery: t("v13.recoveryReprepare") } };
-  }
-  if (reason === "product_binding_missing") {
-    return { canApprove: false, block: { kind: "missing", reason: t("v14.bindingMissing"), recovery: t("v13.recoveryReprepare") } };
   }
   if (reason === "product_version_required") {
     // The existing copy already tells the reader how to recover.
@@ -774,7 +769,7 @@ export function caseConclusion(caseFile: CaseFile, t: Translate): string | null 
   const summary = verifierSummary(caseFile.execution, t, caseFile.result);
   if (summary.passed === null || summary.total === null) return null;
   const vars = {
-    orders: orderCount(caseFile.order.ref) ?? "?",
+    orders: orderCount(caseFile.order) ?? "?",
     units: formatQuantity(caseFile.order.units),
     product: caseFile.order.product,
     due: dueWindow(caseFile, t),
@@ -783,25 +778,6 @@ export function caseConclusion(caseFile: CaseFile, t: Translate): string | null 
     score: summary.score === null ? "" : `${summary.score.toFixed(2)}/100`,
   };
   return t(summary.score === null ? "v13.conclusionNoScore" : "v13.conclusion", vars);
-}
-
-const READBACK_STATES: Record<string, MessageKey> = {
-  cancel: "v14.readbackCancel",
-  purchase: "v14.readbackPurchase",
-  confirmed: "v14.readbackConfirmed",
-  reflected: "v14.readbackReflected",
-  draft: "v14.readbackDraft",
-};
-
-/**
- * Readback states arrive as server tokens. Known ones get plain words; an
- * unknown one is shown as-is and marked, exactly like an unknown check code.
- */
-export function readbackState(state: string | null | undefined, t: Translate): { label: string; unknown: boolean } {
-  const token = (state ?? "").trim();
-  if (!token) return { label: t("v9.unknown"), unknown: false };
-  const key = READBACK_STATES[token];
-  return key ? { label: t(key), unknown: false } : { label: token, unknown: true };
 }
 
 /** Rules-only verifier line: the score is stated once, in the conclusion. */
@@ -849,7 +825,8 @@ export type Step = {
 
 function approvalRecorded(caseFile: CaseFile): boolean {
   if (caseFile.decision?.authorization_pending) return false;
-  return !!caseFile.approval || !!caseFile.plan && (caseFile.audit ?? []).some(row => !!row && typeof row === "object" && "action" in row && row.action === "approved" && "plan_id" in row && row.plan_id === caseFile.plan?.plan_id);
+  if (caseFile.approval) return !!recordedApproval(caseFile);
+  return !!caseFile.plan && (caseFile.audit ?? []).some(row => !!row && typeof row === "object" && "action" in row && row.action === "approved" && "plan_id" in row && row.plan_id === caseFile.plan?.plan_id);
 }
 
 export function isExecutionUnknown(caseFile: CaseFile): boolean {
@@ -938,10 +915,10 @@ export function timelineEvents(
   const execution = caseFile.execution;
   const checks = effectiveChecks(caseFile, t).checks;
   const summary = verifierSummary(execution, t, caseFile.result);
-  const orderText = orderCount(caseFile.order.ref)
+  const orderText = orderCount(caseFile.order)
     ? t("decision.unitsValue", {
         units: formatQuantity(caseFile.order.units),
-        orders: orderCount(caseFile.order.ref) ?? 1,
+        orders: orderCount(caseFile.order) ?? 1,
       })
     : t("decision.unitsValuePlain", {
         units: formatQuantity(caseFile.order.units),
@@ -1001,7 +978,7 @@ export function timelineEvents(
           ? t("case.timeline.decisionDone")
           : caseFile.decision?.selection_pending ? t("candidate.pendingTitle") : state === "awaiting_selection" ? t("candidate.awaiting") : state === "awaiting_approval" ? t("case.timeline.decision") : t("case.step.decision"),
       detail: decisionDetail,
-      time: formatDateTime(caseFile.approval?.issued_at, lang),
+      time: formatDateTime(recordedApproval(caseFile)?.issued_at, lang),
       status: steps[2].status,
     },
     {
@@ -1035,6 +1012,7 @@ export function buildCaseActivity(
   const plan = caseFile.plan;
   const execution = caseFile.execution;
   const state = caseFile.state;
+  const approval = recordedApproval(caseFile);
   const steps: ActivityState["steps"] = [];
   const checks = effectiveChecks(caseFile, t);
   const summary = verifierSummary(execution, t, caseFile.result);
@@ -1082,11 +1060,11 @@ export function buildCaseActivity(
   steps.push({
     id: "approval",
     kind: "approval",
-    label: caseFile.reason === "product_selection_conflict" ? t("candidate.conflictTitle") : caseFile.decision?.selection_pending ? t("candidate.pendingTitle") : state === "awaiting_selection" ? t("candidate.awaiting") : caseFile.approval
+    label: caseFile.reason === "product_selection_conflict" ? t("candidate.conflictTitle") : caseFile.decision?.selection_pending ? t("candidate.pendingTitle") : state === "awaiting_selection" ? t("candidate.awaiting") : approval
       ? t("case.activityApproval")
       : t("case.activityAwait"),
-    detail: caseFile.reason === "product_selection_conflict" ? t("candidate.conflictBody") : caseFile.approval
-      ? caseFile.approval.issued_at ?? t("caseChat.citeApproval")
+    detail: caseFile.reason === "product_selection_conflict" ? t("candidate.conflictBody") : approval
+      ? approval?.issued_at ?? t("caseChat.citeApproval")
       : state === "rejected"
         ? t("case.state.rejected")
         : undefined,
@@ -1173,7 +1151,7 @@ function citationList(caseFile: CaseFile, t: Translate): string[] {
       t("caseChat.citePolicy", { id: shortId(plan.policy_sha256) }),
     );
   }
-  if (caseFile.approval) {
+  if (recordedApproval(caseFile)) {
     citations.push(
       t("caseChat.citeApproval"),
     );
@@ -1209,7 +1187,7 @@ export function localCaseAnswer(
   const q = question.toLowerCase();
   const plan = caseFile.plan;
   const execution = caseFile.execution;
-  const orders = orderCount(caseFile.order.ref);
+  const orders = orderCount(caseFile.order);
   const citations = citationList(caseFile, t);
   const demoLine = demo ? ` ${t("caseChat.answerDemo")}` : "";
   const candidateLabel = (candidate: Pick<ProductPlan, "objective">) => t(candidate.objective === "preserve_quantities"
@@ -1249,15 +1227,15 @@ export function localCaseAnswer(
   const checksLine = [checksSummary, budgetAggregateNote(checks.checks, t), budgetLine].filter(Boolean).join(" ");
 
   const executionIntent =
-    /execut|odoo|verif|score|write|readback|receipt|approv|执行|验收|写入|回读|批准|改了/.test(
+    /execut|odoo|verif|score|write|readback|receipt|approv/.test(
       q,
     );
   const planIntent =
-    /plan|proposal|changes|cancel|create|new|buy|margin|budget|policy|spend|purchase|cost|方案|计划|变更|为什么取消|新建|毛利|预算|政策|采购|支出|成本/.test(
+    /plan|proposal|changes|cancel|create|new|buy|margin|budget|policy|spend|purchase|cost/.test(
       q,
     );
   const riskIntent =
-    /risk|impact|due|late|order|unit|why|delivery|交付|风险|影响|订单|台|断供|延期/.test(
+    /risk|impact|due|late|order|unit|why|delivery/.test(
       q,
     );
 
@@ -1271,15 +1249,15 @@ export function localCaseAnswer(
   }
 
   const chainIntent = impactIntent(question);
-  const readinessIntent = /order readiness|ready date|date buffer|per-order|逐单|每单|齐货|交期余量|每张订单/.test(q);
-  const comparisonIntent = /compar|candidate|alternative|option|selection|cheaper|比较|候选|取舍|选择|对比|更便宜/.test(q);
-  const headroomIntent = /headroom|slack|risk|余量|缓冲|风险/.test(q);
-  const choiceIntent = /selection reason|approval comment|选择理由|批准备注|备注/.test(q)
-    || (/why|reason|为什么|为何|理由/.test(q) && /choose|chosen|selected|candidate|selection|选择|候选|取舍/.test(q));
-  const budgetIntent = /budget|预算/.test(q);
-  const actionIntent = /changes|changed|cancel|create|变更|取消|新建|改了/.test(q);
+  const readinessIntent = /order readiness|ready date|date buffer|per-order/.test(q);
+  const comparisonIntent = /compar|candidate|alternative|option|selection|cheaper/.test(q);
+  const headroomIntent = /headroom|slack|risk/.test(q);
+  const choiceIntent = /selection reason|approval comment/.test(q)
+    || (/why|reason/.test(q) && /choose|chosen|selected|candidate|selection/.test(q));
+  const budgetIntent = /budget/.test(q);
+  const actionIntent = /changes|changed|cancel|create/.test(q);
   const budgetOnly = budgetIntent && !comparisonIntent && !choiceIntent && !actionIntent && !executionIntent
-    && !/plan|proposal|policy|spend|cost|margin|price|purchase|date|ready|delivery|capacity|risk|计划|方案|政策|支出|成本|毛利|采购|金额|齐货|交期|交付|产能|风险/.test(q);
+    && !/plan|proposal|policy|spend|cost|margin|price|purchase|date|ready|delivery|capacity|risk/.test(q);
   if (compose && (chainIntent || headroomIntent || choiceIntent || actionIntent || budgetIntent || [comparisonIntent, readinessIntent, planIntent, executionIntent].filter(Boolean).length > 1)) {
     const parts: CaseAnswer[] = [];
     const add = (query: string) => parts.push(localCaseAnswer(caseFile, query, t, false, false));
@@ -1301,7 +1279,8 @@ export function localCaseAnswer(
       lines.push(t("decisionFacts.budgetNote"));
     }
     if (choiceIntent) {
-      const reason = caseFile.approval?.plan_id === plan?.plan_id ? caseFile.approval?.comment?.trim() : null;
+      const approval = recordedApproval(caseFile);
+      const reason = approval?.plan_id === plan?.plan_id ? approval?.comment?.trim() : null;
       lines.push(reason ? t("decisionFacts.choice") + ": " + reason : t("decisionFacts.choiceUnknown"));
     }
     if (actionIntent && plan) {

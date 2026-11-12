@@ -73,21 +73,6 @@ run/verification organization. Harbor is a Python dependency and is not
 vendored in this public snapshot.
 
 ================================================================================
-WayRaft and DeepTutor
-================================================================================
-
-WayRaft: https://github.com/KevinXia69/WayRaft (Apache License 2.0)
-DeepTutor: https://github.com/KevinXia69/DeepTutor (Apache License 2.0)
-
-ForgeFlow's workbench layout and interaction language were inspired by WayRaft,
-including the left navigation rail, restrained neutral palette, centered input
-area, and time-of-day greeting pattern. The settings-panel organization was
-inspired by DeepTutor. These projects are attribution references only: no
-WayRaft or DeepTutor source code, components, backends, private records, or
-brand assets are copied into this public snapshot. The Apache License 2.0 terms
-of those projects continue to apply to those projects.
-
-================================================================================
 DeepSeek Harness (DSH)
 ================================================================================
 

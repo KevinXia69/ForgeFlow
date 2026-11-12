@@ -11,9 +11,9 @@ import re
 from pathlib import Path
 
 import pytest
+from support.legacy_index import DocumentIndex, tokenize
 
-from forgeflow.knowledge import DocumentIndex, answer, evidence_lines
-from forgeflow.knowledge.index import tokenize
+from forgeflow.knowledge import answer, evidence_lines
 
 ROOT = Path(__file__).resolve().parents[1]
 CJK = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
@@ -279,3 +279,11 @@ def test_locale_retrieval_is_deterministic(tmp_path: Path) -> None:
     chinese_index = DocumentIndex(ROOT)
     assert chinese_index.search("403 只读 key") == chinese_index.search("403 只读 key")
     assert chinese_index.passages() == chinese_index.passages()
+
+
+def test_enterprise_document_locale_is_inferred_from_content() -> None:
+    from forgeflow.semantic.index import detect_document_locale
+
+    assert detect_document_locale("Approval code SIGNOFF-EN. Amount 12345.67.") == "en"
+    assert detect_document_locale("审批编码 SIGNOFF-ZH，金额 12345.67。") == "zh"
+    assert detect_document_locale("ForgeFlow 审批流程") == "zh"

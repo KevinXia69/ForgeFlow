@@ -21,6 +21,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from forgeflow.approval import Approval
 from forgeflow.executor.handlers import APPROVAL_FIELDS
 from forgeflow.executor.protocol import ERROR_CODES
 from forgeflow.planning.objectives import (
@@ -41,7 +42,7 @@ from forgeflow.recovery.storage import StorageError, digest, read_json
 
 from .executor import ProductExecutionError
 from .progress import HUB
-from .state import SCENARIOS, project_action_snapshot
+from .state import SCENARIOS, approval_payload, project_action_snapshot, unstarted_receipt_matches
 
 REVISION_CAPABILITY_ENV = "FORGEFLOW_LOCAL_REVISIONS"
 REVISION_ACCEPTANCE_ENV = "FORGEFLOW_LOCAL_REVISION_ACCEPTANCE"
@@ -51,8 +52,12 @@ CANDIDATE_PROFILE_ENV = "FORGEFLOW_LOCAL_CANDIDATE_PROFILE"
 
 def candidate_profile_setting() -> str | None:
     value = os.environ.get(CANDIDATE_PROFILE_ENV)
-    if value is not None:
-        profile_objectives(value)
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    profile_objectives(value)
     return value
 
 
@@ -143,6 +148,10 @@ class LocalProductExecutor:
         enable_candidates: bool = False,
         candidate_profile: str = LEGACY_CANDIDATE_PROFILE,
         artifact_rpc: bool = False,
+        handoff_binding: dict | None = None,
+        policy: str | Path | None = None,
+        binding_guard=None,
+        review_connection=None,
     ) -> None:
         self.socket_path = str(socket_path)
         self.store = Path(store)
@@ -150,22 +159,42 @@ class LocalProductExecutor:
             raise ValueError("invalid_artifact_rpc_setting")
         self.artifact_rpc = artifact_rpc
         self.approvals = Path(approvals)
-        self.request = json.loads(Path(request).read_text(encoding="utf-8"))
+        self.request_path = Path(request)
+        self.request = json.loads(self.request_path.read_text(encoding="utf-8"))
         if not isinstance(self.request, dict):
             raise ValueError("local request must be a JSON object")
-        spec = SCENARIOS.get(scenario)
-        if spec is None or (task is not None and task != spec["task"]):
-            raise ValueError("local_scenario_task_mismatch")
+        self.handoff_binding = None
+        self.binding_guard = binding_guard
+        self.review_connection = review_connection
+        self.handoff_sha256 = None
+        self.policy_path = Path(policy) if policy is not None else None
+        if handoff_binding is not None:
+            from forgeflow.contract import contract_from_payload
+
+            from .handoff import validate_handoff
+
+            self.handoff_binding = validate_handoff(handoff_binding, historical=True)
+            contract = contract_from_payload(self.handoff_binding["contract"])
+            if (scenario != "A" or self.request != self.handoff_binding["request"]
+                    or self.policy_path is None or read_json(self.policy_path) != contract.payload()
+                    or task is not None and task != contract.task_id):
+                raise ValueError("local_handoff_request_mismatch")
+            self.handoff_sha256 = digest(self.handoff_binding)
+            self.task = contract.task_id
+        else:
+            spec = SCENARIOS.get(scenario)
+            if spec is None or (task is not None and task != spec["task"]):
+                raise ValueError("local_scenario_task_mismatch")
+            self.task = spec["task"]
+            disruption = self.request.get("disruption")
+            if (self.request.get("target_product_code") != spec["product_code"]
+                    or not isinstance(disruption, dict)
+                    or disruption.get("kind") != spec["disruption"]["kind"]):
+                raise ValueError("local_scenario_request_mismatch")
+            if scenario == "B" and disruption.get("workcenter_code") != spec["disruption"]["workcenter_code"]:
+                raise ValueError("local_scenario_request_mismatch")
         self.scenario = scenario
-        self.task = spec["task"]
         self.supported_scenarios = (scenario,)
-        disruption = self.request.get("disruption")
-        if (self.request.get("target_product_code") != spec["product_code"]
-                or not isinstance(disruption, dict)
-                or disruption.get("kind") != spec["disruption"]["kind"]):
-            raise ValueError("local_scenario_request_mismatch")
-        if scenario == "B" and disruption.get("workcenter_code") != spec["disruption"]["workcenter_code"]:
-            raise ValueError("local_scenario_request_mismatch")
         self.container = container
         self.tests_path = tests_path.rstrip("/") or "/tests"
         self.docker_timeout = docker_timeout
@@ -215,6 +244,23 @@ class LocalProductExecutor:
         # an A case's decision to a B sandbox (or use an unlabelled old request).
         if case.get("scenario") != self.scenario:
             raise ProductExecutionError("product_scenario_unavailable")
+        if self.handoff_binding is not None:
+            from .handoff import handoff_summary
+
+            if (digest(self.handoff_binding) != self.handoff_sha256
+                    or case.get("case_id") != self.handoff_binding["product_case_id"]
+                    or case.get("_handoff") != handoff_summary(self.handoff_binding)
+                    or case.get("_owner_sha256") != hashlib.sha256(self.handoff_binding["owner"].encode()).hexdigest()
+                    or self.request != self.handoff_binding["request"]
+                    or self._json(self.request_path) != self.request
+                    or self._json(self.policy_path) != self.handoff_binding["contract"]):
+                raise ProductExecutionError("product_handoff_binding_changed")
+        elif case.get("_handoff") is not None:
+            raise ProductExecutionError("product_handoff_binding_changed")
+
+    def _check_live_binding(self):
+        if self.handoff_binding is not None and self.binding_guard is not None:
+            self.binding_guard(copy.deepcopy(self.handoff_binding))
 
     def _json(self, path: Path) -> dict[str, Any]:
         try:
@@ -252,17 +298,41 @@ class LocalProductExecutor:
 
     def _require_binding(self, case, plan):
         self._require_case_scenario(case)
+        if (self.handoff_binding is not None
+                and plan.get("policy_sha256") != digest(self.handoff_binding["contract"])):
+            raise ProductExecutionError("product_handoff_binding_changed")
         if not self.can_execute_plan(case, plan):
             raise ProductExecutionError("product_version_required")
         return plan["executor_binding"]
 
     def _product(self, case, action, payload):
+        self._require_case_scenario(case)
+        if action in {"prepare", "authorize"}:
+            self._check_live_binding()
         try:
             return client.product(self.socket_path, f"local-{case['case_id']}", action, payload, timeout=300)
         except client.ExecutorError as error:
             # Keep transport/protocol codes only; never expose raw server prose.
             reason = error.reason if error.reason in ERROR_CODES else error.code
             raise ProductExecutionError(reason) from None
+
+    def load_comparison(self, case, comparison_id):
+        self._require_case_scenario(case)
+        if not self.artifact_rpc:
+            directory = self.store / "product-comparisons"
+            if directory.is_symlink():
+                raise ProductExecutionError("product_comparison_invalid")
+            try:
+                return read_json(directory / (comparison_id + ".json"))
+            except (OSError, ValueError, StorageError) as error:
+                raise ProductExecutionError("product_comparison_invalid") from error
+        response = self._product(case, "comparison", {
+            "owner_sha256": case["_owner_sha256"], "comparison_id": comparison_id,
+        })
+        audit = response.get("audit")
+        if not isinstance(audit, dict):
+            raise ProductExecutionError("product_comparison_invalid")
+        return audit
 
     def retire(self, case, plan):
         self._require_case_scenario(case)
@@ -271,10 +341,19 @@ class LocalProductExecutor:
             # root refuses all legacy new writes, independently of this card.
             return
         binding = self._require_binding(case, plan)
-        self._product(case, "decide", {
+        decision = self._product(case, "decide", {
             "owner_sha256": case["_owner_sha256"], "expected_revision": binding["revision"],
             "operation_id": f"reject-{plan['plan_id']}", "action": "reject", "plan_id": plan["plan_id"],
-        })
+        }).get("decision")
+        row = (decision or {}).get("plans", {}).get(plan["plan_id"], {})
+        if (not isinstance(decision, dict) or decision.get("state") != "retired"
+                or decision.get("revision") != binding["revision"] + 1
+                or decision.get("run_id") != binding["product"]["run_id"]
+                or decision.get("selected_plan_id") is not None
+                or row.get("product") != binding["product"] or row.get("state") != "retired"
+                or row.get("retired_reason") != "rejected"):
+            raise ProductExecutionError("product_retirement_unconfirmed")
+        return {"plan_id": plan["plan_id"], "revision": decision["revision"], "plan_retired": True}
 
     def retire_comparison(self, case, comparison):
         self._require_case_scenario(case)
@@ -296,39 +375,85 @@ class LocalProductExecutor:
         if (not isinstance(actor, str) or hashlib.sha256(actor.encode()).hexdigest() != case["_owner_sha256"]
                 or record.get("plan_id") != plan["plan_id"]):
             raise ProductExecutionError("approval_not_bound")
-        return {
-            "nonce": record.get("nonce"), "run_id": f"local-{case['case_id']}", "plan_id": plan["plan_id"],
-            "policy_sha256": plan["policy_sha256"], "snapshot_sha256": plan["snapshot_sha256"],
-            "approver": actor, "issued_at_utc": record.get("issued_at"), "expires_at_utc": record.get("expires_at"),
-        }
+        return approval_payload(case["case_id"], record, plan)
+
+    def _check_review_cancellation(self, directory, plan_id, manifest, changes, *, before_dispatch=False):
+        binding = self.handoff_binding
+        if (binding or {}).get("review_profile") != "recovery-review-v1":
+            return
+        from .review_facts import check_confirmed_supply
+
+        snapshot = self._json(directory / "snapshot.json")
+        blueprint = self._json(directory / "blueprint.json")
+        artifacts = manifest["artifacts"]
+        if (digest(manifest) != plan_id or digest(blueprint) != artifacts["blueprint"]
+                or digest(snapshot) != artifacts["snapshot"] or digest(changes) != artifacts["change-set"]
+                or digest(binding["request"]) != artifacts["request"]):
+            raise ProductExecutionError("plan_not_bound")
+        subject = binding.get("confirmed_supply")
+        if subject is None or before_dispatch:
+            from forgeflow.contract import contract_from_payload
+            from forgeflow.investigation.sources import OdooSource
+
+            contract = contract_from_payload(binding["contract"])
+            if self.review_connection is None:
+                raise ProductExecutionError("review_source_unavailable")
+            source = OdooSource(self.review_connection(), contract)
+            if subject is None:
+                # Earlier explicit notices did not store a line ID.
+                from forgeflow.investigation.review_session import commitments
+
+                rows = commitments(source, contract, binding["event"])
+                if len(rows) != 1 or rows[0]["binding"] is not None:
+                    raise ProductExecutionError("review_notice_line_mismatch")
+                subject = {key: int(rows[0][key]) for key in
+                           ("purchase_order_id", "purchase_line_id", "supplier_id", "product_id")}
+        check_confirmed_supply(snapshot, blueprint, changes, subject)
+        if before_dispatch:
+            from .review_facts import check_live_purchase
+
+            check_live_purchase(source, snapshot, subject)
+
+    def _check_saved_review_plan(self, case, plan_id):
+        if (self.handoff_binding or {}).get("review_profile") != "recovery-review-v1":
+            return
+        from .artifacts import prepared_directory
+
+        with prepared_directory(self, case, plan_id) as directory:
+            self._check_review_cancellation(directory, plan_id, self._json(directory / "manifest.json"),
+                                            self._json(directory / "change-set.json"), before_dispatch=True)
 
     def authorize(self, case, plan):
         expected = self._approval_payload(case, plan)
+        self._check_saved_review_plan(case, plan["plan_id"])
         response = self._product(case, "authorize", {
             "owner_sha256": case["_owner_sha256"], "expected_revision": plan["executor_binding"]["revision"],
-            "plan_id": plan["plan_id"], "intent": {key: expected[key] for key in (
-                "nonce", "approver", "issued_at_utc", "expires_at_utc")},
+            "plan_id": plan["plan_id"], "intent": Approval(**expected).issuance_intent(),
         })
         token = response.get("approval")
         if not isinstance(token, dict) or token != {"schema_version": 1, **expected}:
             raise ProductExecutionError("approval_not_bound")
         return expected
 
-    def cancel_unstarted(self, case, plan):
+    supports_never_accepted_closure = True
+
+    def cancel_unstarted(self, case, plan, *, allow_never_accepted=False):
         """Explicit control action; never used by read-only reconcile."""
         expected = self._approval_payload(case, plan)
-        if (case["approval"].get("phase") != "dispatching"
-                or case["approval"].get("executor_grant") != expected):
+        approval = case["approval"]
+        # Only root can determine whether this interrupted intent produced a grant.
+        missing_reply = (approval.get("phase") == "authorizing"
+                         and "executor_grant" not in approval)
+        issued_not_dispatched = (approval.get("phase") == "authorized"
+                                 and approval.get("executor_grant") == expected)
+        if not missing_reply and not issued_not_dispatched and (
+                approval.get("phase") != "dispatching" or approval.get("executor_grant") != expected):
             raise ProductExecutionError("approval_not_bound")
         receipt = self._product(case, "cancel_unstarted", {
             "owner_sha256": case["_owner_sha256"], "plan_id": plan["plan_id"], "approval": expected,
+            **({"allow_never_accepted": True} if allow_never_accepted else {}),
         }).get("receipt")
-        bindings = {key: expected[key] for key in ("run_id", "plan_id", "policy_sha256", "snapshot_sha256")}
-        if (not isinstance(receipt, dict) or any(receipt.get(key) != value for key, value in bindings.items())
-                or receipt.get("outcome") != "not_started" or receipt.get("approval_invalidated") is not True
-                or receipt.get("plan_retired") is not True or not isinstance(receipt.get("receipt_sha256"), str)
-                or re.fullmatch(r"[a-f0-9]{64}", receipt["receipt_sha256"]) is None
-                or not isinstance(receipt.get("observed_at"), str)):
+        if not unstarted_receipt_matches(receipt, expected, allow_unissued=missing_reply):
             raise ProductExecutionError("product_cancellation_unconfirmed")
         return receipt
 
@@ -594,7 +719,13 @@ class LocalProductExecutor:
                 or selected["comparison_sha256"] != comparison["comparison_sha256"]):
             raise ProductExecutionError("product_binding_changed")
         before = [{k: v for k, v in plan.items() if k != "executor_binding"} for plan in comparison["plans"]]
-        after = [{k: v for k, v in plan.items() if k != "executor_binding"} for plan in selected["plans"]]
+        # The handoff header is projected onto the case, not stored in the
+        # candidate file. Compare it against the independently persisted header.
+        if self.handoff_binding is not None and any(
+                plan.get("_handoff_order") != case["order"] for plan in selected["plans"]):
+            raise ProductExecutionError("product_binding_changed")
+        after = [{k: v for k, v in plan.items() if k not in {"executor_binding", "_handoff_order"}}
+                 for plan in selected["plans"]]
         if before != after:
             raise ProductExecutionError("product_binding_changed")
         return selected
@@ -627,8 +758,29 @@ class LocalProductExecutor:
         return {"original_margin_pct": original_pct, "effective_margin_pct": max(original_pct, current),
                 "max_exclusive_pct": 100, "decimal_places": 2}
 
+    def review_sources(self, case, plan):
+        from .review_facts import review_sources
+
+        if self.review_connection is None:
+            raise ProductExecutionError("review_unsupported")
+        return review_sources(self, case, plan)
+
+    def check_deadline(self, case, plan, order_id):
+        from .review_facts import check_deadline
+
+        if self.review_connection is None:
+            raise ProductExecutionError("review_unsupported")
+        return check_deadline(self, case, plan, order_id)
+
+    def fact_revision_intent(self, case, plan):
+        if self.review_connection is None:
+            raise ProductExecutionError("review_unsupported")
+        return self._revision_intent(case, plan, copy.deepcopy(case["revision"]["changes"]))
+
     def revision_intent(self, case, plan, changes):
-        constraints = self.validate_revision(case, changes)
+        return self._revision_intent(case, plan, self.validate_revision(case, changes))
+
+    def _revision_intent(self, case, plan, constraints):
         binding = self._require_binding(case, plan)
         version = binding["product"]["version"] + 1
         return {"operation_id": f"revise-v{version}", "expected_revision": binding["revision"],
@@ -645,7 +797,8 @@ class LocalProductExecutor:
         old = case.get("_plan")
         if saved.get("kind") != "revision" or saved.get("phase") != "pending" or not isinstance(old, dict):
             raise ProductExecutionError("product_binding_changed")
-        intent = self.revision_intent(case, old, saved.get("changes"))
+        intent = (self.fact_revision_intent(case, old) if saved.get("review_operation")
+                  else self.revision_intent(case, old, saved.get("changes")))
         if saved.get("intent") != intent:
             raise ProductExecutionError("product_binding_changed")
         failure = None
@@ -694,6 +847,18 @@ class LocalProductExecutor:
             raise ProductExecutionError("product_binding_changed")
         target_case = {**case, "revision": {"version": intent["version"], "changes": intent["constraints"]}}
         plan = self._prepared_result(target_case, decision, intent["constraints"])
+        if saved.get("review_operation"):
+            from datetime import datetime
+            item = next(row for row in case["reviews"] if row["operation_id"] == saved["review_operation"])
+            candidate = plan["candidate_set"]["plans"][0] if "candidate_set" in plan else plan
+            source = self.review_sources(target_case, candidate)
+            observed = next((r["fields"]["commitment_date"] for r in source["rows"]
+                             if r["model"] == "sale.order" and r["id"] == item["order_id"]), None)
+            if observed is None or datetime.fromisoformat(observed).date() != datetime.fromisoformat(
+                    item["evidence"]["current_value"]).date():
+                # Root retired the old version. Withhold the new selection if its
+                # snapshot no longer represents the fact we just confirmed.
+                return {**result, "status": "conflict", "reason": "review_source_changed"}
         return {**result, "status": "prepared", "plan": plan}
 
     def repreparation_intent(self, case):
@@ -832,8 +997,10 @@ class LocalProductExecutor:
         snapshot = artifacts.get("snapshot")
         if (not isinstance(policy, str) or not isinstance(snapshot, str)
                 or manifest.get("policy_sha256") != policy
-                or row.get("policy_sha256") != policy or row.get("snapshot_sha256") != snapshot):
+                or row.get("policy_sha256") != policy or row.get("snapshot_sha256") != snapshot
+                or self.handoff_binding is not None and policy != digest(self.handoff_binding["contract"])):
             raise ProductExecutionError("plan_not_bound")
+        self._check_review_cancellation(directory, plan_id, manifest, changes)
         try:
             from forgeflow.recovery.service import _check_retention_binding
 
@@ -889,7 +1056,7 @@ class LocalProductExecutor:
         except ValueError:
             raise ProductExecutionError("plan_not_bound") from None
         capacity = {}
-        if manifest.get("product_objectives") == list(CAPACITY_PRODUCT_OBJECTIVES):
+        if manifest.get("product_objectives") == list(CAPACITY_PRODUCT_OBJECTIVES) or self.review_connection is not None:
             from .capacity import build_capacity_summary
             from .decision_metrics import build_decision_metrics
             from .impact import build_impact_chain
@@ -912,8 +1079,22 @@ class LocalProductExecutor:
             except (ValueError, KeyError, TypeError):
                 raise ProductExecutionError("plan_not_bound") from None
         refinement = plan_record.get("retention_refinement")
+        display_order = None
+        if self.handoff_binding is not None:
+            # The already digest-checked blueprint comes from these selected
+            # live orders. Never substitute fixed Scenario A demand or dates.
+            customers = blueprint["customers"]
+            display_order = {"ref": ", ".join(row["task_order_ref"] for row in customers),
+                "order_count": len(customers),
+                "product": self.request["target_product_code"],
+                "units": sum(row["demand"] for row in customers),
+                "due_days": min(row["deadline"] for row in customers),
+                "due_days_max": max(row["deadline"] for row in customers),
+                "customer": ", ".join(row["name"] for row in customers)}
+            case = {**case, "order": display_order}
         return {
             **capacity,
+            **({"_handoff_order": display_order} if display_order is not None else {}),
             **({"retention_refinement": {key: refinement[key] for key in (
                 "profile", "status", "retained_before", "retained_after", "reason") if key in refinement}}
                if refinement is not None else {}),
@@ -1004,6 +1185,7 @@ class LocalProductExecutor:
 
     def apply(self, case: dict[str, Any], plan: dict[str, Any]) -> dict[str, Any]:
         self._require_case_scenario(case)
+        self._check_live_binding()
         run_id = f"local-{case['case_id']}"
         plan_id = plan["plan_id"]
         HUB.reset(case["case_id"])
@@ -1017,6 +1199,8 @@ class LocalProductExecutor:
             if (approval_record.get("phase") != "dispatching" or not isinstance(approval, dict)
                     or set(approval) != set(APPROVAL_FIELDS) or approval != expected):
                 raise ProductExecutionError("approval_not_bound")
+            self._check_saved_review_plan(case, plan_id)
+            self._check_live_binding()
             may_have_dispatched = True
             result = client.apply(
                 self.socket_path, run_id, plan_id,

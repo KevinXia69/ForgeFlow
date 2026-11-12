@@ -1,9 +1,5 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const root = path.dirname(fileURLToPath(import.meta.url));
 
 // Local FastAPI workbench started with `uv run forgeflow api --port 8000`.
 // FORGEFLOW_API_PROXY exists only to point a dev server at another local API.
@@ -43,7 +39,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: path.resolve(root, "../src/forgeflow/api/static/app"),
+    outDir: "dist",
     emptyOutDir: true,
   },
 });

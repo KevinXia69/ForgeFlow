@@ -63,6 +63,10 @@ class Approval:
             "expires_at_utc": self.expires_at_utc,
         }
 
+    def issuance_intent(self) -> dict[str, str]:
+        return {"nonce": self.nonce, "approver": self.approver,
+                "issued_at_utc": self.issued_at_utc, "expires_at_utc": self.expires_at_utc}
+
     def digest(self) -> str:
         canonical = (
             "|".join([

@@ -209,7 +209,7 @@ def test_create_prepares_a_case_and_awaits_approval(tmp_path: Path) -> None:
         assert case["approval"] is None
         assert case["execution"] is None
         assert case["reason"] is None
-        assert set(case["order"]) == {"ref", "product", "units", "due_days", "due_days_max", "customer"}
+        assert set(case["order"]) == {"ref", "order_count", "product", "units", "due_days", "due_days_max", "customer"}
         assert set(case["disruption"]) == {"kind", "vendor"}
         assert case["order"]["units"] > 0
         assert case["order"]["due_days"] > 0
@@ -962,3 +962,50 @@ def test_ask_returns_stable_503_when_product_execution_is_unavailable(
         response = ask(client, missing, "What is the impact?")
         assert response.status_code == 404
         assert response.json()["detail"] == "case_not_found"
+
+
+def test_case_question_with_image_does_not_bypass_harness(tmp_path: Path, monkeypatch) -> None:
+    import base64
+    from types import SimpleNamespace
+
+    class FakeHarness:
+        workspace = tmp_path / "harness-workspace"
+        knowledge_root = tmp_path
+        supports_turn_cancellation = False
+
+        def __init__(self):
+            self.evidence_scope_path = None
+            self.asked = False
+
+        def with_evidence(self, path):
+            from forgeflow.api.dsh_permissions import scoped_image_root
+
+            self.evidence_scope_path = path
+            self.image_root = scoped_image_root(self.workspace, path)
+            self.workspace.mkdir(parents=True, exist_ok=True)
+            return self
+
+        def ask(self, prompt, conversation_id=None):
+            self.asked = True
+            assert "Attached image path:" in prompt
+            return SimpleNamespace(answer="The screenshot was checked.", citations=[], passages=[])
+
+    harness = FakeHarness()
+    monkeypatch.setattr("forgeflow.api.app.DshHarness.from_env", lambda: harness)
+    image = {
+        "mime_type": "image/png",
+        "data": base64.b64encode(b"\x89PNG\r\n\x1a\n").decode(),
+        "name": "delivery.png",
+    }
+    with client_for(tmp_path, FakeProductExecutor()) as (client, _settings):
+        sign_in(client)
+        case = create_case(client)
+        response = client.post(
+            f"/api/product/cases/{case['case_id']}/ask",
+            json={"question": "What happened in this screenshot?", "image": image},
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert harness.asked is True
+        assert body["mode"] == "harness"
+        assert body["answer"] == "The screenshot was checked."

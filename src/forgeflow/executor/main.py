@@ -9,6 +9,7 @@ the launcher sends SIGTERM or SIGINT.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import inspect
 import os
 import pwd
@@ -31,6 +32,7 @@ _PATH_FLAGS = (
     ("--key", "key"),
     ("--approval-store", "approval_store"),
     ("--policy-file", "policy_file"),
+    ("--investigation-event-file", "investigation_event_file"),
 )
 
 
@@ -50,6 +52,8 @@ class ExecutorConfig:
     allow_local_peer: bool = False
     product_verifier_container: str | None = None
     retention_profile: str | None = None
+    investigation: bool = False
+    investigation_event_file: Path | None = None
 
 
 def config_from_args(argv: Sequence[str] | None = None) -> ExecutorConfig:
@@ -66,12 +70,19 @@ def config_from_args(argv: Sequence[str] | None = None) -> ExecutorConfig:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", default=8069, type=int)
     parser.add_argument("--autonomous", action="store_true")
+    parser.add_argument("--investigation", action="store_true")
+    parser.add_argument("--investigation-event-file", type=Path)
     parser.add_argument("--allow-local-peer", action="store_true")
     parser.add_argument("--product-verifier-container")
     parser.add_argument("--retention-profile", choices=("fixed-totals-retention-v1",))
     args = parser.parse_args(argv)
     if args.product_verifier_container and args.autonomous:
         parser.error("product verifier requires approval mode")
+    if args.investigation and (args.autonomous or args.product_verifier_container
+                               or not args.policy_file or not args.investigation_event_file):
+        parser.error("investigation requires a policy, a trusted event file, and prepare-only execution")
+    if args.investigation_event_file and not args.investigation:
+        parser.error("investigation event file requires investigation mode")
     for flag, attribute in _PATH_FLAGS:
         path = getattr(args, attribute)
         if path is not None and not path.is_absolute():
@@ -91,7 +102,36 @@ def config_from_args(argv: Sequence[str] | None = None) -> ExecutorConfig:
         allow_local_peer=args.allow_local_peer,
         product_verifier_container=args.product_verifier_container,
         retention_profile=args.retention_profile,
+        investigation=args.investigation,
+        investigation_event_file=args.investigation_event_file,
     )
+
+
+def read_investigation_event(path: Path | None) -> dict[str, str]:
+    """Read an executor-owned event; the production executor runs as root."""
+    if path is None:
+        raise RuntimeError("investigation_event_required")
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+    except OSError:
+        raise RuntimeError("investigation_event_untrusted") from None
+    try:
+        info = os.fstat(fd)
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid()
+                or stat.S_IMODE(info.st_mode) != 0o400 or not 0 < info.st_size <= 16 * 1024):
+            raise RuntimeError("investigation_event_untrusted")
+        with os.fdopen(fd, "rb", closefd=False) as handle:
+            raw = handle.read(16 * 1024 + 1)
+        if len(raw) != info.st_size:
+            raise RuntimeError("investigation_event_untrusted")
+        text = raw.decode("utf-8")
+        if not text.strip() or "\x00" in text:
+            raise RuntimeError("investigation_event_untrusted")
+        return {"text": text, "sha256": hashlib.sha256(raw).hexdigest()}
+    except (OSError, UnicodeError):
+        raise RuntimeError("investigation_event_untrusted") from None
+    finally:
+        os.close(fd)
 
 
 def read_key_text(path: Path) -> str:
@@ -152,6 +192,8 @@ def build_server(
     """Build the daemon around recovery handlers, unless handlers are injected."""
     if handlers is None:
         product_options = {}
+        if config.investigation:
+            product_options["investigation_event"] = read_investigation_event(config.investigation_event_file)
         if config.product_verifier_container:
             if not config.require_grant:
                 raise ValueError("product_verifier_requires_approval_mode")
@@ -167,12 +209,14 @@ def build_server(
             require_grant=config.require_grant,
             policy_file=config.policy_file,
             retention_profile=config.retention_profile,
+            investigation_mode=config.investigation,
             **product_options,
         )
         handlers = Handlers(
             recovery.prepare, recovery.apply, recovery.status,
-            reconcile=recovery.reconcile if product_options else None,
-            product=recovery.product if product_options else None,
+            reconcile=recovery.reconcile if config.product_verifier_container else None,
+            product=recovery.product if config.product_verifier_container else None,
+            investigation=recovery.investigation if config.investigation else None,
         )
     options: dict[str, Any] = {
         "agent_uid": _agent_uid(config.agent_user),

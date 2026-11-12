@@ -58,7 +58,7 @@ def test_api_runner_child_can_create_its_run_directory(monkeypatch, tmp_path):
     assert cli.main(["api", "--runner"]) == 0
 
     run_id = "api-runner-regression"
-    process = captured["spawn"](default_command(run_id, "A"), run_id)
+    process = captured["spawn"](default_command(run_id, "A", tmp_path / "runs"), run_id)
     try:
         assert process.wait(timeout=15) == 1  # Missing model key, not a launch crash.
     finally:

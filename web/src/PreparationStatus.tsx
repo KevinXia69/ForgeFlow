@@ -40,7 +40,6 @@ export function PreparationStatus({ caseFile, disabled, canContinue, onContinue,
       <summary>{t("v10.marginConstraints")}</summary>
       <p>{t("v10.originalMargin", { floor: caseFile.revision_limits.original_margin_pct })}</p>
       <p>{t("v10.effectiveMargin", { floor: caseFile.revision_limits.effective_margin_pct })}</p>
-      <p className="muted">{t("v10.constraintScope")}</p>
     </details>}
     {(history.length > 0 || failures.length > 0) && <details className="case-section" data-version-history="true">
       <summary>{t("v10.versionHistory")}</summary>
@@ -52,7 +51,6 @@ export function PreparationStatus({ caseFile, disabled, canContinue, onContinue,
           {retired && <p className="muted">{formatDateTime(typeof row.retired_at === "string" ? row.retired_at : null, lang)}</p>}
         </li>)}
       </ul>
-      <p className="muted">{t("v10.historyExplanation")}</p>
     </details>}
   </>;
 }

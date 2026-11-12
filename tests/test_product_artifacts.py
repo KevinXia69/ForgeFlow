@@ -84,3 +84,23 @@ def test_local_integration_keeps_its_existing_store():
     executor = SimpleNamespace(artifact_rpc=False, store=Path("original-store"))
     with prepared_directory(executor, CASE, PLAN) as directory:
         assert directory == Path("original-store") / PLAN
+
+
+def test_root_comparison_reader_is_bound_and_no_follow(tmp_path):
+    from forgeflow.executor.handlers import RecoveryHandlers
+    from forgeflow.executor.protocol import ProtocolError
+
+    comparison_id = "a" * 32
+    directory = tmp_path / "product-comparisons"
+    directory.mkdir()
+    (directory / (comparison_id + ".json")).write_text('{"state": "prepared"}')
+    handler = object.__new__(RecoveryHandlers)
+    handler.store = tmp_path
+    assert handler._comparison({"comparison_id": comparison_id},
+                               {"comparison_id": comparison_id}) == {"state": "prepared"}
+    with pytest.raises(ProtocolError):
+        handler._comparison({"comparison_id": "b" * 32}, {"comparison_id": comparison_id})
+    link = directory / ("c" * 32 + ".json")
+    link.symlink_to(directory / (comparison_id + ".json"))
+    with pytest.raises(ProtocolError):
+        handler._comparison({"comparison_id": "c" * 32}, {"comparison_id": "c" * 32})

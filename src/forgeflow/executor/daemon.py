@@ -32,6 +32,7 @@ class Handlers:
     health: Callable[[], dict[str, Any]] | None = None
     reconcile: Callable[[str, str], dict[str, Any]] | None = None
     product: Callable[[str, str, dict[str, Any]], dict[str, Any]] | None = None
+    investigation: Callable[[str, str, dict[str, Any]], dict[str, Any]] | None = None
 
 
 def _fsync_dir(path: Path) -> None:
@@ -191,6 +192,10 @@ class ExecutorServer:
                             if not isinstance(request, dict):
                                 raise protocol.ProtocolError("invalid_field", 400)
                             payload = self.handlers.prepare(run_id, request)
+                        elif op == "investigation":
+                            if self.handlers.investigation is None:
+                                raise protocol.ProtocolError("investigation_operations_disabled", 404)
+                            payload = self.handlers.investigation(run_id, fields["action"], fields["payload"])
                         elif op == "product":
                             if self.handlers.product is None:
                                 raise protocol.ProtocolError("product_operations_disabled", 404)

@@ -1,6 +1,12 @@
-import type { ProductPlan } from "./types";
+import type { CaseFile, ProductPlan } from "./types";
 import type { Lang, Translate, MessageKey } from "./i18n";
 import { costMoney } from "./costAmounts";
+
+/** A persisted request can outlive a failed authorization or its response. */
+export function recordedApproval(caseFile: CaseFile) {
+  if (caseFile.approval?.phase === "authorizing" || caseFile.decision?.authorization_pending) return null;
+  return caseFile.approval;
+}
 
 /** Historical metrics retain their original values, but cannot establish current compliance. */
 export function hasNewSpendBasis(plan: ProductPlan | null | undefined): boolean {

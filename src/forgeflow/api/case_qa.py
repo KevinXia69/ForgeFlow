@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 import re
+from datetime import date
 from typing import Any
 
 from forgeflow.recovery.margin import MARGIN_BASIS
@@ -32,7 +33,13 @@ PLANNED_COST_CONTEXT = (
     "post-execution accounting margin. Customer sales-order "
     "budget caps are not a new-purchase authorization limit. Keep cost_delta "
     "unknown without a measured baseline, and do not infer an increment from action kinds. "
-) + BUDGET_CONTEXT_RULE + IMPACT_CONTEXT_RULE
+) + BUDGET_CONTEXT_RULE + IMPACT_CONTEXT_RULE + (
+    " Use these field definitions to interpret the records. Explain costs, approval and checks "
+    "in ordinary business language. Show a raw field name only if the user specifically asks "
+    "for its name or meaning. For an ordinary cost question, cite the business record in prose, "
+    "for example, 'The proposed plan totals [amount] for purchases and manufacturing.' "
+    "Leave out parenthetical schema aliases, even when the reader asks for the basis of the amount."
+)
 
 _IMPACT_WORDS = (
     "impact",
@@ -132,7 +139,18 @@ _EXECUTION_WORDS = (
     "成功",
     "失败",
     "运行",
+    "签收",
+    "发货",
+    "发运",
+    "送达",
+    "signed",
+    "signature",
+    "shipped",
+    "delivered",
 )
+
+_APPROVAL_WORDS = ("批准", "审批", "approv", "authorize", "授权")
+
 
 _STATE_ZH = {
     "preparing": "准备中",
@@ -438,14 +456,16 @@ def _missing_plan(case: dict[str, Any], lang: str) -> dict[str, Any]:
     }
 
 
-def _impact_answer(case: dict[str, Any], lang: str, question: str = "") -> dict[str, Any]:
+def _impact_answer(case: dict[str, Any], lang: str, question: str = "",
+                   order_refs: tuple[str, ...] | None = None) -> dict[str, Any]:
     if chain_intent(question) or isinstance(case.get("plan"), dict) and case["plan"].get("impact_chain") is not None:
-        answer, specs = impact_text(case.get("plan"), question, lang)
-        if not chain_intent(question):
+        answer, specs = impact_text(case.get("plan"), question, lang, order_refs=order_refs)
+        if not chain_intent(question) and not order_refs:
             scope, scope_specs = impact_scope_text(case.get("plan"), lang)
             answer = scope + "\n\n" + answer
             specs = scope_specs + specs
-        return {"answer": answer, "mode": MODE, "citations": _citations(case, specs + _STATE_CITATIONS, lang)}
+        return {"answer": answer, "mode": MODE, "answer_basis": "case_record",
+                "citations": _citations(case, specs + _STATE_CITATIONS, lang)}
     order = case.get("order") if isinstance(case.get("order"), dict) else {}
     disruption = (
         case.get("disruption") if isinstance(case.get("disruption"), dict) else {}
@@ -720,7 +740,7 @@ def _decision_details(case, lang, *, headroom=True, choice=False, actions=False,
     return {"answer": "\n\n".join(lines), "mode": MODE, "citations": _citations(case, specs + _STATE_CITATIONS, lang)}
 
 
-def _mixed_answer(question, case, lang):
+def _mixed_answer(question, case, lang, order_refs=None):
     """Compose requested facts instead of silently discarding all but one intent."""
     text = question.casefold()
     def has(words):
@@ -750,7 +770,7 @@ def _mixed_answer(question, case, lang):
     elif plan and not relationships:
         replies.append(_plan_answer(case, lang))
     if relationships or headroom and not (compare or plan):
-        replies.append(_impact_answer(case, lang, question))
+        replies.append(_impact_answer(case, lang, question, order_refs=order_refs))
     if readiness:
         replies.append(_readiness_answer(case, lang))
     if headroom and not compare or choice or actions or budgets:
@@ -940,6 +960,27 @@ def _unknown_execution(case: dict[str, Any], lang: str) -> dict[str, Any]:
     }
 
 
+def _approval_answer(case: dict[str, Any], lang: str) -> dict[str, Any]:
+    approval = case.get("approval") if isinstance(case.get("approval"), dict) else None
+    state = _state_label(_text(case.get("state")), lang)
+    specs = _STATE_CITATIONS + (("approval.plan_id", "Approved plan", "批准方案"),
+                                ("approval.approved_at", "Approved at", "批准时间"),
+                                ("execution.status", "Execution status", "执行状态"))
+    if approval and approval.get("plan_id"):
+        answer = ("该案例记录了对某一具体方案的批准；批准只对当时那一版有效，"
+                  "不等于已经执行、写入 ERP 或实际交付。"
+                  if lang == "zh" else
+                  "This case records approval of one specific plan. Approval applies only to that "
+                  "version; it does not establish execution, an ERP write or actual delivery.")
+    else:
+        answer = (f"当前没有批准记录，案例状态为{state}。批准需要企业授权负责人对具体方案版本单独完成，"
+                  "聊天不能批准或执行。"
+                  if lang == "zh" else
+                  f"No approval is recorded; the case state is {state}. A company-authorized approver "
+                  "must approve a specific plan version; the chat cannot approve or execute.")
+    return {"answer": answer, "mode": MODE, "citations": _citations(case, specs, lang)}
+
+
 def _execution_answer(case: dict[str, Any], lang: str) -> dict[str, Any]:
     if _get(case, "execution.status") == "not_started":
         answer = (
@@ -1113,7 +1154,8 @@ def _fallback_answer(case: dict[str, Any], lang: str) -> dict[str, Any]:
     }
 
 
-def _readiness_answer(case: dict[str, Any], lang: str) -> dict[str, Any]:
+def _readiness_answer(case: dict[str, Any], lang: str, *, aggregate: bool = False,
+                      order_refs: tuple[str, ...] | None = None) -> dict[str, Any]:
     from ..product.readiness import project_order_readiness
 
     plan = case.get("plan")
@@ -1131,17 +1173,51 @@ def _readiness_answer(case: dict[str, Any], lang: str) -> dict[str, Any]:
                   "the overall on-time label cannot supply them or establish that orders shipped or arrived.")
         return {"answer": answer, "mode": MODE, "citations": _citations(case, specs, lang)}
     zh = lang == "zh"
+    indexed = list(enumerate(data["orders"]))
+    if order_refs:
+        allowed = set(order_refs)
+        indexed = [(index, row) for index, row in indexed if row["order_ref"] in allowed]
+        if not indexed:
+            return {"answer": ("记录里没有找到这些订单的备货安排；请核对订单号或改问整个案例。"
+                               if zh else
+                               "No readiness rows match those order references; check the references "
+                               "or ask about the whole case."),
+                    "mode": MODE, "citations": _citations(case, specs, lang),
+                    "answer_basis": "case_record"}
+    rows = [row for _, row in indexed]
+    if aggregate:
+        count = len(rows)
+        on_time = sum(row["status"] == "on_time" for row in rows)
+        late = sum(row["status"] == "late" for row in rows)
+        unknown = count - on_time - late
+        if on_time == count and all(row["buffer_days"] == 0 for row in rows):
+            prediction = (f"按当前方案推算，{count} 笔订单都能在各自约定的当天备好，没有提前量。" if zh else
+                          f"The plan projects that all {count} orders will be ready on their respective due dates, with no time to spare.")
+        else:
+            prediction = (f"按当前方案推算，{on_time} 笔预计按时备好，{late} 笔预计晚于各自的约定日，"
+                          f"另有 {unknown} 笔还不能确定。" if zh else
+                          f"The plan projects {on_time} orders ready on time and {late} late, with {unknown} unresolved.")
+        explanation = ("依据是每笔订单的预计备齐日和约定日。实际有没有准时交货，还要查仓库的发运记录和客户的签收记录。" if zh else
+                       "This compares planned availability with each order’s deadline. Actual shipment and delivery "
+                       "require the warehouse’s dispatch record and the customer’s proof of receipt.")
+        specs += tuple((f"plan.order_readiness.orders.{original}.{field}", label, cn)
+                       for original, _ in indexed
+                       for field, label, cn in (("planned_ready_date", "Planned ready date", "预计备齐日"),
+                                                ("customer_due_date", "Customer due date", "约定日"),
+                                                ("status", "Planned readiness", "计划备货情况")))
+        return {"answer": prediction + "\n\n" + explanation, "mode": MODE, "citations": _citations(case, specs, lang)}
+    data_rows = indexed
     lead = ("以下是记录中当前方案的逐单备货安排，不是实际送达结果。" if zh else
             "These are the recorded current plan's per-order supply arrangements, not actual delivery results.")
     heading = ("| 订单 | 规划覆盖/需求 | 计划齐货日 | 客户截止日 | 规划余量 |\n| --- | --- | --- | --- | --- |" if zh else
                "| Order | Planned coverage/demand | Planned ready date | Customer deadline | Buffer |\n| --- | --- | --- | --- | --- |")
-    rows = []
-    for index, row in enumerate(data["orders"][:12]):
+    table_rows = []
+    for original, row in data_rows[:12]:
         name = row["order_ref"].replace("|", "\\|")
         ready = row["planned_ready_date"] or ("未知" if zh else "unknown")
         buffer = ("未知" if zh else "unknown") if row["buffer_days"] is None else f'{row["buffer_days"]} ' + ("天" if zh else "day" if abs(row["buffer_days"]) == 1 else "days")
-        rows.append(f'| {name} | {row["covered_units"]}/{row["demand_units"]} | {ready} | {row["customer_due_date"]} | {buffer} |')
-        specs += tuple((f"plan.order_readiness.orders.{index}.{field}", f"{row['order_ref']}: {en}", f"{row['order_ref']}：{cn}")
+        table_rows.append(f'| {name} | {row["covered_units"]}/{row["demand_units"]} | {ready} | {row["customer_due_date"]} | {buffer} |')
+        specs += tuple((f"plan.order_readiness.orders.{original}.{field}", f"{row['order_ref']}: {en}", f"{row['order_ref']}：{cn}")
                        for field, en, cn in (("order_ref", "order", "订单"), ("covered_units", "planned coverage", "规划覆盖"),
                            ("demand_units", "demand", "需求"), ("planned_ready_date", "planned ready date", "计划齐货日"),
                            ("customer_due_date", "deadline", "客户截止日"), ("buffer_days", "planning buffer days", "规划余量天数")))
@@ -1149,13 +1225,480 @@ def _readiness_answer(case: dict[str, Any], lang: str) -> dict[str, Any]:
             if zh else "Readiness uses the latest availability among supplies allocated to the order; buffers use calendar days. "
             "Transport is excluded. Zero means no planning buffer; a negative value means supply misses the deadline. "
             "This is not a risk probability or proof of completed delivery.")
-    if len(data["orders"]) > 12:
+    if len(data_rows) > 12:
         note += "这里只显示前12单，完整记录见案例详情。" if zh else " Only the first 12 orders are shown; see case details for the full record."
-    return {"answer": lead + "\n\n" + heading + "\n" + "\n".join(rows) + "\n\n" + note,
+    return {"answer": lead + "\n\n" + heading + "\n" + "\n".join(table_rows) + "\n\n" + note,
             "mode": MODE, "citations": _citations(case, specs, lang)}
 
 
-def _answer_case_impl(question: str, case: dict[str, Any]) -> dict[str, Any]:
+_ZH_CUTOFF_DATE = re.compile(
+    r"(?:(\d{4})\s*年\s*)?(?:(\d{1,2})\s*月\s*)?(\d{1,2})\s*日")
+_EN_MONTHS = {"jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+              "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12}
+_EN_MONTH_PATTERN = "|".join(sorted(_EN_MONTHS, key=len, reverse=True))
+_EN_CUTOFF_DATE = re.compile(
+    rf"(?:(?P<y1>\d{{4}})\s+)?"
+    rf"(?:(?P<m1>{_EN_MONTH_PATTERN})[a-z]*\s+(?P<d1>\d{{1,2}})"
+    rf"(?:,?\s+(?P<y2>\d{{4}}))?"
+    rf"|(?P<d2>\d{{1,2}})\s+(?P<m2>{_EN_MONTH_PATTERN})[a-z]*"
+    rf"(?:,?\s+(?P<y3>\d{{4}}))?)", re.I)
+_INTRADAY = re.compile(
+    r"上午|下午|早上|晚上|中午|午饭|下班|凌晨|"
+    r"\d{1,2}\s*[:：]\s*\d{2}|"
+    r"\d{1,2}\s*[点时](?:\s*\d{1,2}\s*分)?|"
+    r"(?<![A-Za-z])(?:a\.?m\.?|p\.?m\.?)(?![A-Za-z])|"
+    r"\b(?:before|after)\s+noon\b|\bnoon\b|\bmorning\b|\bafternoon\b|\bevening\b",
+    re.I)
+_SCHEDULE_QUESTION = re.compile(
+    r"各订单|每单|逐单|每张订单|齐货日期|什么时候齐货|哪天齐货|计划.{0,10}齐货|"
+    r"ready date|when .{0,25}ready|each order", re.I)
+
+
+_BEFORE_ONLY = re.compile(
+    r"(?<!及)之前|(?<!及)以前|早于|不含当天|不包括当天|"
+    r"before(?!\s+noon)|earlier than|prior to|excluding (?:that|the) day", re.I)
+_AFTER_ONLY = re.compile(r"之后|以后|晚于|after|later than", re.I)
+_ONLY_DAY = re.compile(
+    r"仅(?:当天|在当天)?|只(?:在)?当天|当天(?:新增|增加|齐货)|"
+    r"only (?:on )?that day|that day only", re.I)
+_READINESS_COUNT = re.compile(
+    r"备齐|备好|齐货|齐套|多少单|几单|几笔|几张|多少张|ready|how many", re.I)
+_NON_READINESS = re.compile(
+    r"执行|批准|审批|签收|发货|发运|送达|验收|回读|写入|ERP|"
+    r"approv|execut|signed|shipped|delivered|verified", re.I)
+
+
+def _readiness_question(question: str) -> bool:
+    """Only an explicit readiness/count question enters the cutoff answer."""
+    return bool(_READINESS_COUNT.search(question)) and not _NON_READINESS.search(question)
+
+
+def _cutoff_relation(question: str) -> str:
+    if _ONLY_DAY.search(question):
+        return "same"
+    if _AFTER_ONLY.search(question):
+        return "after"
+    if _BEFORE_ONLY.search(question):
+        return "before"
+    return "through"
+
+
+def _anchor_date(case: dict[str, Any]) -> str | None:
+    plan = case.get("plan")
+    if not isinstance(plan, dict):
+        return None
+    readiness = plan.get("order_readiness")
+    if not isinstance(readiness, dict):
+        return None
+    basis = readiness.get("basis")
+    if not isinstance(basis, dict):
+        return None
+    anchor = basis.get("anchor_date")
+    return anchor if isinstance(anchor, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", anchor) else None
+
+
+ORDER_REF = re.compile(r"(?<![A-Za-z0-9_])S\d{5}(?![A-Za-z0-9_])")
+_REFERENTIAL_ORDERS = re.compile(
+    r"这些订单|那两单|那几单|它们|上述订单|这几单|these orders|those orders|the two orders",
+    re.I)
+_DEADLINE_TERMS = re.compile(r"按时|迟交|晚交|准时|齐货|ready|on time|late", re.I)
+
+
+def order_tokens_in(question: str) -> tuple[str, ...]:
+    """Return every order-like token, including references absent from this case."""
+    return tuple(dict.fromkeys(ORDER_REF.findall(question)))
+
+
+def asks_referential_orders(question: str) -> bool:
+    return bool(_REFERENTIAL_ORDERS.search(question))
+
+
+_FULL_CASE = re.compile(
+    r"整个案例|全部订单|所有订单|全量|whole case|all orders|entire case", re.I)
+_EXCLUDE_MARK = re.compile(
+    r"不包括|排除|除了|除[^，,。；;！？!?]{0,30}?外|except|excluding|other than|besides", re.I)
+_INCLUDE_MARK = re.compile(r"只看|仅看|只讨论|限定|只保留|only|just", re.I)
+_SCOPE_CLAUSE = re.compile(r"[，,。；;！？!?]|\b(?:but|however)\b", re.I)
+_RESET_SCOPE = re.compile(
+    r"不要(?:再)?只看|别再只看|不再只看|改看|看全部|回到全部|"
+    r"not just|stop looking at|look at all", re.I)
+
+
+def _list_only_refs(clause: str, known: set[str]) -> set[str] | None:
+    """Return refs when a clause is only a continued list, not new intent."""
+    refs = {ref for ref in order_tokens_in(clause) if ref in known}
+    if not refs:
+        return None
+    remainder = clause
+    for ref in sorted(refs, key=len, reverse=True):
+        remainder = re.sub(rf"(?<![\w]){re.escape(ref)}(?![\w])", "", remainder)
+    remainder = re.sub(r"[\s,，、和及与/&+]+|and\b|以及|还有", "", remainder, flags=re.I)
+    return refs if not remainder else None
+
+
+def _scope_selection(question: str, known: set[str]) -> tuple[
+        set[str], set[str], bool, bool]:
+    """Split clauses into included and excluded references, not one flat set."""
+    included: set[str] = set()
+    excluded: set[str] = set()
+    saw_include = saw_exclude = False
+    mode: str | None = None
+    for clause in _SCOPE_CLAUSE.split(question):
+        clause = clause.strip()
+        if not clause:
+            continue
+        exclude = _EXCLUDE_MARK.search(clause)
+        include = _INCLUDE_MARK.search(clause)
+        if exclude is not None:
+            before = {ref for ref in order_tokens_in(clause[:exclude.start()]) if ref in known}
+            if before:
+                included.update(before)
+                saw_include = True
+            marker_tokens = {ref for ref in order_tokens_in(exclude.group(0)) if ref in known}
+            excluded.update(marker_tokens)
+            after = _INCLUDE_MARK.split(clause[exclude.end():], maxsplit=1)
+            excluded.update(ref for ref in order_tokens_in(after[0]) if ref in known)
+            if len(after) > 1:
+                after_include = {ref for ref in order_tokens_in(after[1]) if ref in known}
+                if after_include:
+                    included.update(after_include)
+                    saw_include = True
+            saw_exclude = True
+            mode = "exclude"
+            continue
+        if include is not None:
+            clause_refs = {ref for ref in order_tokens_in(clause) if ref in known}
+            if clause_refs:
+                included.update(clause_refs)
+                saw_include = True
+            mode = "include"
+            continue
+        list_refs = _list_only_refs(clause, known)
+        if list_refs is not None:
+            if mode == "exclude":
+                excluded.update(list_refs)
+                saw_exclude = True
+            else:
+                included.update(list_refs)
+                saw_include = True
+                mode = "include"
+            continue
+        clause_refs = {ref for ref in order_tokens_in(clause) if ref in known}
+        if clause_refs:
+            included.update(clause_refs)
+            saw_include = True
+            mode = "include"
+    return included, excluded, saw_include, saw_exclude
+
+def resolve_case_scope(question: str, case: dict[str, Any],
+                       cached: tuple[str, ...] = ()) -> tuple[
+                           tuple[str, ...], tuple[str, ...], str]:
+    """Return (refs, unknown_refs, action) for the per-conversation scope.
+
+    Actions: ``set`` (remember explicit refs), ``clear`` (whole case),
+    ``empty`` (the user excluded every selected order), ``invalid`` (unknown
+    reference), or ``keep`` (referential follow-up, or no scope change).
+    """
+    tokens = order_tokens_in(question)
+    known = set(order_refs_in(question, case))
+    unknown = tuple(ref for ref in tokens if ref not in known)
+    if unknown:
+        return tuple(ref for ref in tokens if ref in known), unknown, "invalid"
+    if _RESET_SCOPE.search(question) and _FULL_CASE.search(question):
+        return (), (), "clear"
+    if not tokens:
+        if _FULL_CASE.search(question):
+            return (), (), "clear"
+        if asks_referential_orders(question):
+            return tuple(cached), (), "keep"
+        return (), (), "keep"
+    all_refs = all_order_refs(case)
+    included, excluded, saw_include, saw_exclude = _scope_selection(question, known)
+    if not saw_include and not saw_exclude:
+        included.update(known)
+        saw_include = True
+    base = included if saw_include else set(all_refs)
+    refs = tuple(ref for ref in all_refs if ref in base and ref not in excluded)
+    if not refs:
+        return (), (), "empty"
+    return refs, (), "set"
+
+
+def empty_scope_answer(lang: str = "zh") -> dict[str, Any]:
+    answer = ("你指定的订单范围为空：已经排除了全部订单。请说明要看哪些订单，或改看整个案例。"
+              if lang == "zh" else
+              "The selected order scope is empty: every order was excluded. Say which orders "
+              "you mean, or ask about the whole case.")
+    return {"answer": answer, "mode": MODE, "citations": [], "answer_basis": "case_record"}
+
+
+def unknown_orders_answer(order_refs: tuple[str, ...], lang: str = "zh",
+                          known: tuple[str, ...] = ()) -> dict[str, Any]:
+    if known and lang == "zh":
+        answer = ("当前案例只识别到 " + "、".join(known) + "；这些单号不在案例中："
+                  + "、".join(order_refs) + "。请核对单号，或说明要看整个案例。")
+    elif known:
+        answer = ("The current case only recognises " + ", ".join(known) + "; these references are "
+                  "not in the case: " + ", ".join(order_refs)
+                  + ". Check the references or say you mean the whole case.")
+    else:
+        answer = ("当前案例里没有这些订单号：" + "、".join(order_refs) + "。请核对单号，或说明要看整个案例。"
+                  if lang == "zh" else
+                  "These order references are not in the current case: " + ", ".join(order_refs)
+                  + ". Check the references or say you mean the whole case.")
+    return {"answer": answer, "mode": MODE, "citations": [], "answer_basis": "case_record"}
+
+
+def _plan_order_refs(plan: Any) -> tuple[str, ...]:
+    readiness = plan.get("order_readiness") if isinstance(plan, dict) else None
+    rows = readiness.get("orders") if isinstance(readiness, dict) else None
+    if not isinstance(rows, list):
+        return ()
+    return tuple(row["order_ref"] for row in rows
+                 if isinstance(row, dict) and isinstance(row.get("order_ref"), str))
+
+
+def _comparison_order_refs(case: dict[str, Any]) -> tuple[str, ...]:
+    """Return order identity only when every candidate agrees on the order set."""
+    comparison = case.get("comparison")
+    plans = comparison.get("plans") if isinstance(comparison, dict) else None
+    if not isinstance(plans, list) or not plans:
+        return ()
+    sets = []
+    first = ()
+    for plan in plans:
+        refs = _plan_order_refs(plan)
+        if not refs:
+            return ()
+        if not first:
+            first = refs
+        elif set(refs) != set(first):
+            return ()
+        sets.append(refs)
+    return first if sets else ()
+
+
+def all_order_refs(case: dict[str, Any]) -> tuple[str, ...]:
+    """Map case order identity separately from the currently selected plan."""
+    plan = case.get("plan")
+    refs = _plan_order_refs(plan)
+    return refs or _comparison_order_refs(case)
+
+
+def order_refs_in(question: str, case: dict[str, Any]) -> tuple[str, ...]:
+    """Return explicit order references that exist in this case, in question order."""
+    known = set(all_order_refs(case))
+    return tuple(dict.fromkeys(ref for ref in ORDER_REF.findall(question) if ref in known))
+
+def _clarify_order_scope(case: dict[str, Any], lang: str) -> dict[str, Any]:
+    answer = ("你指的是哪几单？请给出订单号（例如 S00001、S00002），或说明要看整个案例。"
+              if lang == "zh" else
+              "Which orders do you mean? Give the order references (for example S00001, S00002), "
+              "or say that you mean the whole case.")
+    return {"answer": answer, "mode": MODE,
+            "citations": _citations(case, _STATE_CITATIONS, lang), "answer_basis": "case_record"}
+
+
+def _cutoff_date(question: str, case: dict[str, Any]) -> date | None:
+    text = question.casefold()
+    year = month = day = None
+    match = _ZH_CUTOFF_DATE.search(text)
+    if match:
+        year = int(match.group(1)) if match.group(1) else None
+        month = int(match.group(2)) if match.group(2) else None
+        day = int(match.group(3))
+    else:
+        match = _EN_CUTOFF_DATE.search(text)
+        if match:
+            if match.group("d1"):
+                year = int(match.group("y2") or match.group("y1") or 0) or None
+                month = _EN_MONTHS[match.group("m1")[:3].casefold()]
+                day = int(match.group("d1"))
+            else:
+                year = int(match.group("y3") or match.group("y1") or 0) or None
+                month = _EN_MONTHS[match.group("m2")[:3].casefold()]
+                day = int(match.group("d2"))
+    if day is None:
+        return None
+    anchor = _anchor_date(case)
+    if anchor is None:
+        return None
+    anchor_year, anchor_month, _ = (int(part) for part in anchor.split("-"))
+    try:
+        return date(year or anchor_year, month or anchor_month, day)
+    except ValueError:
+        return None
+
+
+def _complete_readiness(row: dict[str, Any]) -> bool:
+    covered = row.get("covered_units")
+    demand = row.get("demand_units")
+    return (isinstance(covered, int) and isinstance(demand, int)
+            and covered == demand and row.get("status") != "incomplete")
+
+
+def _cutoff_buckets(indexed: list[tuple[int, dict[str, Any]]],
+                    cutoff_iso: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]],
+                                              list[dict[str, Any]], list[dict[str, Any]],
+                                              list[dict[str, Any]]]:
+    complete = [(index, row) for index, row in indexed if _complete_readiness(row)]
+    dated = [(index, row) for index, row in complete
+             if isinstance(row.get("planned_ready_date"), str)]
+    before = [row for _, row in dated if row["planned_ready_date"] < cutoff_iso]
+    same = [row for _, row in dated if row["planned_ready_date"] == cutoff_iso]
+    after = [row for _, row in dated if row["planned_ready_date"] > cutoff_iso]
+    undated = [row for _, row in complete if not isinstance(row.get("planned_ready_date"), str)]
+    incomplete = [row for _, row in indexed if not _complete_readiness(row)]
+    return before, same, after, incomplete, undated
+
+
+def _cutoff_answer(case: dict[str, Any], cutoff: date, question: str,
+                   order_refs: tuple[str, ...] | None = None) -> dict[str, Any]:
+    from ..product.readiness import project_order_readiness
+
+    lang = _language(question)
+    zh = lang == "zh"
+    plan = case.get("plan")
+    if not isinstance(plan, dict):
+        return None
+    try:
+        data = project_order_readiness(plan.get("order_readiness"), plan_id=plan.get("plan_id"),
+                                       snapshot_sha256=plan.get("snapshot_sha256"))
+    except ValueError:
+        data = None
+    if data is None:
+        return None
+    indexed = list(enumerate(data["orders"]))
+    if order_refs:
+        allowed = set(order_refs)
+        indexed = [(index, row) for index, row in indexed if row["order_ref"] in allowed]
+        if not indexed:
+            return {"answer": ("记录里没有找到这些订单的备货安排；请核对订单号或改问整个案例。"
+                               if zh else
+                               "No readiness rows match those order references; check the references "
+                               "or ask about the whole case."),
+                    "mode": MODE, "citations": _citations(case, _STATE_CITATIONS, lang),
+                    "answer_basis": "case_record"}
+    before, same, after, incomplete, undated = _cutoff_buckets(indexed, cutoff.isoformat())
+    label = f"{cutoff.month} 月 {cutoff.day} 日" if zh else cutoff.strftime("%B ") + str(cutoff.day)
+    intraday = bool(_INTRADAY.search(question))
+    missing = ""
+    if incomplete or undated:
+        parts = []
+        if incomplete:
+            parts.append(f"{len(incomplete)} 单覆盖不完整" if zh else f"{len(incomplete)} incompletely covered")
+        if undated:
+            parts.append(f"{len(undated)} 单日期未知" if zh else f"{len(undated)} without a ready date")
+        missing = (("；另有 " if zh else "; also ") + ("、".join(parts) if zh else ", ".join(parts))
+                   + ("，未计入整单齐货。" if zh else " excluded from the whole-order count."))
+    relation = "through" if intraday else _cutoff_relation(question)
+    if zh:
+        if intraday:
+            earlier = (f"{label}之前已有 {len(before)} 单计划备好" if before
+                       else f"{label}之前没有已计划备好的订单")
+            if len(same) == 0:
+                answer = (
+                    f"按计划，{earlier}；{label}当天没有计划备好的订单，之后还有 {len(after)} 单。"
+                    f"因此该时点之前的计划数为 {len(before)} 单。"
+                    "这只是计划，不是实际完成或交付。" + missing
+                )
+            else:
+                answer = (
+                    f"按计划，{earlier}；{label}当天另有 {len(same)} 单，但计划只精确到日期，"
+                    "无法确定它们是否在该时点前完成；"
+                    f"之后还有 {len(after)} 单。因此该时点之前至少 {len(before)} 单、"
+                    f"最多 {len(before) + len(same)} 单，不能给出确定总数。"
+                    "这只是计划，不是实际完成或交付。" + missing
+                )
+        elif relation == "before":
+            answer = (
+                f"按计划，{label}之前（不含当天）有 {len(before)} 单计划备好；"
+                f"{label}当天另有 {len(same)} 单，之后还有 {len(after)} 单。"
+                "这只是计划，不是实际完成或交付。" + missing
+            )
+        elif relation == "after":
+            answer = (
+                f"按计划，{label}之后还有 {len(after)} 单计划备好；"
+                f"{label}及以前有 {len(before) + len(same)} 单（当天 {len(same)} 单）。"
+                "这只是计划，不是实际完成或交付。" + missing
+            )
+        elif relation == "same":
+            answer = (
+                f"按计划，{label}当天有 {len(same)} 单计划备好；"
+                f"之前 {len(before)} 单，之后 {len(after)} 单。"
+                "这只是计划，不是实际完成或交付。" + missing
+            )
+        else:
+            answer = (
+                f"按计划，{label}及以前有 {len(before) + len(same)} 单计划备好"
+                f"（当天 {len(same)} 单，之前 {len(before)} 单）；之后还有 {len(after)} 单。"
+                "这只是计划，不是实际完成或交付。" + missing
+            )
+    else:
+        if intraday:
+            if len(same) == 0:
+                answer = (
+                    f"By the plan, {len(before)} orders are scheduled ready before {label}; "
+                    f"none are scheduled on {label}, and {len(after)} follow later. "
+                    f"The count at that time is exactly {len(before)}. "
+                    "This is a plan, not actual completion or delivery." + missing
+                )
+            else:
+                answer = (
+                    f"By the plan, {len(before)} orders are scheduled ready before {label}; "
+                    f"{len(same)} more are scheduled on {label}, but the plan has day-level precision, "
+                    f"so their time of day is unknown; {len(after)} follow later. The count at that time "
+                    f"is at least {len(before)} and at most {len(before) + len(same)}; no exact total can "
+                    "be established. This is a plan, not actual completion or delivery." + missing
+                )
+        elif relation == "before":
+            answer = (
+                f"By the plan, {len(before)} orders are scheduled ready before {label} (excluding that day); "
+                f"{len(same)} more are scheduled on {label}, and {len(after)} follow later. "
+                "This is a plan, not actual completion or delivery." + missing
+            )
+        elif relation == "after":
+            answer = (
+                f"By the plan, {len(after)} orders are scheduled ready after {label}; "
+                f"{len(before) + len(same)} are scheduled on or before it ({len(same)} that day). "
+                "This is a plan, not actual completion or delivery." + missing
+            )
+        elif relation == "same":
+            answer = (
+                f"By the plan, {len(same)} orders are scheduled ready on {label} itself; "
+                f"{len(before)} earlier and {len(after)} later. "
+                "This is a plan, not actual completion or delivery." + missing
+            )
+        else:
+            answer = (
+                f"By the plan, {len(before) + len(same)} orders are scheduled ready on or before {label} "
+                f"({len(same)} on that day, {len(before)} earlier); {len(after)} follow later. "
+                "This is a plan, not actual completion or delivery." + missing
+            )
+    specs = _STATE_CITATIONS + (("plan.plan_id", "Recorded plan", "记录中的方案"),)
+    for original, row in indexed:
+        specs += ((f"plan.order_readiness.orders.{original}.planned_ready_date",
+                   f"{row['order_ref']}: planned ready date", f"{row['order_ref']}：计划齐货日"),)
+    return {"answer": answer, "mode": MODE, "citations": _citations(case, specs, lang),
+            "answer_basis": "case_record"}
+
+
+def _record_readiness_answer(question: str, case: dict[str, Any], lang: str,
+                             order_refs: tuple[str, ...] | None = None) -> dict[str, Any] | None:
+    if not isinstance(case.get("plan"), dict) or not _readiness_question(question):
+        return None
+    cutoff = _cutoff_date(question, case)
+    if cutoff is not None:
+        reply = _cutoff_answer(case, cutoff, question, order_refs=order_refs)
+        if reply is not None:
+            return reply
+    if _SCHEDULE_QUESTION.search(question):
+        return {**_readiness_answer(case, lang, order_refs=order_refs), "answer_basis": "case_record"}
+    return None
+
+
+def _answer_case_impl(question: str, case: dict[str, Any],
+                      order_refs: tuple[str, ...] | None = None) -> dict[str, Any]:
     """Answer one question from a CaseFile view, without any external call."""
     lang = _language(question)
     if case.get("reason") == "product_selection_conflict" and not case.get("execution"):
@@ -1207,16 +1750,34 @@ def _answer_case_impl(question: str, case: dict[str, Any]) -> dict[str, Any]:
                 "citations": _citations(case, _STATE_CITATIONS + (
                     ("revision.version", "Displayed version", "展示版本"),
                     ("revision_request.version", "Requested version", "请求版本")), lang)}
-    mixed = _mixed_answer(question, case, lang)
+    if _REFERENTIAL_ORDERS.search(question) and not order_refs:
+        return _clarify_order_scope(case, lang)
+    record = _record_readiness_answer(question, case, lang, order_refs=order_refs)
+    if record is not None:
+        # A comparison question can contain a readiness phrase (for example
+        # "逐单齐货"). Do not let the narrow readiness shortcut discard the
+        # requested cost, headroom and decision-reason facets.
+        if any(word in question.casefold() for word in _COMPARISON_WORDS):
+            mixed = _mixed_answer(question, case, lang, order_refs=order_refs)
+            if mixed is not None:
+                return mixed
+        return record
+    if order_refs and _DEADLINE_TERMS.search(question):
+        return _readiness_answer(case, lang, aggregate=True, order_refs=order_refs)
+    if brief_topic(question) == "deadlines":
+        return _readiness_answer(case, lang, aggregate=True, order_refs=order_refs)
+    if any(word in question.casefold() for word in _APPROVAL_WORDS):
+        return _approval_answer(case, lang)
+    mixed = _mixed_answer(question, case, lang, order_refs=order_refs)
     if mixed is not None:
         return mixed
     intent = _intent(question)
     if intent == "readiness":
-        return _readiness_answer(case, lang)
+        return _readiness_answer(case, lang, order_refs=order_refs)
     if intent == "comparison":
         return _comparison_answer(case, lang)
     if intent == "impact":
-        return _impact_answer(case, lang, question)
+        return _impact_answer(case, lang, question, order_refs=order_refs)
     if intent == "plan":
         return _plan_answer(case, lang)
     if intent == "execution":
@@ -1232,6 +1793,43 @@ _BROAD_ZH = (
     "出了什么事", "发生什么", "哪些订单", "为什么", "需要决定", "我要做什么",
     "未知", "验证", "执行", "回读", "什么意思", "现在怎么样",
 )
+
+
+def brief_topic(question: str) -> str | None:
+    """Keep detailed or mixed questions on the full case-evidence path."""
+    # Only the standalone yes/no question can be answered from aggregate
+    # readiness. A calendar cutoff, an order reference or another request
+    # needs the per-order evidence and the full question.
+    text = question.casefold().strip(" 。！？?!.")
+    general_deadline = re.fullmatch(
+        r"(?:你刚才说的那些订单[，, ]*)?(?:是)?(?:每一笔|每笔|每张订单|所有订单|这些订单)"
+        r"(?:都)?(?:会|能|能够|可以)?(?:迟交|晚交|延期|迟到|按时(?:备好|备齐|交货|交付)?)"
+        r"(?:吗|么)?(?:[？?，,]\s*(?:依据是什么|根据什么|为什么))?"
+        r"|(?:are|will|can) (?:all (?:the |these |those )?orders|every order|they all) "
+        r"(?:(?:be |arrive |ship |be ready )?(?:late|on time)|meet their (?:deadlines|due dates))"
+        r"(?:[?,]\s*(?:why|how do you know))?", text,
+    )
+    if general_deadline:
+        return "deadlines"
+    if _asks_for_incident_overview(question):
+        return "incident"
+    return None
+
+
+def _asks_for_incident_overview(question: str) -> bool:
+    """Use a small incident brief only for an unqualified overview request."""
+    topic = re.sub(r"[？?。.!！,，].*$", "", question.strip().casefold(), flags=re.S)
+    overview = re.fullmatch(
+        r"(?:请问|请|能说说)?(?:这次|这里|这单|这个案例|这笔订单)?(?:到底)?(?:出了什么事|发生了什么|发生什么事了)"
+        r"|(?:please )?what (?:happened|went wrong)(?: here| in this case)?", topic,
+    )
+    if not overview:
+        return False
+    rest = question.strip().casefold()[len(topic):].strip(" ？?。.!！,，")
+    return not rest or bool(re.fullmatch(
+        r"(?:请)?(?:用)?(?:外行听得懂的话|大白话|白话|通俗(?:的)?语言|简单的话)(?:说(?:一下)?|讲(?:一下)?|解释)?"
+        r"|(?:please )?(?:explain (?:it )?)?in plain (?:english|language)(?: please)?", rest,
+    ))
 
 
 def _broad_question(question: str) -> bool:
@@ -1286,9 +1884,16 @@ def _plain_lead(case: dict[str, Any], lang: str) -> str:
     return f"{subject}. {status}"
 
 
-def answer_case(question: str, case: dict[str, Any]) -> dict[str, Any]:
+def answer_case(question: str, case: dict[str, Any], *,
+                order_refs: tuple[str, ...] | None = None) -> dict[str, Any]:
     """Answer one case question; broad questions get a plain-language lead."""
-    reply = _answer_case_impl(question, case)
+    if order_refs is None:
+        order_refs = order_refs_in(question, case)
+    reply = _answer_case_impl(question, case, order_refs=order_refs)
+    if brief_topic(question) == "deadlines" or (order_refs and _DEADLINE_TERMS.search(question)):
+        # Keep the verified forecast and its citations intact on model-enabled
+        # surfaces as well as offline. Pending lifecycle guards take precedence.
+        return {**reply, "answer_basis": "case_record"}
     if _broad_question(question):
         lead = _plain_lead(case, _language(question))
         reply["answer"] = lead + "\n\n" + reply["answer"]
@@ -1300,6 +1905,6 @@ def strip_case_reference(text: str, case_id: str, lang: str) -> str:
     if not text:
         return text
     label = "本案例" if lang == "zh" else "this case"
-    cleaned = re.sub(rf"(?im)^[ \t]*(?:Reference|参考|Case|案例)[ \t]*[:：][^\n]*{re.escape(case_id)}[^\n]*\n?", "", text)
+    cleaned = re.sub(rf"(?im)^[ \t]*(?:Reference|参考|Case(?: ID)?|案例(?:编号)?)[ \t]*[:：][^\n]*{re.escape(case_id)}[^\n]*\n?", "", text)
     cleaned = cleaned.replace(case_id, label)
     return re.sub(r"\n{3,}", "\n\n", cleaned).strip()

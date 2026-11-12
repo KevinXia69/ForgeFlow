@@ -234,14 +234,14 @@ def test_api_serves_the_versioned_view(tmp_path):
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:
-            response = httpx.get(f"{base}/api/runview/trial")
+            response = httpx.get(f"{base}/api/runview/trial", trust_env=False)
             assert response.status_code == 200
             body = response.json()
             assert body["kind"] == "forgeflow.run_view"
             assert body["schema_version"] == 1
             assert body["recovery"]["plan_id"] == PLAN_ID
-            assert httpx.get(f"{base}/api/runview/missing").status_code == 404
-            assert httpx.get(f"{base}/api/runview/..%2F.env").status_code == 404
+            assert httpx.get(f"{base}/api/runview/missing", trust_env=False).status_code == 404
+            assert httpx.get(f"{base}/api/runview/..%2F.env", trust_env=False).status_code == 404
         finally:
             server.shutdown()
 

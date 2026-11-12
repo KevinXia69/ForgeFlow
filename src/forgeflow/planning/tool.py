@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import logging
@@ -22,9 +23,11 @@ PLANNING_FAILURE_MESSAGE = (
 class SolverFailure(RuntimeError):
     """A bounded reason backed by an observed solver status, not prose parsing."""
 
-    def __init__(self, reason, trace):
+    def __init__(self, reason, trace, *, blueprint_sha256=None, blueprint=None):
         super().__init__(reason)
         self.trace = trace
+        self.blueprint_sha256 = blueprint_sha256
+        self.blueprint = copy.deepcopy(blueprint)
 
 
 def _live_input_failure(error: Exception) -> dict:
@@ -62,6 +65,9 @@ def solve_blueprint(blueprint: dict, upstream: Path, *, product_objective=None) 
     if repair.get("baseline_plan"):
         raise ValueError("Reference plans are not accepted.")
     selected_kind = objective_kind(product_objective)
+    blueprint_sha256 = hashlib.sha256(
+        json.dumps(blueprint, sort_keys=True, allow_nan=False).encode()
+    ).hexdigest()
     # The schema names existing commitments "seeded_*". Our live mapper builds
     # those rows from explicit Odoo records, never the initializer's private file.
     sys.path.insert(0, str(upstream))
@@ -71,11 +77,27 @@ def solve_blueprint(blueprint: dict, upstream: Path, *, product_objective=None) 
             ScenarioGenerator,
             capture_procurement_solver_trace,
         )
-        generator = ScenarioGenerator
+        class LiveRepairGenerator(ScenarioGenerator):
+            def _build_production_support_vars(self, model, scenario, context):
+                variables = super()._build_production_support_vars(model, scenario, context)
+                repair = scenario.repair_context
+                # The pinned solver excludes canceled finished offers, but its
+                # component variables need the same hard feasibility constraint.
+                # Match the exact offer so another SKU from this vendor survives.
+                if repair is not None and repair.kind == "supplier_cancellation":
+                    for vendor in scenario.vendors:
+                        if (vendor.supply_role == "component"
+                                and vendor.offer_key == repair.broken_supplier_offer_key):
+                            lane = variables.component_vendor_vars[(vendor.product_code, vendor.ref)]
+                            model.Add(lane.quantity == 0)
+                            model.Add(lane.activation == 0)
+                return variables
+
+        generator = LiveRepairGenerator
         if product_objective is not None:
             from procurement.procurement_objectives import ProcurementObjectiveKind
 
-            class ProductGenerator(ScenarioGenerator):
+            class ProductGenerator(LiveRepairGenerator):
                 def _build_primary_objective(self, model, scenario, variables, *, objective_kind):
                     # In this pinned upstream, repair construction also installs
                     # outage/cancellation exclusions. Keep them for cost preference.
@@ -104,7 +126,13 @@ def solve_blueprint(blueprint: dict, upstream: Path, *, product_objective=None) 
                         and observed["models"][-1].get("fixed_spend_cents") is None):
                     # Infeasible for this modeled snapshot and all its bounds;
                     # this does not identify a unique conflicting constraint.
-                    raise SolverFailure("planning_model_infeasible", observed) from None
+                    raise SolverFailure("planning_model_infeasible", observed,
+                                        blueprint_sha256=blueprint_sha256,
+                                        blueprint=blueprint) from None
+                if calls and calls[-1].get("status") == "UNKNOWN":
+                    raise SolverFailure("solver_incomplete", observed,
+                                        blueprint_sha256=blueprint_sha256,
+                                        blueprint=blueprint) from None
                 raise
         result = {
             "schema_version": 1,
@@ -112,9 +140,7 @@ def solve_blueprint(blueprint: dict, upstream: Path, *, product_objective=None) 
             "source": "fresh solve from explicit live business inputs",
             "odoo_writes": False,
             "execution_validated": False,
-            "blueprint_sha256": hashlib.sha256(
-                json.dumps(blueprint, sort_keys=True, allow_nan=False).encode()
-            ).hexdigest(),
+            "blueprint_sha256": blueprint_sha256,
             "solver": {"name": "OR-Tools CP-SAT", "version": "9.15.6755",
                        "workers": 1, "seed": 0, "phase_limit_seconds": 10,
                        "upstream_retry_multiplier": 3},

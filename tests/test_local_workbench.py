@@ -98,6 +98,8 @@ def test_api_restart_preserves_cookie_and_owner_identity(launcher):
 def test_product_executor_receives_only_configured_verifier_destination(launcher, monkeypatch):
     from types import SimpleNamespace
 
+    for key in ("HTTP_PROXY", "https_proxy", "ALL_PROXY", "all_proxy"):
+        monkeypatch.setitem(launcher.DOCKER_ENV, key, "socks5://127.0.0.1:1")
     calls = []
     monkeypatch.setattr(launcher.lifecycle, "process_identity", lambda pid: {
         "pid": pid, "uid": os.getuid(), "pgid": pid, "start": "synthetic:1",
@@ -118,7 +120,8 @@ def test_product_executor_receives_only_configured_verifier_destination(launcher
     (command, kwargs), = calls
     assert command[command.index("--product-verifier-container") + 1] == launcher.CONTAINER
     assert "--autonomous" not in command
-    assert kwargs["env"] == launcher.DOCKER_ENV
+    assert not any(key.lower() in {"http_proxy", "https_proxy", "all_proxy"} for key in kwargs["env"])
+    assert "ALL_PROXY" in launcher.DOCKER_ENV
     assert kwargs["env"]["DOCKER_HOST"] == "unix:///unused-test-docker.sock"
 
 

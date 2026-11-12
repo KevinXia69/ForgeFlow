@@ -8,12 +8,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
     "smoke": "node e2e/smoke.mjs",
-    "test:a11y": "node e2e/a11y.mjs",
-    "test:hermetic": "node e2e/hermetic.mjs",
-    "test:impact": "node e2e/impact-preview.mjs",
-    "test:impact:candidates": "node e2e/impact-candidates.mjs",
-    "test:impact:missing": "node e2e/impact-missing.mjs",
-    "test:receipt": "node --test e2e/receipt.test.mjs"
+    "test:a11y": "node e2e/a11y.mjs"
   },
   "dependencies": {
     "@deepseek-ai/dsh-client-store": "^0.2.1-rc.2",

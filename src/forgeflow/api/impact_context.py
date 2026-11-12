@@ -123,18 +123,24 @@ def impact_summary(plan):
     data = checked_chain(plan)
     if data is None:
         return {"status": "invalid; no relationship claims supported"}
-    direct, _, _, _ = _direct_scope(data)
+    direct, order_indices, _, _ = _direct_scope(data)
     return {"status": "recorded", "order_count": len(data["orders"]),
             "orders_with_baseline_relationship": sum(bool(row["baseline_edge_keys"]) for row in data["orders"]),
             "direct_scope": direct or {"status": "unknown"},
-            "detail": "Direct scope follows recorded baseline disruption-to-supply-to-order paths. Linked demand and failed supply are separate SKU-specific quantities; neither establishes delay or actual delivery."}
+            "linked_order_refs": [data["orders"][index]["order_ref"] for index in order_indices[:8]],
+            "more_linked_orders": len(order_indices) > 8,
+            "physical_outcomes": [flag for flag in data["missing"] if flag in (
+                "actual_receipt_unmeasured", "shipping_unmeasured", "actual_delivery_unmeasured")],
+            "detail": "Baseline links identify orders. Failed supply and linked demand are distinct SKU quantities."}
 
 
 def _matches(question, label):
-    return re.search(r"(?<![\w])" + re.escape(label) + r"(?![\w])", question, re.I) is not None
+    # Adjacent Chinese prose ("S00001的") is not an ASCII token boundary.
+    return re.search(r"(?<![A-Za-z0-9_])" + re.escape(label) + r"(?![A-Za-z0-9_])",
+                     question, re.I) is not None
 
 
-def impact_text(plan, question, lang):
+def impact_text(plan, question, lang, order_refs=None):
     """Return plain explanation and scalar citation specs, with explicit bounds."""
     zh = lang == "zh"
     chain = checked_chain(plan)
@@ -146,19 +152,26 @@ def impact_text(plan, question, lang):
     nodes = {node["key"]: (index, node) for index, node in enumerate(chain["nodes"])}
     edges = {edge["key"]: (index, edge) for index, edge in enumerate(chain["edges"])}
     orders = list(enumerate(chain["orders"]))
-    named = [(index, row) for index, row in orders if _matches(question, row["order_ref"])]
-    if not named:
-        requested_orders = re.findall(r"(?<![A-Za-z0-9])(?:S[0-9]{4,}|SO(?:[-_][A-Za-z0-9]+|[0-9]+))(?![A-Za-z0-9])", question, re.I)
-        if requested_orders:
+    if order_refs:
+        allowed = set(order_refs)
+        named = [(index, row) for index, row in orders if row["order_ref"] in allowed]
+        if not named:
             return (("当前选定方案没有找到所询问订单的供应关系；不能拿其他订单代替。" if zh else
-                     "No supply relationship for the requested order was found in the selected plan; other orders cannot substitute for it."), tuple(specs))
-        mentioned = {key for key, (_, node) in nodes.items() if _matches(question, node["label"])}
-        if mentioned:
-            named = [(index, row) for index, row in orders
-                     if mentioned.intersection(row["baseline_node_keys"] + row["planned_node_keys"])]
-            if not named:
-                return (("该节点没有记录通往销售订单的分配关系；未分配供应不能计入订单覆盖。" if zh else
-                         "This node has no recorded allocation path to a sales order; unallocated supply cannot count as order coverage."), tuple(specs))
+                     "No supply relationship for the requested orders was found in the selected plan; other orders cannot substitute for them."), tuple(specs))
+    else:
+        named = [(index, row) for index, row in orders if _matches(question, row["order_ref"])]
+        if not named:
+            requested_orders = re.findall(r"(?<![A-Za-z0-9])(?:S[0-9]{4,}|SO(?:[-_][A-Za-z0-9]+|[0-9]+))(?![A-Za-z0-9])", question, re.I)
+            if requested_orders:
+                return (("当前选定方案没有找到所询问订单的供应关系；不能拿其他订单代替。" if zh else
+                         "No supply relationship for the requested order was found in the selected plan; other orders cannot substitute for it."), tuple(specs))
+            mentioned = {key for key, (_, node) in nodes.items() if _matches(question, node["label"])}
+            if mentioned:
+                named = [(index, row) for index, row in orders
+                         if mentioned.intersection(row["baseline_node_keys"] + row["planned_node_keys"])]
+                if not named:
+                    return (("该节点没有记录通往销售订单的分配关系；未分配供应不能计入订单覆盖。" if zh else
+                             "This node has no recorded allocation path to a sales order; unallocated supply cannot count as order coverage."), tuple(specs))
     selected = named or orders
     lines = ["以下是当前选定方案的原异常关联与计划供应安排。" if zh else
              "These are the original disruption relationships and planned supplies for the currently selected plan."]

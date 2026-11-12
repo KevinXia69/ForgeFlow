@@ -90,6 +90,7 @@ const PREPARE_ERROR_CODES = new Set([
   "internal_error", "unavailable", "bad_response", "plan_binding_changed", "prepare_rejected",
 ]);
 const CHANGE_SET_REASONS = new Set([
+  "unsupported_recovery_scope", "additional_purchase_cancellation_unsupported",
   "change_set_binding_mismatch", "change_set_supply_quantity_mismatch",
   "change_set_existing_offer_ambiguous", "change_set_mapping_unproven",
   "change_set_origin_capacity_mismatch",
@@ -101,6 +102,8 @@ const PREPARE_REASONS = new Set([
   "another_recovery_operation_running", "recovery_bundle_required",
   "policy_file_untrusted", "source_bytes_changed", "source_file_missing",
   "invalid_source_manifest", "details_unavailable",
+  "planning_model_infeasible", "solver_incomplete",
+  "unsupported_recovery_scope", "additional_purchase_cancellation_unsupported",
   "change_set_binding_mismatch", "change_set_supply_quantity_mismatch",
   "change_set_existing_offer_ambiguous", "change_set_mapping_unproven",
   "change_set_origin_capacity_mismatch",
@@ -150,7 +153,10 @@ function result(summary) {
 
 // Filesystem substitution exists only for deterministic tests. Registration
 // always uses Node's filesystem; both tools use the same fixed Python entrypoint.
-export function createRecoveryTools(pi, io = filesystem) {
+export function createRecoveryTools(pi, io = filesystem, mode = "autonomous") {
+  if (!["autonomous", "prepare-only"].includes(mode)) {
+    throw new Error("Invalid native recovery mode.");
+  }
   const prepare = {
     name: "prepare_recovery",
     label: "Prepare recovery change set (read only)",
@@ -205,6 +211,19 @@ export function createRecoveryTools(pi, io = filesystem) {
       }
     },
   };
+  if (mode === "prepare-only") {
+    prepare.description = "Prepare a recovery plan from live ERP records and an explicit, "
+      + "task-authorized request. Returns a bound plan_id and change summary for review. "
+      + "This tool makes no ERP changes; preparation does not establish ERP recovery or acceptance.";
+    prepare.promptSnippet = "Prepare an evidenced, authorized request and stop with its plan_id for review.";
+    prepare.promptGuidelines = [
+      "Establish every required request value from business evidence and the original task authorization.",
+      "Correct only evidence-supported input errors; never expand authorization or weaken budgets or margin.",
+      "Ask for clarification when a necessary business decision or evidence is missing.",
+      "Stop after preparation. This mode does not authorize ERP writes or execution.",
+    ];
+    return [prepare];
+  }
   const apply = {
     name: "execute_recovery",
     label: "Execute prepared recovery change set",
@@ -246,5 +265,6 @@ export function createRecoveryTools(pi, io = filesystem) {
 }
 
 export default function nativeRecovery(pi) {
-  for (const tool of createRecoveryTools(pi)) pi.registerTool(tool);
+  const mode = process.env.FORGEFLOW_RECOVERY_MODE || "autonomous";
+  for (const tool of createRecoveryTools(pi, filesystem, mode)) pi.registerTool(tool);
 }

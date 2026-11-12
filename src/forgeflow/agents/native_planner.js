@@ -47,14 +47,17 @@ export const REQUEST_SCHEMA = {
       description: "Positive budget for every selected SO, keyed by its decimal ID.",
     },
     disruption: {
+      description: "The disrupted original commitment. For cancellation, vendor_ref and offer_key identify the canceled supplier/offer, never a replacement. The solver chooses replacement supply.",
       anyOf: [
         {
           type: "object", additionalProperties: false,
           required: ["kind", "vendor_ref"],
           properties: {
             kind: { type: "string", const: "supplier_cancellation" },
-            vendor_ref: { type: "string", minLength: 1 },
-            offer_key: { type: "string", minLength: 1 },
+            vendor_ref: { type: "string", minLength: 1,
+              description: "Business reference of the supplier that canceled the original supply." },
+            offer_key: { type: "string", minLength: 1,
+              description: "Exact key of the canceled offer matching the original purchase line, never an alternative offer." },
           },
         },
         {

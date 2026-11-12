@@ -16,6 +16,13 @@ RUN = "run-1"
 PLAN = "a" * 64
 
 
+@pytest.mark.parametrize("reason", ["planning_model_infeasible", "solver_incomplete", "unsupported_recovery_scope"])
+def test_prepare_feedback_preserves_solver_terminal_outcomes(reason):
+    assert client.prepare_feedback(ExecutorError("plan_rejected", reason=reason)) == {
+        "code": "plan_rejected", "reason": reason, "missing_sales_order_ids": [],
+    }
+
+
 def canonical(body: dict) -> bytes:
     return json.dumps(body, sort_keys=True, separators=(",", ":")).encode()
 

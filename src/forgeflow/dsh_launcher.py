@@ -8,6 +8,7 @@ is accepted by this entry point.
 
 from __future__ import annotations
 
+import json
 import os
 import pwd
 import re
@@ -28,6 +29,52 @@ def scoped_file(path: Path, root: Path, *, owner_uid: int | None = None) -> Path
             or (owner_uid is not None and info.st_uid != owner_uid)):
         raise ValueError("invalid_assistant_scope")
     return path
+
+
+_ALLOWED_KEY_ENVS = {"NEBIUS_API_KEY", "DEEPSEEK_API_KEY"}
+
+
+def assistant_key_env(patch_path: Path, config: dict | None = None) -> str:
+    """Read the selected provider key name from trusted config or the DSH patch."""
+    configured = (config or {}).get("api_key_env")
+    if configured in _ALLOWED_KEY_ENVS:
+        return configured
+    try:
+        patches = json.loads(patch_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return "DEEPSEEK_API_KEY"
+    if not isinstance(patches, list):
+        return "DEEPSEEK_API_KEY"
+    for patch in patches:
+        if not isinstance(patch, dict) or patch.get("id") != "llm-pi-ai":
+            continue
+        providers = (patch.get("config") or {}).get("providers")
+        if not isinstance(providers, dict):
+            continue
+        for provider in providers.values():
+            if not isinstance(provider, dict):
+                continue
+            key_env = provider.get("apiKeyEnv")
+            if key_env in _ALLOWED_KEY_ENVS:
+                return key_env
+    return "DEEPSEEK_API_KEY"
+
+
+def assistant_launch_environment(config: dict, evidence: Path, patch_path: Path,
+                                 source: dict[str, str] | None = None) -> dict[str, str]:
+    """Pass only the credential selected by the patch into the model process."""
+    source = os.environ if source is None else source
+    key_env = assistant_key_env(patch_path, config)
+    api_key = source.get(key_env, "")
+    if not api_key:
+        raise ValueError("assistant_model_key_required")
+    return {
+        "PATH": "/usr/local/bin:/usr/bin:/bin", "LANG": "C.UTF-8",
+        "HOME": config["home"], "DSH_HOME": config["home"],
+        "DSH_PERMISSION_MODE": "read-only",
+        "FORGEFLOW_ASSISTANT_EVIDENCE": str(evidence),
+        key_env: api_key,
+    }
 
 
 def launch_arguments(argv: list[str], config: dict, evidence: Path) -> list[str]:
@@ -85,14 +132,8 @@ def main() -> int:
         evidence = scoped_file(Path(os.environ.get("FORGEFLOW_ASSISTANT_EVIDENCE", "")), root,
                                owner_uid=api.pw_uid)
         arguments = launch_arguments(sys.argv[1:], config, evidence)
-        environment = {
-            "PATH": "/usr/local/bin:/usr/bin:/bin", "LANG": "C.UTF-8",
-            "HOME": config["home"], "DSH_HOME": config["home"], "DSH_PERMISSION_MODE": "read-only",
-            "FORGEFLOW_ASSISTANT_EVIDENCE": str(evidence),
-            "NEBIUS_API_KEY": os.environ.get("NEBIUS_API_KEY", ""),
-        }
-        if not environment["NEBIUS_API_KEY"]:
-            raise ValueError("assistant_model_key_required")
+        environment = assistant_launch_environment(
+            config, evidence, evidence.with_suffix(".patch.json"))
         os.umask(0o007)
         os.chdir(config["workspace"])
         os.execve(config["node"], arguments, environment)

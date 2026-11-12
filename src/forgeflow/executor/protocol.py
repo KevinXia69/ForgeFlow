@@ -15,7 +15,7 @@ from forgeflow.recovery.failure import failure_matches_error, failure_projection
 
 SCHEMA_VERSION = 1
 MAX_FRAME_BYTES = 65536
-OPS = ("prepare", "apply", "status", "health", "reconcile", "product")
+OPS = ("prepare", "apply", "status", "health", "reconcile", "product", "investigation")
 PLAN_ID = re.compile(r"[a-f0-9]{64}")
 RUN_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}")
 
@@ -27,6 +27,7 @@ _ALLOWED_KEYS = {
     "reconcile": frozenset({"schema_version", "op", "run_id", "plan_id"}),
     "health": frozenset({"schema_version", "op"}),
     "product": frozenset({"schema_version", "op", "run_id", "action", "payload"}),
+    "investigation": frozenset({"schema_version", "op", "run_id", "action", "payload"}),
 }
 
 # reason -> (wire code, HTTP-style status, retryable).  The reason itself is
@@ -88,11 +89,14 @@ for _reason in (
 ):
     ERROR_CODES[_reason] = ("product_conflict", 409, False)
 ERROR_CODES.update({
+    "solver_incomplete": ("plan_rejected", 422, False),
+    "investigation_validation_required": ("plan_rejected", 422, False),
     "product_owner_mismatch": ("product_forbidden", 403, False),
     "product_invalid_request": ("invalid_field", 400, False),
     "product_decision_corrupt": ("store_corrupt", 500, False),
     "product_decision_missing": ("plan_not_found", 404, False),
     "product_constraints_unsupported": ("plan_rejected", 422, False),
+    "unsupported_recovery_scope": ("plan_rejected", 422, False),
     "product_constraints_invalid": ("invalid_field", 400, False),
     "product_objectives_invalid": ("invalid_field", 400, False),
     "product_candidates_unavailable": ("plan_rejected", 422, False),
@@ -233,6 +237,11 @@ def validate_envelope(body: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     if op == "product" and (not isinstance(body.get("action"), str)
                             or body.get("action") not in {"prepare", "decide", "authorize", "status", "cancel_unstarted", "artifact"}
                             or not isinstance(body.get("payload"), dict)):
+        raise ProtocolError("invalid_field", 400)
+    if op == "investigation" and (
+            not isinstance(body.get("action"), str)
+            or body.get("action") not in {"query", "validate", "prepare", "status", "finish"}
+            or not isinstance(body.get("payload"), dict)):
         raise ProtocolError("invalid_field", 400)
     return op, {
         key: value for key, value in body.items() if key not in {"schema_version", "op"}

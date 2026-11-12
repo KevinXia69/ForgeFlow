@@ -1,15 +1,23 @@
 import json
 import os
 import subprocess
+from pathlib import Path
 
 import pytest
 
 pytest.importorskip("pwd")
 
 from forgeflow import vps_runtime  # noqa: E402
-from forgeflow.dsh_launcher import launch_arguments, scoped_file  # noqa: E402
+from forgeflow.dsh_launcher import (  # noqa: E402
+    assistant_key_env,
+    assistant_launch_environment,
+    launch_arguments,
+    scoped_file,
+)
+from forgeflow.product.local import candidate_profile_setting  # noqa: E402
 from forgeflow.vps_runtime import (  # noqa: E402
     api_environment,
+    assistant_binding,
     assistant_config_path,
     configuration,
     executor_command,
@@ -44,6 +52,40 @@ def test_executor_uses_api_identity_and_never_disables_the_peer_gate():
     assert command[command.index("--agent-user") + 1] == "forgeflow-api"
     assert "--allow-local-peer" not in command
     assert command[command.index("--key") + 1] == "/var/lib/forgeflow/sandbox/api_key"
+
+
+def test_api_process_receives_only_the_dedicated_dsh_supplementary_group(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    settings = config()
+    socket = tmp_path / "executor.sock"
+    socket.touch()
+    settings["socket"] = str(socket)
+    monkeypatch.setattr(vps_runtime.shutil, "which", lambda _name: "/usr/bin/docker")
+    monkeypatch.setattr(vps_runtime.signal, "signal", lambda *_args: None)
+    monkeypatch.setattr(vps_runtime.threading, "Event", lambda: SimpleNamespace(
+        is_set=lambda: False, wait=lambda _timeout: True, set=lambda: None))
+    monkeypatch.setattr(vps_runtime.subprocess, "run", lambda *_args, **_kwargs: SimpleNamespace(returncode=0))
+    monkeypatch.setattr(vps_runtime, "container_boot", lambda _name: ("container", "boot", 0))
+    monkeypatch.setattr(vps_runtime, "prepare_layout", lambda _config: (
+        {"uid": 11001, "gid": 11001, "dsh_gid": 11002}, {"PATH": "/usr/bin"}))
+    actual_lstat = Path.lstat
+    monkeypatch.setattr(Path, "lstat", lambda path: SimpleNamespace(
+        st_mode=0o140660, st_uid=0, st_gid=11001) if path == socket else actual_lstat(path))
+    launches = []
+
+    def launch(command, **options):
+        launches.append((command, options))
+        return SimpleNamespace(poll=lambda: None)
+
+    monkeypatch.setattr(vps_runtime.subprocess, "Popen", launch)
+    monkeypatch.setattr(vps_runtime, "stop_child", lambda *_args: None)
+    assert vps_runtime._run_locked(settings, tmp_path / "config.json") == 0
+    assert len(launches) == 2
+    options = launches[1][1]
+    assert options["user"] == options["group"] == 11001
+    assert options["extra_groups"] == [11002]
+    assert options["umask"] == 0o077
 
 
 @pytest.fixture
@@ -199,3 +241,130 @@ def test_another_judge_runtime_is_not_blocked_by_first_judge_maintenance(tmp_pat
         first_lock.chmod(0o600)
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         assert vps_runtime.run(tmp_path / "unused-config.json") == 17
+
+
+def test_api_environment_keeps_the_independent_assistant_binding():
+    env = api_environment(config(), {
+        "FORGEFLOW_MODEL_NAME": "deepseek-flash",
+        "FORGEFLOW_MODEL_BASE_URL": "https://api.deepseek.com/v1",
+        "FORGEFLOW_MODEL_API_KEY": "deepseek-key",
+        "FORGEFLOW_ASSISTANT_PROFILE": "deepseek_flash",
+        "DEEPSEEK_API_KEY": "deepseek-key",
+    })
+    assert env["FORGEFLOW_ASSISTANT_PROFILE"] == "deepseek_flash"
+    assert env["DEEPSEEK_API_KEY"] == "deepseek-key"
+    assert env["FORGEFLOW_DSH_MODEL"] == "deepseek-flash"
+    assert env["FORGEFLOW_DSH_REASONING_EFFORT"] == "max"
+    assert env["DEEPSEEK_API_KEY"] == "deepseek-key"
+    assert env["NEBIUS_API_KEY"] == "deepseek-key"
+    assert assistant_binding(env) == {
+        "profile": "deepseek_flash",
+        "provider": "deepseek",
+        "model": "deepseek-flash",
+        "base_url": "https://api.deepseek.com/v1",
+        "api_key_env": "DEEPSEEK_API_KEY",
+        "api_key": "deepseek-key",
+    }
+
+
+def test_assistant_binding_falls_back_to_the_platform_model():
+    env = api_environment(config(), {
+        "FORGEFLOW_MODEL_NAME": "deepseek-flash",
+        "FORGEFLOW_MODEL_BASE_URL": "https://api.deepseek.com/v1",
+        "FORGEFLOW_MODEL_API_KEY": "deepseek-key",
+    })
+    assert assistant_binding(env) == {
+        "profile": "deepseek_flash",
+        "provider": "deepseek",
+        "model": "deepseek-flash",
+        "base_url": "https://api.deepseek.com/v1",
+        "api_key_env": "DEEPSEEK_API_KEY",
+        "api_key": "deepseek-key",
+    }
+
+
+def _patch_for(key_env: str, tmp_path):
+    provider = "deepseek" if key_env == "DEEPSEEK_API_KEY" else "nebius"
+    path = tmp_path / "assistant.patch.json"
+    path.write_text(json.dumps([
+        {"id": "agent-default-model", "config": {"provider": provider, "model": "test-model"}},
+        {"id": "llm-pi-ai", "config": {"providers": {provider: {
+            "apiKeyEnv": key_env, "api": "openai-completions",
+            "baseURL": "https://example.test/v1", "models": [{"id": "test-model"}]}}}},
+    ]))
+    return path
+
+
+def test_launcher_passes_only_the_selected_provider_key(tmp_path):
+    evidence = tmp_path / "scope.json"
+    evidence.write_text("{}")
+    deepseek = _patch_for("DEEPSEEK_API_KEY", tmp_path)
+    environment = assistant_launch_environment(
+        {"home": str(tmp_path)}, evidence, deepseek,
+        source={"DEEPSEEK_API_KEY": "deepseek-key", "NEBIUS_API_KEY": "nebius-key"})
+    assert environment["DEEPSEEK_API_KEY"] == "deepseek-key"
+    assert "NEBIUS_API_KEY" not in environment
+    assert assistant_key_env(deepseek) == "DEEPSEEK_API_KEY"
+
+
+def test_launcher_accepts_a_deepseek_only_host_and_rejects_a_missing_selected_key(tmp_path):
+    evidence = tmp_path / "scope.json"
+    evidence.write_text("{}")
+    deepseek = _patch_for("DEEPSEEK_API_KEY", tmp_path)
+    environment = assistant_launch_environment(
+        {"home": str(tmp_path)}, evidence, deepseek,
+        source={"DEEPSEEK_API_KEY": "deepseek-key"})
+    assert environment["DEEPSEEK_API_KEY"] == "deepseek-key"
+    with pytest.raises(ValueError, match="assistant_model_key_required"):
+        assistant_launch_environment(
+            {"home": str(tmp_path)}, evidence, deepseek,
+            source={"NEBIUS_API_KEY": "nebius-key"})
+
+
+def test_vps_launch_files_preserve_the_selected_provider_keys():
+    root = Path(__file__).resolve().parents[1]
+    assert "DEEPSEEK_API_KEY" in (root / "deploy/vps/forgeflow-dsh-node").read_text()
+    assert "DEEPSEEK_API_KEY" in (root / "deploy/vps/forgeflow-dsh.sudoers").read_text()
+    source = (root / "scripts/vps_reviewers.py").read_text()
+    assert "DEEPSEEK_API_KEY" in source
+    assert "FORGEFLOW_ASSISTANT_PROFILE" in source
+
+
+def test_launcher_prefers_the_trusted_config_key_env(tmp_path):
+    evidence = tmp_path / "scope.json"
+    evidence.write_text("{}")
+    patch = tmp_path / "assistant.patch.json"
+    patch.write_text("[]")
+    environment = assistant_launch_environment(
+        {"home": str(tmp_path), "api_key_env": "DEEPSEEK_API_KEY"},
+        evidence, patch,
+        source={"DEEPSEEK_API_KEY": "deepseek-key", "NEBIUS_API_KEY": "nebius-key"})
+    assert environment["DEEPSEEK_API_KEY"] == "deepseek-key"
+    assert "NEBIUS_API_KEY" not in environment
+
+
+def test_api_environment_can_match_local_candidate_flags():
+    env = api_environment(config(), {
+        "FORGEFLOW_LOCAL_CANDIDATES": "1",
+        "FORGEFLOW_LOCAL_REVISIONS": "1",
+        "FORGEFLOW_LOCAL_CANDIDATE_PROFILE": "quantity-cost-capacity-v2",
+    })
+    assert env["FORGEFLOW_LOCAL_CANDIDATES"] == "1"
+    assert env["FORGEFLOW_LOCAL_REVISIONS"] == "1"
+    assert env["FORGEFLOW_LOCAL_CANDIDATE_PROFILE"] == "quantity-cost-capacity-v2"
+    default = api_environment(config(), {})
+    assert default["FORGEFLOW_LOCAL_CANDIDATES"] == "0"
+    assert "FORGEFLOW_LOCAL_CANDIDATE_PROFILE" not in default
+
+
+def test_blank_candidate_profile_is_normalized_for_generator_and_consumer(monkeypatch):
+    from forgeflow.product.local import CANDIDATE_PROFILE_ENV
+    monkeypatch.delenv(CANDIDATE_PROFILE_ENV, raising=False)
+    assert candidate_profile_setting() is None
+    monkeypatch.setenv(CANDIDATE_PROFILE_ENV, "   ")
+    assert candidate_profile_setting() is None
+    env = api_environment(config(), {})
+    assert CANDIDATE_PROFILE_ENV not in env
+    monkeypatch.setenv(CANDIDATE_PROFILE_ENV, "not-a-real-profile")
+    with pytest.raises(ValueError):
+        candidate_profile_setting()

@@ -3,9 +3,9 @@ import logo from "./assets/forgeflow-logo.png";
 import { Tooltip } from "@forgeflow/dsh-primitives";
 import { useI18n } from "./i18n";
 import { runTaskLabel } from "./runLabels";
-import type { RunSummary } from "./types";
+import type { Config, RunSummary } from "./types";
 
-export type WorkbenchView = "cases" | "runs" | "knowledge";
+export type WorkbenchView = "cases" | "runs" | "knowledge" | "setup";
 
 type Props = {
   runs: RunSummary[];
@@ -13,7 +13,7 @@ type Props = {
   onView: (view: WorkbenchView) => void;
   onOpenRun: (runId: string) => void;
   onOpenSettings: () => void;
-  review?: boolean;
+  workbenches?: Config["workbenches"];
 };
 
 export function Sidebar({
@@ -22,7 +22,7 @@ export function Sidebar({
   onView,
   onOpenRun,
   onOpenSettings,
-  review = false,
+  workbenches,
 }: Props) {
   const { t } = useI18n();
   const [collapsed, setCollapsed] = useState(() => {
@@ -90,6 +90,18 @@ export function Sidebar({
         </button>
         {view === "knowledge" ? <div className="side-chat" data-chat-history-slot="true" /> : null}
         <button
+          className={`nav-item${view === "setup" ? " is-active" : ""}`}
+          type="button"
+          data-nav="setup"
+          aria-current={view === "setup" ? "page" : undefined}
+          aria-label={t("sidebar.navSetup")}
+          title={t("sidebar.navSetup")}
+          onClick={() => onView("setup")}
+        >
+          <span className="nav-icon" aria-hidden="true">◈</span>
+          <span className="nav-label">{t("sidebar.navSetup")}</span>
+        </button>
+        <button
           className={`nav-item${view === "cases" ? " is-active" : ""}`}
           type="button"
           data-nav="cases"
@@ -101,18 +113,16 @@ export function Sidebar({
           <span className="nav-icon" aria-hidden="true">▤</span>
           <span className="nav-label">{t("sidebar.navCases")}</span>
         </button>
-        <button
-          className={`nav-item${view === "runs" ? " is-active" : ""}`}
-          type="button"
-          data-nav="runs"
-          aria-current={view === "runs" ? "page" : undefined}
-          aria-label={t("sidebar.navEvidence")}
-          title={t("sidebar.navEvidence")}
-          onClick={() => onView("runs")}
-        >
-          <span className="nav-icon" aria-hidden="true">◫</span>
-          <span className="nav-label">{t("sidebar.navEvidence")}</span>
-        </button>
+        {workbenches?.recovery_review && <a className="nav-item" href="/recovery-review"
+          aria-label="Review supply disruption" title="Review supply disruption">
+          <span className="nav-icon" aria-hidden="true">◇</span>
+          <span className="nav-label">Review supply disruption</span>
+        </a>}
+        {workbenches?.investigation && <a className="nav-item" href="/investigation"
+          aria-label="Continue investigation" title="Continue investigation">
+          <span className="nav-icon" aria-hidden="true">↳</span>
+          <span className="nav-label">Continue investigation</span>
+        </a>}
         <button
           className="nav-item settings-trigger"
           type="button"
@@ -149,12 +159,7 @@ export function Sidebar({
         </>
       ) : null}
 
-      <footer className="side-footer">
-        <span className="avatar" aria-hidden="true">F</span>
-        <span className="side-who">
-          <strong>{t(review ? "sidebar.reviewWorkspace" : "sidebar.localWorkspace")}</strong>
-        </span>
-      </footer>
+
     </aside>
   );
 }

@@ -1,4 +1,4 @@
-"use strict";
+import { bindWorkspace, workspaceEvents, workspaceFetch } from "./workspace.js";
 
 const state = { runId: null, planId: null };
 const LABELS = {
@@ -49,7 +49,7 @@ async function api(path, options = {}) {
   if (init.body) {
     init.headers = { "Content-Type": "application/json", ...(init.headers || {}) };
   }
-  const response = await fetch(path, init);
+  const response = await workspaceFetch(path, init);
   let body = null;
   try {
     body = await response.json();
@@ -166,7 +166,7 @@ function watchRun(runId) {
     runEvents = null;
   }
   if (typeof EventSource === "undefined") return;
-  const source = new EventSource(`/api/runs/${encodeURIComponent(runId)}/events`);
+  const source = new EventSource(workspaceEvents(`/api/runs/${encodeURIComponent(runId)}/events`));
   runEvents = source;
   source.addEventListener("snapshot", (event) => {
     if (state.runId !== runId) {
@@ -311,56 +311,11 @@ async function loadApprovals() {
       nonce.className = "mono break";
       cell(row, label(record.status));
       cell(row, record.expires_at_utc);
-      const action = document.createElement("td");
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "secondary small";
-      button.textContent = "撤销";
-      button.addEventListener("click", () => revokeApproval(record.nonce));
-      action.appendChild(button);
-      row.appendChild(action);
       body.appendChild(row);
     }
-    renderRecent(runs);
-    const wanted = hashRun();
-    if (wanted) {
-      const selected = body.querySelector(`tr[data-run-id="${CSS.escape(wanted)}"]`);
-      if (selected) await selectRun(wanted, selected);
-    }
+    setStatus("approval-status", `共 ${records.length} 条历史审批记录。`);
   } catch (error) {
     setStatus("approval-status", `加载审批失败：${error.message}`, true);
-  }
-}
-
-async function approvePlan() {
-  if (!state.runId || !state.planId) return;
-  const button = $("approve-button");
-  button.disabled = true;
-  setStatus("approval-status", "正在批准…");
-  try {
-    const record = await api(`${planPath()}/approvals`, {
-      method: "POST",
-      body: JSON.stringify({ ttl_seconds: 900 }),
-    });
-    await loadApprovals();
-    setStatus("approval-status",
-      `已批准：nonce=${record.nonce}，到期时间 ${record.expires_at_utc}`);
-  } catch (error) {
-    const prefix = error.status === 409 ? "批准冲突" : "批准失败";
-    setStatus("approval-status", `${prefix}：${error.message}`, true);
-  } finally {
-    button.disabled = false;
-  }
-}
-
-async function revokeApproval(nonce) {
-  if (!state.runId || !state.planId) return;
-  try {
-    await api(`${planPath()}/approvals/${encodeURIComponent(nonce)}/revoke`, { method: "POST" });
-    await loadApprovals();
-    setStatus("approval-status", "已撤销该审批。");
-  } catch (error) {
-    setStatus("approval-status", `撤销失败：${error.message}`, true);
   }
 }
 
@@ -379,6 +334,7 @@ $("login-form").addEventListener("submit", async (event) => {
       method: "POST",
       body: JSON.stringify({ invite_code: code }),
     });
+    await bindWorkspace();
     input.value = "";
     showConsole();
     showView("assistant");
@@ -415,18 +371,24 @@ async function createRun() {
 async function applyDeployment() {
   try {
     const info = await api("/api/config");
+    $("recovery-review-link").hidden = info.workbenches?.recovery_review !== true;
+    $("investigation-link").hidden = info.workbenches?.investigation !== true;
+    if (info.deployment !== "review" && info.runner_enabled === true) {
+      $("create-run").disabled = false;
+      $("create-run").removeAttribute("title");
+    }
     if (info.deployment === "review") {
       document.body.classList.add("review");
       $("review-banner").hidden = false;
     }
   } catch (error) {
-    // The banner is informational; a missing config must not block the console.
+    // Browsing remains available when the host cannot confirm its enabled features.
   }
 }
 
 async function restoreSession() {
   try {
-    await api("/api/runs");
+    await bindWorkspace();
   } catch (error) {
     return;  // stay on the login card; 401 is the normal first visit
   }
@@ -436,14 +398,16 @@ async function restoreSession() {
 }
 
 $("new-chat").addEventListener("click", () => {
+  ++conversationVersion;
   $("kb-results").replaceChildren();
-  conversation.length = 0;
+  $("kb-question").value = "";
+  $("kb-button").disabled = false;
   setStatus("kb-status", "");
   showView("assistant");
   $("kb-question").focus();
 });
 
-for (const button of document.querySelectorAll(".nav-item")) {
+for (const button of document.querySelectorAll("button[data-view]")) {
   button.addEventListener("click", () => showView(button.dataset.view));
 }
 
@@ -457,10 +421,9 @@ for (const button of document.querySelectorAll("[data-quick]")) {
 
 $("create-run").addEventListener("click", createRun);
 $("runs-refresh").addEventListener("click", loadRuns);
-$("approve-button").addEventListener("click", approvePlan);
 
 
-const conversation = [];
+let conversationVersion = 0;
 
 function appendTurn(role, question, passages) {
   const article = document.createElement("article");
@@ -496,7 +459,7 @@ async function askKnowledge(event) {
   const input = $("kb-question");
   input.value = "";
   appendTurn("user", question, []);
-  conversation.push({ role: "user", text: question });
+  const conversationAtSend = conversationVersion;
   $("kb-button").disabled = true;
   setStatus("kb-status", "查询中…");
   try {
@@ -504,17 +467,17 @@ async function askKnowledge(event) {
       method: "POST",
       body: JSON.stringify({ question }),
     });
+    if (conversationAtSend !== conversationVersion) return;
     const passages = answer.found ? answer.passages : [];
     appendTurn("assistant", question, passages);
-    conversation.push({ role: "assistant", question, passages });
     setStatus("kb-status", answer.found
       ? `找到 ${passages.length} 段原文。`
       : "文档中没有可引用的段落。", !answer.found);
     input.focus();
   } catch (error) {
-    setStatus("kb-status", `查询失败：${error.message}`, true);
+    if (conversationAtSend === conversationVersion) setStatus("kb-status", `查询失败：${error.message}`, true);
   } finally {
-    $("kb-button").disabled = false;
+    if (conversationAtSend === conversationVersion) $("kb-button").disabled = false;
   }
 }
 

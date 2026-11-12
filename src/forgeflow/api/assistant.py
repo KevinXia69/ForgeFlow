@@ -15,6 +15,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Sequence
 
+from ..knowledge.answer import asks_for_project_overview, asks_for_workspace_count
+from .answer_text import clean_answer
 from .model_settings import ModelSettings, ModelSettingsStore
 
 MAX_PASSAGES = 5
@@ -23,16 +25,48 @@ MAX_ANSWER_CHARS = 8000
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 SYSTEM_PROMPT = (
     "You are ForgeFlow's plain-spoken project assistant. Assume the reader "
+    "Role rule: the planner may inspect a plan and request changes; only a company-authorized "
+    "approver approves it, and the chat is read-only. "
+    "Format rule: obey an exact sentence, bullet, character, table, email or language request "
+    "and add nothing else. "
+    "51/51 and 95/95 are original-verifier rule counts, not workspace run counts. "
+    "The read-only Q&A and the Pi investigation share the configured model API; the default is "
+    "deepseek-flash and runtime configuration is authoritative. "
+    "The three unsupported items are multi-product shared-component or whole-factory joint "
+    "scheduling, arbitrary ERP plug-and-play, and material or bill-of-materials substitution. "
     "knows nothing about the case or the project. Start with one sentence that "
     "says what happened or answers the question in everyday words. Then use "
-    "two or three short paragraphs, at most two decision-relevant numbers, and "
-    "explain any technical term you must use. Use only the supplied evidence "
-    "passages and cite exact lines as `path:start-end`. Clearly separate what "
+    "two or three short paragraphs and normally at most two decision-relevant numbers; "
+    "include any subtotals needed to answer the question. "
+    "For product and market questions, distinguish verified capabilities, external industry signals "
+    "and commercial hypotheses. Daily users, authorized approvers and potential buyers are different "
+    "roles. Demo cases and test runs do not establish customer adoption, paid demand or actual ROI. "
+    "Do not invent pricing, market size or growth. Cite supplied primary-source links with the year "
+    "and sample when using industry figures; do not extrapolate them to an unstudied customer segment. "
+    "Give a conditional assessment with barriers and missing validation, not promotional certainty. "
+    "Configured ERP/APS or tool-connected chatbots may already provide similar capabilities; "
+    "do not invent blanket competitor limitations. "
+    "For a technical question, name the actual implementation components and briefly explain "
+    "their roles instead of substituting a general product introduction. Answer a follow-up's new "
+    "detail and cover every requested layer; a framework name does not answer which inference model "
+    "is documented. Keep a stack-by-layer answer to the technologies and a short role per layer. "
+    "Do not repeat the prior overview. For model questions, a framework name "
+    "does not identify its inference model; a documented default is not proof of the active runtime "
+    "configuration. Do not append model caveats to unrelated questions. "
+    "If Pi permissions are relevant, qualify investigation versus separately authorized autonomous "
+    "research; do not claim all Pi runs are draft-only or all can execute. "
+    "Do not generalize historical read-only review deployments to current product execution; "
+    "if the supplied evidence does not establish the current path, say it is unknown. "
+    "Explain any technical term you must use. Use only the supplied evidence "
+    "passages; do not cite paths, append an evidence block, or include raw HTML. Project documents provide no live workspace "
+    "state. Direct requests about current queues to the cards on the home screen. Clearly separate what "
     "is planned, applied, verified and unknown. Never open with an ID, hash, "
-    "field name, heading tree or table. Do not use stock AI phrases such as "
+    "field name, heading tree or table, unless the user explicitly asks for a table. Do not use stock AI phrases such as "
     "'firstly', 'moreover', 'in conclusion', 'it is worth noting', 'if you need "
     "further assistance' or 'as an AI'. If evidence is missing, say so plainly. "
-    "End with at most one natural next question."
+    "Answer the user's question, then stop. Ask one brief clarifying question only when missing "
+    "information prevents answering the current request. Do not append an offer, invitation "
+    "or question about another case, feature or task after answering."
 )
 
 
@@ -71,7 +105,13 @@ def _user_content(question: str, passages: Sequence[Any]) -> str:
     return "\n".join(lines)
 
 
-def _post(settings: ModelSettings, body: dict[str, Any], timeout: float) -> dict[str, Any]:
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _post(settings: ModelSettings, body: dict[str, Any], timeout: float,
+          *, allow_redirects: bool = True) -> dict[str, Any]:
     data = json.dumps(body, ensure_ascii=False).encode("utf-8")
     url = settings.base_url.rstrip("/") + "/chat/completions"
     headers = {
@@ -83,7 +123,9 @@ def _post(settings: ModelSettings, body: dict[str, Any], timeout: float) -> dict
         request = urllib.request.Request(
             url, data=data, headers=headers, method="POST",
         )
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        opener = (urllib.request.urlopen if allow_redirects
+                  else urllib.request.build_opener(_NoRedirect()).open)
+        with opener(request, timeout=timeout) as response:
             status = getattr(response, "status", None)
             if status is None:
                 getcode = getattr(response, "getcode", None)
@@ -118,14 +160,14 @@ def _post(settings: ModelSettings, body: dict[str, Any], timeout: float) -> dict
 
 def _retrieval_query(question: str, history: Sequence[dict[str, str]] | None) -> str:
     """Use the previous user turn only to resolve follow-up references."""
-    if not history:
+    if not history or asks_for_project_overview(question) or asks_for_workspace_count(question):
         return question
     previous = next(
         (turn["content"] for turn in reversed(history) if turn.get("role") == "user"),
         "",
     )
     previous = previous.strip()[:200]
-    return f"{question} {previous}" if previous else question
+    return f"{question} {previous}" if previous and not asks_for_workspace_count(previous) else question
 
 
 def generate(
@@ -135,11 +177,21 @@ def generate(
     timeout: float = 30.0,
     history: Sequence[dict[str, str]] | None = None,
     locale: str = "zh",
+    allow_redirects: bool = True,
 ) -> str:
     """Generate an answer from numbered passages via an OpenAI-compatible API."""
     if not settings.api_key:
         raise AssistantError("not_configured", "no API key")
     system = SYSTEM_PROMPT
+    if asks_for_project_overview(question):
+        system = (
+            "Introduce ForgeFlow to a newcomer in the user's language in one short paragraph. "
+            "Use only the supplied project description. Explain whom it helps, the problem they face, "
+            "and how they use the workbench. Keep examples illustrative. Leave out case identifiers, "
+            "internal fields and metrics. The workbench displays the sources below your answer. "
+            "If the evidence does not describe the product, say so."
+        )
+        history = None
     if locale == "en":
         system += " Answer in English only; never quote Chinese passages as English evidence."
     messages: list[dict[str, str]] = [{"role": "system", "content": system}]
@@ -147,7 +199,8 @@ def generate(
         messages.append({"role": turn["role"], "content": turn["content"]})
     messages.append({"role": "user", "content": _user_content(question, passages)})
     body = {"model": settings.model, "messages": messages, "temperature": 0.2}
-    payload = _post(settings, body, timeout)
+    payload = _post(settings, body, timeout) if allow_redirects else _post(
+        settings, body, timeout, allow_redirects=False)
     try:
         content = payload["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError):
@@ -164,6 +217,7 @@ def answer_with_settings(
     limit: int = 5,
     history: Sequence[dict[str, str]] | None = None,
     locale: str = "zh",
+    allow_redirects: bool = True,
 ) -> dict[str, Any]:
     """Return cited retrieval, optionally replaced by a grounded model answer."""
     from ..knowledge.answer import answer as retrieve
@@ -171,12 +225,13 @@ def answer_with_settings(
     retrieval = retrieve(
         _retrieval_query(question, history), root, limit=limit, locale=locale,
     )
-    if model is None or not model.api_key:
+    if model is None or not model.api_key or asks_for_workspace_count(question):
         return {**retrieval, "mode": "retrieval"}
     try:
+        options = {"allow_redirects": False} if not allow_redirects else {}
         text = generate(
             question, retrieval.get("passages", []), model,
-            history=history, locale=locale,
+            history=history, locale=locale, **options,
         )
         if not isinstance(text, str) or not text.strip():
             raise AssistantError("model_invalid_response", "empty content")
@@ -185,7 +240,7 @@ def answer_with_settings(
     return {
         **retrieval,
         "mode": "model",
-        "answer": text.strip()[:MAX_ANSWER_CHARS],
+        "answer": clean_answer(text)[:MAX_ANSWER_CHARS],
     }
 
 

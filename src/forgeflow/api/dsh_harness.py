@@ -15,11 +15,12 @@ import os
 import re
 import subprocess
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from .case_qa import PLANNED_COST_CONTEXT
+from .model_settings import assistant_model
 
 MAX_ACTIVITY = 40
 MAX_LABEL = 1600
@@ -27,6 +28,7 @@ MAX_RESULT_SUMMARY = 200
 MAX_RESULT_PARSE = 64_000
 MCP_PREFIX = "mcp__forgeflow__"
 MCP_TOOL_LABELS = {
+    "workspace_summary": "workspace summary",
     "case_brief": "case",
     "get_case": "case",
     "list_cases": "case",
@@ -34,10 +36,12 @@ MCP_TOOL_LABELS = {
     "list_runs": "run",
     "search_evidence": "evidence search",
 }
+TOOL_LABELS = {"web_search": "web search", "web_fetch": "web fetch", "read_image": "read image"}
 _OK_RESULT_STATUS = {"ok", "success", "completed", "done", "available", "passed"}
 CITATION = re.compile(
     r"(?P<path>[A-Za-z0-9_./-]+\.(?:py|tsx|ts|md|json))(?::(?P<line>\d+))?"
 )
+WEB_URL = re.compile(r"https?://[^\s<>()\[\]{}]+")
 
 
 class DshUnavailable(RuntimeError):
@@ -55,6 +59,7 @@ class DshReply:
     activity: list[dict[str, Any]]
     session_id: str | None
     scope: str
+    passages: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _short(value: object, limit: int = MAX_LABEL) -> str:
@@ -112,6 +117,10 @@ def _mcp_label(tool: str) -> str | None:
 
 
 def _tool_label(tool: str, detail: str) -> str:
+    if tool == "read_image":
+        return "attached image"
+    if tool in TOOL_LABELS:
+        return detail
     human = _mcp_label(tool)
     if human is not None:
         return f"{human} · {detail}" if detail else human
@@ -172,7 +181,7 @@ def _result_count(payload: object) -> int | None:
         return len(payload)
     if not isinstance(payload, dict):
         return None
-    for key in ("count", "returned", "matched"):
+    for key in ("count", "returned", "matched", "total_cases"):
         value = payload.get(key)
         if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
             return value
@@ -235,11 +244,13 @@ def _result_summary(event: dict[str, Any]) -> str:
 def _result_text(value: object) -> object:
     """Normalize SDK content blocks back to the JSON/text an MCP tool returned."""
     if isinstance(value, str):
-        return value
+        # DSH may coalesce the evidence and its model-only field guide into one block.
+        return value.removesuffix("\n" + PLANNED_COST_CONTEXT)
     if isinstance(value, list):
         parts = [
-            item.get("text") for item in value
+            _result_text(item["text"]) for item in value
             if isinstance(item, dict) and isinstance(item.get("text"), str)
+            and item.get("text") != PLANNED_COST_CONTEXT
         ]
         if parts:
             return "".join(parts)
@@ -264,12 +275,38 @@ def _presentation(tool: str, payload: object) -> dict[str, Any]:
     if tool in {
         f"{MCP_PREFIX}case_brief", f"{MCP_PREFIX}get_case",
         f"{MCP_PREFIX}list_cases", f"{MCP_PREFIX}get_run",
-        f"{MCP_PREFIX}list_runs",
+        f"{MCP_PREFIX}list_runs", f"{MCP_PREFIX}workspace_summary",
     } and isinstance(payload, (dict, list)):
         encoded = json.dumps(payload, ensure_ascii=False)
         if len(encoded) <= 12_000:
             return {"payload": payload}
     return {}
+
+
+def _knowledge_passages(tool: str, payload: object) -> tuple[list[dict[str, Any]], list[str]]:
+    """Collect bounded reviewed-guide passages returned by project_knowledge."""
+    if not isinstance(payload, dict) or not str(tool).endswith("project_knowledge"):
+        return [], []
+    passages: list[dict[str, Any]] = []
+    for item in payload.get("passages", [])[:5]:
+        if not isinstance(item, dict):
+            continue
+        path, start, end, text = (item.get("path"), item.get("start_line"),
+                                  item.get("end_line"), item.get("text"))
+        if not (isinstance(path, str) and isinstance(start, int) and isinstance(end, int)
+                and isinstance(text, str)):
+            continue
+        passage = {"path": path, "start_line": start, "end_line": end, "text": text[:2000]}
+        version = item.get("document_version")
+        if type(version) is int and version > 0:
+            passage["document_version"] = version
+        for metadata_key in ("locator", "document_id"):
+            value = item.get(metadata_key)
+            if isinstance(value, str) and value:
+                passage[metadata_key] = value[:512]
+        passages.append(passage)
+    citations = [item for item in payload.get("citations", []) if isinstance(item, str)][:5]
+    return passages, citations
 
 
 def _tool_step(tool: str, raw_input: object) -> dict[str, Any]:
@@ -299,6 +336,15 @@ def _citations(value: str, workspace: Path) -> list[str]:
     return found
 
 
+def _web_citations(value: str) -> list[str]:
+    found: list[str] = []
+    for match in WEB_URL.finditer(value):
+        url = match.group(0).rstrip(".,;:!?)")
+        if url not in found:
+            found.append(url)
+    return found
+
+
 class DshHarness:
     def __init__(
         self,
@@ -308,9 +354,10 @@ class DshHarness:
         home: Path,
         workspace: Path,
         node: str = "node",
-        model: str = "nvidia/Nemotron-3.5-Super-VL",
+        model: str = "deepseek-flash",
         timeout: float = 180.0,
         sessions_file: Path | None = None,
+        knowledge_root: Path | None = None,
     ) -> None:
         self.cli = Path(cli)
         self.patch = Path(patch)
@@ -318,6 +365,8 @@ class DshHarness:
         self.workspace = Path(workspace)
         self.node = node
         self.model = model
+        self.provider = assistant_model()["provider"]
+        self.knowledge_root = Path(knowledge_root) if knowledge_root else self.workspace
         self.timeout = timeout
         self.sessions_file = sessions_file or (workspace.parent / "dsh-sessions.json")
         self._sessions = self._load_sessions()
@@ -339,19 +388,23 @@ class DshHarness:
         patch = os.environ.get("FORGEFLOW_DSH_PATCH", "").strip()
         if not cli or not patch:
             return None
+        from .dsh_environment import runtime_directories
+
+        home, workspace = runtime_directories(os.environ)
         return cls(
             cli=Path(cli), patch=Path(patch),
-            home=Path(os.environ.get("FORGEFLOW_DSH_HOME", ".runtime/dsh-home")),
-            workspace=Path(os.environ.get("FORGEFLOW_DSH_WORKSPACE", ".runtime/assistant-workspace")),
+            home=home, workspace=workspace,
             node=os.environ.get("FORGEFLOW_DSH_NODE", "node"),
-            model=os.environ.get("FORGEFLOW_DSH_MODEL", "nvidia/Nemotron-3.5-Super-VL"),
+            model=os.environ.get("FORGEFLOW_DSH_MODEL", "deepseek-flash"),
         )
 
     def with_evidence(self, evidence: Path):
         from .dsh_environment import share_scoped_patch
-        from .dsh_permissions import scoped_patch
+        from .dsh_permissions import scoped_image_root, scoped_patch
+        image_root = scoped_image_root(self.workspace, evidence)
         try:
-            patch = scoped_patch(self.patch, evidence)
+            patch = scoped_patch(self.patch, evidence, image_root=image_root,
+                image_tool_module=self.cli.parent.parent.parent / "dsh-tool-fs/lib/index.js")
             share_scoped_patch(patch)
         except (OSError, ValueError):
             raise DshUnavailable("dsh_permissions_unavailable") from None
@@ -359,8 +412,10 @@ class DshHarness:
             cli=self.cli, patch=patch, home=self.home, workspace=self.workspace,
             node=self.node, model=self.model, timeout=self.timeout,
             sessions_file=evidence.with_suffix(".sessions.json"),
+            knowledge_root=self.knowledge_root,
         )
         scoped.evidence_path = evidence
+        scoped.image_root = image_root
         return scoped
 
     def configured(self) -> bool:
@@ -383,8 +438,6 @@ class DshHarness:
         base = [self.node, str(self.cli), "--profile", "headless", "--patch", str(self.patch), "--json"]
         if session_id:
             base += ["--session-id", session_id]
-        if hasattr(self, "evidence_path") and PLANNED_COST_CONTEXT not in question:
-            question = f"ForgeFlow evidence field meaning: {PLANNED_COST_CONTEXT}\n\nQuestion: {question}"
         base.extend(["--", question])
         return base
 
@@ -422,10 +475,10 @@ class DshHarness:
                 final = event["text"]
         if not final:
             raise DshUnavailable("dsh_no_final")
-        citations: list[str] = _citations(final, self.workspace)
+        citations: list[str] = _citations(final, self.knowledge_root) + _web_citations(final)
         for step in activity:
             for value in (step.get("label"), step.get("detail")):
-                for found in _citations(str(value or ""), self.workspace):
+                for found in _citations(str(value or ""), self.knowledge_root):
                     if found in citations:
                         continue
                     if ":" not in found and any(
@@ -469,6 +522,8 @@ class DshHarness:
         process = None
         activity: list[dict[str, Any]] = []
         tools: dict[str, dict[str, Any]] = {}
+        passages: list[dict[str, Any]] = []
+        tool_citations: list[str] = []
         final = ""
         reply_session = None
         try:
@@ -509,6 +564,15 @@ class DshHarness:
                     step = tools.get(call_id)
                     if step is not None:
                         _finish_tool_step(step, event)
+                        payload = _result_payload(_result_text(event.get("result")))
+                        new_passages, new_citations = _knowledge_passages(
+                            str(step.get("kind", "")), payload)
+                        for passage in new_passages:
+                            if passage not in passages:
+                                passages.append(passage)
+                        for citation in new_citations:
+                            if citation not in tool_citations:
+                                tool_citations.append(citation)
                         yield {
                             "type": "trace",
                             "activity": activity[:MAX_ACTIVITY],
@@ -521,10 +585,10 @@ class DshHarness:
                 raise DshUnavailable("dsh_failed")
             if not final:
                 raise DshUnavailable("dsh_no_final")
-            citations: list[str] = _citations(final, self.workspace)
+            citations: list[str] = list(tool_citations) + _citations(final, self.knowledge_root) + _web_citations(final)
             for step in activity:
                 for value in (step.get("label"), step.get("detail")):
-                    for found in _citations(str(value or ""), self.workspace):
+                    for found in _citations(str(value or ""), self.knowledge_root):
                         if found not in citations:
                             citations.append(found)
             scope = "project" if citations or any(
@@ -536,11 +600,12 @@ class DshHarness:
                 self._save_sessions()
             yield {
                 "type": "final",
+                "model": self.model, "provider": self.provider,
                 "found": True,
                 "mode": "harness",
                 "answer": final,
-                "citations": citations[:5],
-                "passages": [],
+                "citations": list(dict.fromkeys(citations))[:5],
+                "passages": passages[:5],
                 "activity": activity[:MAX_ACTIVITY],
                 "scope": scope,
                 "session_id": reply_session,

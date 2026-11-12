@@ -1,5 +1,4 @@
-import { hasNewSpendBasis, marginLabel, marginValue } from "./decisionSummary";
-import { disruptionScopeLines } from "./impactFacts";
+import { recordedApproval, hasNewSpendBasis, marginLabel, marginValue } from "./decisionSummary";
 import { originalScoreThresholdMiss } from "./verificationExplanation";
 import { RecordedRules, productRuleEvaluation } from "./RecordedRules";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
@@ -35,7 +34,6 @@ import {
   actionSummary,
   buildCaseActivity,
   caseSteps,
-  readbackState,
   checkCounts,
   checkDisplayName,
   caseConclusion,
@@ -48,7 +46,6 @@ import {
   effectiveChecks,
   errorDetail,
   dueWindow,
-  exceptionText,
   formatAge,
   formatCheckValue,
   formatCurrency,
@@ -118,7 +115,7 @@ function missingPlanFacts(plan: ProductPlan, caseFile: CaseFile): string[] {
 
 function DecisionSummary({ caseFile, onEvidence }: { caseFile: CaseFile; onEvidence: () => void }) {
   const { t } = useI18n();
-  const orders = orderCount(caseFile.order.ref);
+  const orders = orderCount(caseFile.order);
   const state = caseFile.state;
   // One plain sentence a reader can repeat: what succeeded and on what evidence.
   const conclusion = caseConclusion(caseFile, t);
@@ -137,14 +134,7 @@ function DecisionSummary({ caseFile, onEvidence }: { caseFile: CaseFile; onEvide
               : t("v11.decisionPreparing");
   return (
     <section className="case-decision-summary" data-case-decision-summary="true">
-      <p className="case-decision-kicker">{t("v11.decisionKicker")}</p>
       <h2>{action}</h2>
-      <p className="case-decision-body">{t("v11.decisionBody", {
-        exception: exceptionText(caseFile, t),
-        orders: orders ?? "?",
-        units: formatQuantity(caseFile.order.units),
-      })}</p>
-      {disruptionScopeLines(caseFile.plan, t).map((line, index) => <p className="decision-note" data-disruption-scope="true" key={index}>{line}</p>)}
       {conclusion ? <p className="case-conclusion" data-case-conclusion="true">{conclusion}</p> : null}
       <div className="case-decision-facts">
         <span><strong>{orders ?? "?"}</strong> {t("v11.decisionOrders")}</span>
@@ -225,7 +215,7 @@ function Timeline({ caseFile }: { caseFile: CaseFile }) {
 
 function CaseFacts({ caseFile, mode }: { caseFile: CaseFile; mode: CaseMode }) {
   const { t, lang } = useI18n();
-  const orders = orderCount(caseFile.order.ref);
+  const orders = orderCount(caseFile.order);
   return (
     <section className="case-section" data-case-facts="true">
       <div className="case-section-head">
@@ -442,9 +432,7 @@ function VerificationSection({ caseFile }: { caseFile: CaseFile }) {
                 );
               })}
             </ul>
-          ) : (
-            <p className="muted">{t("decision.receiptNoVerifier")}</p>
-          )}
+          ) : null}
         </div>
         <div className="verification-block" data-record-view={recordView}>
           <div className="verification-block-head">
@@ -479,25 +467,11 @@ function VerificationSection({ caseFile }: { caseFile: CaseFile }) {
                   <li key={`${record.document ?? "record"}-${index}`}>
                     <span className="mono">{friendlyDocument(record.document, t, caseFile.plan?.actions)}</span>
                     <span>{actionKindLabel(record.kind, t)}</span>
-                    {(() => {
-                      const state = readbackState(record.state, t);
-                      return (
-                        <span
-                          className={`case-readback-state${state.unknown ? " is-untranslated" : ""}`}
-                          data-readback-state={record.state ?? "unknown"}
-                          data-readback-untranslated={state.unknown ? "true" : undefined}
-                          title={state.unknown ? t("v14.readbackUnknownTitle") : undefined}
-                        >
-                          {state.label}
-                        </span>
-                      );
-                    })()}
+                    <span className="case-readback-state">{record.state ?? "—"}</span>
                   </li>
                 ))}
               </ul>
-            ) : (
-              <p className="muted">{t(Array.isArray(execution.readback?.records) ? "case.readbackEmpty" : "decision.receiptReadbackMissing")}</p>
-            )
+            ) : null
           ) : writes.length > 0 ? (
             <ul className="case-readback" data-record-list="writes">
               {writes.map((write, index) => (
@@ -508,9 +482,7 @@ function VerificationSection({ caseFile }: { caseFile: CaseFile }) {
                 </li>
               ))}
             </ul>
-          ) : (
-            <p className="muted">{t("case.writesNone")}</p>
-          )}
+          ) : null}
         </div>
       </div>
       {execution.verifier?.source !== "synthetic_executor" && <RecordedRules evaluation={productRuleEvaluation(execution.verifier)} />}
@@ -557,9 +529,6 @@ function PolicyChecks({
           </span>
         )}
       </div>
-      {derived ? (
-        <p className="decision-note">{t("decision.checkNone")}</p>
-      ) : null}
       {missing.length > 0 ? (
         <>
           <p className="decision-note is-attention" data-check-missing-note="true">
@@ -711,11 +680,6 @@ function EvidencePanel({
           </>
         ) : null}
       </dl>
-      <p className="case-evidence-note">
-        {mode === "fixture"
-          ? t("inbox.demoNote")
-          : t("case.evidenceLiveNote")}
-      </p>
     </section>
   );
 }
@@ -742,9 +706,9 @@ function ExecutionReceipt({
   if (execution.status === "not_started") return (
     <section className="execution-receipt" data-execution-receipt="true" data-receipt-state="not-started">
       <h3>{t("v10.unstartedClosed")}</h3>
-      <p>{t("v10.unstartedReceipt")}</p>
       <p className="muted">{formatDateTime(caseFile.updated_at, lang)}</p>
-      <button type="button" className="secondary" onClick={onViewAudit}>{t("v9.audit")}</button>
+      {((caseFile.audit?.length ?? 0) > 0 || (caseFile.history?.length ?? 0) > 0) &&
+        <button type="button" className="secondary" onClick={onViewAudit}>{t("v9.audit")}</button>}
     </section>
   );
   return (
@@ -804,9 +768,6 @@ function ExecutionReceipt({
       </details>
 
       {originalScoreThresholdMiss(execution) && <p className="decision-note" data-receipt-score-explanation="true">{t("case.scoreThresholdFailure")}</p>}
-      {summary.score === null ? (
-        <p className="decision-note">{t("decision.receiptNoVerifier")}</p>
-      ) : null}
 
       <div className="receipt-actions">
         <button className="primary" type="button" onClick={onViewAudit} data-view-audit="true">
@@ -865,12 +826,12 @@ function DecisionPanel({
   const execution = caseFile.execution;
   const fixture = mode === "fixture";
   const awaiting = state === "awaiting_approval";
-  const rejection = (caseFile.audit ?? []).slice().reverse().find((row): row is Record<string, unknown> => !!row && typeof row === "object" && "action" in row && row.action === "rejected");
+  const rejection = (caseFile.audit ?? []).slice().reverse().find((row): row is Record<string, unknown> => !!row && typeof row === "object" && "action" in row && (row.action === "rejected" || row.action === "authorization_denied"));
   const authorizationPending = caseFile.decision?.authorization_pending === true;
   const checksInfo = effectiveChecks(caseFile, t);
   const floor = marginFloor(plan);
   const spend = planNewSpend(plan);
-  const orders = orderCount(caseFile.order.ref);
+  const orders = orderCount(caseFile.order);
   const dateCheck = checksInfo.checks.find(
     (check) =>
       check.code === "on_time" ||
@@ -895,6 +856,21 @@ function DecisionPanel({
   });
   const canApprove = gate.canApprove && blockedChecks.length === 0;
   const block = gate.block;
+
+  const rejectionReceipt = state === "rejected" && (
+    <section className="decision-block" data-rejection-receipt="true">
+      <h3>{t("case.state.rejected")}</h3>
+      {rejection?.action === "authorization_denied" ? (
+        <p data-authorization-denied="true">{t("review.authorizationDenied")}</p>
+      ) : (
+        <><p>{typeof rejection?.comment === "string" ? rejection.comment : t("runs.notRecorded")}</p>
+          <dl className="facts"><dt>{t("decision.receiptApprover")}</dt>
+            <dd>{typeof rejection?.actor_label === "string" ? rejection.actor_label : t("runs.notRecorded")}</dd></dl></>
+      )}
+      <dl className="facts"><dt>{t("decision.receiptTime")}</dt>
+        <dd>{formatDateTime(typeof rejection?.at === "string" ? rejection.at : null, lang)}</dd></dl>
+    </section>
+  );
 
   if (execution) {
     return (
@@ -934,10 +910,7 @@ function DecisionPanel({
             </button>
           ) : null}
         </section>
-        {state === "rejected" && <section className="decision-block" data-rejection-receipt="true"><h3>{t("case.state.rejected")}</h3><p>{typeof rejection?.comment === "string" ? rejection.comment : t("runs.notRecorded")}</p><dl className="facts"><dt>{t("decision.receiptApprover")}</dt><dd>{typeof rejection?.actor_label === "string" ? rejection.actor_label : t("runs.notRecorded")}</dd><dt>{t("decision.receiptTime")}</dt><dd>{formatDateTime(typeof rejection?.at === "string" ? rejection.at : null, lang)}</dd></dl></section>}
-        {fixture ? (
-          <p className="decision-disabled">{t("decision.fixtureDisabled")}</p>
-        ) : null}
+        {rejectionReceipt}
       </div>
     );
   }
@@ -951,13 +924,13 @@ function DecisionPanel({
   return (
     <div className="decision-panel" data-decision-panel="true">
       {plan.objective && <p data-selected-candidate="true">{caseFile.decision?.selection_pending ? `${t("candidate.lastConfirmed")}: ${candidateName(plan, t)}` : t("candidate.selectedScope", { name: candidateName(plan, t) })}</p>}
-      {plan.objective && <p className="decision-note" data-selected-objective="true">{candidateExplanation(plan, t)} {t("candidate.preferenceNote")}</p>}
+      {plan.objective && <p className="sr-only" data-selected-objective="true">{candidateExplanation(plan, t)} {t("candidate.preferenceNote")}</p>}
       {caseFile.decision?.revision_pending && <p className="decision-note" data-displayed-plan="true">{t("v10.oldPlanVersion", { version: caseFile.revision?.version ?? 1 })}</p>}
       <div className="kpi-grid">
         <div className="kpi" data-kpi="new-spend">
           <span className="kpi-label">{t("decision.newSpend")}</span>
           <strong className="kpi-value">{formatCurrency(spend)}</strong>
-          <span className="kpi-note">{t("decision.newSpendNote")}</span>
+          <span className="kpi-note sr-only">{t("decision.newSpendNote")}</span>
         </div>
         <div className="kpi" data-kpi="margin" data-margin-verified={hasNewSpendBasis(plan) && checksInfo.checks.some(check => check.code.includes("margin") && check.status === "pass") ? "true" : "false"}>
           <span className="kpi-label">{marginLabel(plan, t)}</span>
@@ -971,7 +944,7 @@ function DecisionPanel({
               {t("decision.marginPlanned")}
             </span>
           )}
-          <span className="kpi-note">{t(hasNewSpendBasis(plan) ? "decision.marginBasis" : "decision.marginLegacyNote")}</span>
+          <span className="kpi-note sr-only">{t(hasNewSpendBasis(plan) ? "decision.marginBasis" : "decision.marginLegacyNote")}</span>
         </div>
         <div className="kpi" data-kpi="due">
           <span className="kpi-label">{t("decision.due")}</span>
@@ -991,7 +964,7 @@ function DecisionPanel({
           <strong className="kpi-value">
             {formatQuantity(caseFile.order.units)}
           </strong>
-          <span className="kpi-note">
+          <span className="kpi-note sr-only">
             {orders
               ? t("decision.unitsValue", {
                   units: formatQuantity(caseFile.order.units),
@@ -1012,7 +985,7 @@ function DecisionPanel({
       </section>
 
       <PolicyChecks checks={checksInfo.checks} derived={checksInfo.derived} unknownChecks={caseFile.decision?.unknown_checks} />
-      {state === "rejected" && <section className="decision-block" data-rejection-receipt="true"><h3>{t("case.state.rejected")}</h3><p>{typeof rejection?.comment === "string" ? rejection.comment : t("runs.notRecorded")}</p><dl className="facts"><dt>{t("decision.receiptApprover")}</dt><dd>{typeof rejection?.actor_label === "string" ? rejection.actor_label : t("runs.notRecorded")}</dd><dt>{t("decision.receiptTime")}</dt><dd>{formatDateTime(typeof rejection?.at === "string" ? rejection.at : null, lang)}</dd></dl></section>}
+      {rejectionReceipt}
 
       <section className="decision-block" data-decision-approval="true">
         <div className="field">
@@ -1042,7 +1015,6 @@ function DecisionPanel({
             rows={2}
           />
         </div>
-        <p className="decision-note">{t("v9.commentSaved")}</p>
         {authorizationPending && <p className="decision-note" data-authorization-pending="true">{t("v10.authorizationPending")}</p>}
 
         <div className="decision-actions">
@@ -1069,31 +1041,23 @@ function DecisionPanel({
             className="secondary decision-reject"
             type="button"
             onClick={onReject}
-            disabled={fixture || !canDecide || !awaiting || busy !== null || caseFile.decision?.can_reject !== true}
+            disabled={fixture || !canDecide || busy !== null || caseFile.decision?.can_reject !== true}
             data-case-reject="true"
           >
             {t("decision.reject")}
           </button>
         </div>
 
-        {fixture ? (
-          <p className="decision-disabled" data-decision-disabled="true">
-            {t("decision.fixtureDisabled")}
-          </p>
-        ) : busy !== null || decisionPending ? (
+        {fixture ? null : busy !== null || decisionPending ? (
           <p className="decision-note" data-decision-in-progress="true">
             {t("v10.operationPending")}
           </p>
         ) : !canApprove && block ? (
           <div className="decision-disabled" data-decision-disabled="true" data-block-kind={block.kind}>
             <p className="decision-disabled-reason">{block.reason}</p>
-            {block.also ? <p className="decision-disabled-also" data-decision-block-also="true">{block.also}</p> : null}
             {block.recovery ? <p className="decision-disabled-recovery" data-block-recovery="true">{block.recovery}</p> : null}
           </div>
-        ) : (
-          <p className="decision-note">{t("decision.approvalHint")}</p>
-        )}
-        <p className="decision-note">{t("decision.expiry")}</p>
+        ) : null}
       </section>
 
     </div>
@@ -1129,9 +1093,7 @@ function InboxPanel({
             className="case-inbox-activity"
             defaultOpen
           />
-        ) : (
-          <p className="decision-note">{t("inbox.activityEmpty")}</p>
-        )}
+        ) : null}
       </section>
 
       <section className="decision-block" data-inbox-summary="true">
@@ -1169,7 +1131,6 @@ function InboxPanel({
         </button>
       </section>
 
-      <p className="decision-note">{t("v9.noRunLink")}</p>
       <EvidencePanel caseFile={caseFile} mode={mode} evidenceRef={evidenceRef} />
     </div>
   );
@@ -1256,7 +1217,7 @@ export function CaseDetail({
   const [riskOpen, setRiskOpen] = useState(false);
   const [cancelUnstartedOpen, setCancelUnstartedOpen] = useState(false);
   const [riskAcknowledged, setRiskAcknowledged] = useState(false);
-  const { display_name: approver } = useWorkspace();
+  const { display_name: approver, scope_id } = useWorkspace();
   const [confirmedPlan, setConfirmedPlan] = useState<string | null>(null);
   const [caseReadRequired, setCaseReadRequired] = useState(false);
   const writesBlocked = caseReadRequired || caseReadBlocked
@@ -1264,6 +1225,7 @@ export function CaseDetail({
   useEffect(() => { setCaseReadRequired(false); }, [caseFile]);
   const [comment, setComment] = useState("");
   const evidenceRef = useRef<HTMLDivElement | null>(null);
+  const auditRef = useRef<HTMLDetailsElement | null>(null);
 
   useEffect(() => {
     setRiskOpen(false); setRiskAcknowledged(false); setConfirmedPlan(null);
@@ -1291,7 +1253,7 @@ export function CaseDetail({
   const plan = caseFile.plan;
   const comparison = caseFile.comparison;
   const decisionPlanId = plan?.plan_id ?? (comparison?.status === "ready" ? comparison.plans[0]?.plan_id ?? null : null);
-  const planApproved = Boolean(plan && !caseFile.decision?.authorization_pending && caseFile.approval?.plan_id === plan.plan_id);
+  const planApproved = Boolean(plan && recordedApproval(caseFile)?.plan_id === plan.plan_id);
   const changesTitle = caseFile.decision?.revision_pending
     ? t("v10.oldPlanVersion", { version: caseFile.revision?.version ?? 1 })
     : t(planApproved ? "case.approvedChangesTitle" : "case.proposedTitle");
@@ -1309,7 +1271,7 @@ export function CaseDetail({
     isSupplier ? "case.headingSupplierCancellation" : caseFile.disruption.kind === "workcenter_outage" ? "case.headingWorkcenter" : "case.headingGeneric",
     { product: caseFile.order.product },
   );
-  const orders = orderCount(caseFile.order.ref);
+  const orders = orderCount(caseFile.order);
 
   // The sticky decision bar uses the same gate as the decision panel, so the
   // reason it shows can never drift from the reason the panel shows.
@@ -1350,7 +1312,7 @@ export function CaseDetail({
     let progressSource: EventSource | null = null;
     if (typeof EventSource !== "undefined") {
       progressSource = new EventSource(
-        `/api/product/cases/${encodeURIComponent(caseFile.case_id)}/events`,
+        `/api/product/cases/${encodeURIComponent(caseFile.case_id)}/events?workspace_scope=${encodeURIComponent(scope_id)}`,
       );
       approvalStream.current = progressSource;
       progressSource.onmessage = (event) => {
@@ -1429,6 +1391,11 @@ export function CaseDetail({
   };
 
   const viewAudit = () => {
+    if (caseFile.execution?.status === "not_started" && auditRef.current) {
+      auditRef.current.open = true;
+      auditRef.current.querySelector("summary")?.focus();
+      return;
+    }
     setTab("inbox");
     window.setTimeout(() => {
       evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1598,17 +1565,6 @@ export function CaseDetail({
         <StatusStepper caseFile={caseFile} />
       </header>
 
-      {mode === "fixture" ? (
-        // One statement only: the environment banner at the top already says
-        // this is a demo with no ERP writes. Here we say what that means.
-        <div className="case-demo-banner" data-demo-banner="true">
-          <span className="cases-demo-mark" aria-hidden="true">◈</span>
-          <div>
-            <p>{t("cases.demoExplain")}</p>
-          </div>
-        </div>
-      ) : null}
-
       {error ? (
         <p className="case-error" role="alert">{error}</p>
       ) : null}
@@ -1648,12 +1604,7 @@ export function CaseDetail({
             <div className="case-section-head">
               <div>
                 <h2>{changesTitle}</h2>
-                {caseFile.revision && <p className="muted">{t("v9.planVersion", { version: caseFile.revision.version })}{caseFile.revision.reason ? ` · ${caseFile.revision.reason}` : ""}</p>}
-                {plan ? (
-                  <p className="muted case-section-sub">
-                    {t(caseFile.decision?.revision_pending ? "v10.earlierDocuments" : planApproved ? "case.approvedChangesMeta" : "case.proposedMeta", { count: uniqueActionDocuments(caseFile) })}
-                  </p>
-                ) : null}
+                {caseFile.revision && <p className="sr-only">{t("v9.planVersion", { version: caseFile.revision.version })}{caseFile.revision.reason ? ` · ${caseFile.revision.reason}` : ""}</p>}
               </div>
               {plan ? (
                 <div className="segmented" role="group" aria-label={changesTitle}>
@@ -1718,7 +1669,7 @@ export function CaseDetail({
           {plan?.order_readiness ? <OrderReadiness plan={plan} /> : null}
           {plan?.impact_chain ? <ImpactChain plan={plan} /> : null}
           {plan?.decision_metrics ? <DecisionFacts plan={plan} /> : null}
-          {plan && caseFile.approval?.comment?.trim() ? (
+          {plan && recordedApproval(caseFile)?.comment?.trim() ? (
             caseFile.execution ? (
               <details className="case-section case-technical" data-technical-details="true">
                 <summary>{t("decisionFacts.choice")}</summary>
@@ -1833,7 +1784,7 @@ export function CaseDetail({
         {error && <p role="alert" className="error">{error}</p>}
         <button type="button" className="primary" disabled={writesBlocked || decisionBusy || busy !== null || capabilities?.case_approve !== true || !caseFile.decision?.can_cancel_unstarted} onClick={() => void cancelUnstarted()}>{t("v10.cancelUnstartedConfirm")}</button>
       </Modal>
-      {(caseFile.audit?.length || caseFile.history?.length) ? <details className="case-audit"><summary>{t("v9.audit")}</summary><pre>{JSON.stringify({ revision: caseFile.revision, audit: caseFile.audit, history: caseFile.history }, null, 2)}</pre></details> : null}
+      {(caseFile.audit?.length || caseFile.history?.length) ? <details ref={auditRef} className="case-audit"><summary>{t("v9.audit")}</summary><pre>{JSON.stringify({ revision: caseFile.revision, audit: caseFile.audit, history: caseFile.history }, null, 2)}</pre></details> : null}
 
 
       {plan && mode === "live" && caseFile.state === "awaiting_approval" ? (
@@ -1846,9 +1797,7 @@ export function CaseDetail({
             <strong>{t(stickyGate.canApprove ? "v11.stickyTitle" : "v13.stickyBlockedTitle")}</strong>
             <span>{t("v11.stickyScope", { documents: uniqueActionDocuments(caseFile), units: formatQuantity(caseFile.order.units) })}</span>
             {!stickyGate.canApprove && stickyGate.block ? <span className="sticky-block-reason" data-sticky-block-reason="true">{stickyGate.block.reason}</span> : null}
-            {!stickyGate.canApprove && stickyGate.block?.also ? <span className="sticky-block-also" data-sticky-block-also="true">{stickyGate.block.also}</span> : null}
             {!stickyGate.canApprove && stickyGate.block?.recovery ? <span className="sticky-block-recovery" data-sticky-block-recovery="true">{stickyGate.block.recovery}</span> : null}
-            {capabilities?.environment?.execution === "synthetic_executor" ? <span>{t("v11.syntheticExecution")}</span> : null}
           </div>
           <button type="button" className="primary" data-case-approve-sticky="true"
             disabled={!stickyGate.canApprove || writesBlocked || decisionBusy || busy !== null}

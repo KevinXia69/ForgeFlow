@@ -29,17 +29,18 @@ PROFILE = {
 
 
 def make_settings(tmp_path: Path, deployment: str = "local") -> Settings:
-    return create_settings(
-        {
-            "FORGEFLOW_DATA_ROOT": str(tmp_path / "runs"),
-            "FORGEFLOW_APPROVALS_ROOT": str(tmp_path / "approvals"),
-            "FORGEFLOW_KNOWLEDGE_ROOT": str(tmp_path),
-            "FORGEFLOW_SESSION_SECRET": SECRET,
-            "FORGEFLOW_INVITE_CODES": INVITE,
-            "FORGEFLOW_SECURE_COOKIE": "true",
-            "FORGEFLOW_DEPLOYMENT": deployment,
-        }
-    )
+    env = {
+        "FORGEFLOW_DATA_ROOT": str(tmp_path / "runs"),
+        "FORGEFLOW_APPROVALS_ROOT": str(tmp_path / "approvals"),
+        "FORGEFLOW_KNOWLEDGE_ROOT": str(tmp_path),
+        "FORGEFLOW_SESSION_SECRET": SECRET,
+        "FORGEFLOW_INVITE_CODES": INVITE,
+        "FORGEFLOW_SECURE_COOKIE": "true",
+        "FORGEFLOW_DEPLOYMENT": deployment,
+    }
+    if deployment == "review":
+        env["FORGEFLOW_REVIEW_MODEL_HOSTS"] = "api.example.com"
+    return create_settings(env)
 
 
 def make_client(tmp_path: Path, deployment: str = "local") -> TestClient:
@@ -398,7 +399,7 @@ def test_generate_posts_bounded_evidence_and_parses_the_content(monkeypatch):
     assert body["temperature"] == 0.2
     system, user = body["messages"]
     assert system["role"] == "system"
-    assert "path:start-end" in system["content"]
+    assert "do not cite paths" in system["content"]
     assert user["role"] == "user"
     assert "what happened?" in user["content"]
     assert "docs/p1.md:1-2" in user["content"]
@@ -562,7 +563,7 @@ def test_a_browser_key_overrides_the_platform_model(tmp_path, monkeypatch):
     monkeypatch.setenv("FORGEFLOW_MODEL_API_KEY", "sk-platform-secret-0123456789")
     seen: dict[str, str] = {}
 
-    def fake_generate(question, passages, settings, timeout=30.0, history=None, locale="zh"):
+    def fake_generate(question, passages, settings, timeout=30.0, history=None, locale="zh", **_kwargs):
         seen["model"] = settings.model
         return "浏览器 key 的回答"
 
@@ -664,11 +665,114 @@ def test_assistant_endpoint_passes_history_to_generation(tmp_path, monkeypatch):
     ]
 
 
-def test_platform_settings_can_reuse_the_local_nebius_key():
+def test_platform_settings_can_reuse_the_local_provider_key():
     from forgeflow.api.model_settings import platform_settings
 
     settings = platform_settings({"NEBIUS_API_KEY": "sk-test-platform"})
     assert settings is not None
-    assert settings.profile == "nemotron"
-    assert settings.model == "nvidia/Nemotron-3.5-Super-VL"
+    assert settings.profile == "deepseek_flash"
+    assert settings.model == "deepseek-flash"
     assert "sk-test-platform" not in repr(settings)
+
+
+def test_english_home_assistant_retrieves_intro_without_model(tmp_path):
+    docs = tmp_path / "docs/en"
+    docs.mkdir(parents=True)
+    (docs / "current-capabilities.md").write_text(
+        "## What is ForgeFlow?\n\nForgeFlow helps production planners.\n"
+    )
+    with make_client(tmp_path) as client:
+        sign_in(client)
+        response = client.post("/api/assistant/answer", json={"question": "What is this project?", "lang": "en"})
+    assert response.status_code == 200
+    result = response.json()
+    assert result["mode"] == "retrieval"
+    assert [p["text"] for p in result["passages"]] == ["ForgeFlow helps production planners."]
+
+
+def test_byok_project_intro_does_not_inherit_an_unrelated_case_question(tmp_path, monkeypatch):
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "CURRENT_CAPABILITIES.md").write_text(
+        "## ForgeFlow 是什么？\n\nForgeFlow 帮生产计划员处理工厂里的突发状况。\n"
+    )
+    sources = []
+
+    def fake_post(settings, body, timeout):
+        sources.extend(body["messages"])
+        return {"choices": [{"message": {"content": "ForgeFlow 帮助计划员。"}}]}
+
+    monkeypatch.setattr(assistant, "_post", fake_post)
+    with make_client(tmp_path) as client:
+        sign_in(client)
+        response = client.post("/api/assistant/answer", json={
+            "question": "可以给我介绍一下这个项目吗？",
+            "model": {**PROFILE, "api_key": API_KEY},
+            "history": [{"role": "user", "content": "请计算 P00006 的 plan.new_spend。"}],
+        })
+    assert response.status_code == 200
+    assert response.json()["mode"] == "model"
+    assert len(sources) == 2
+    assert "生产计划员" in sources[1]["content"]
+    assert "P00006" not in str(sources)
+
+
+def test_byok_workspace_count_uses_no_model_or_historical_answer(monkeypatch):
+    def unexpected(*args, **kwargs):
+        pytest.fail("No live queue evidence is available to this route")
+
+    monkeypatch.setattr(assistant, "generate", unexpected)
+    model = ModelSettings("custom", "https://example.com/v1", "example", "test", "")
+    result = assistant.answer_with_settings(
+        "How many cases are awaiting approval?", Path(__file__).resolve().parents[2],
+        model, locale="en",
+        history=[{"role": "assistant", "content": "There are 17 cases in your queue."}],
+    )
+    assert result["mode"] == "retrieval"
+    passage, = result["passages"]
+    assert "The guide has no live workspace counts" in passage["text"] and "17" not in passage["text"]
+
+
+@pytest.mark.parametrize("base_url", [
+    "http://127.0.0.1:9000/v1",
+    "http://[::1]:9000/v1",
+    "http://10.0.0.5/v1",
+    "http://169.254.169.254/latest",
+])
+def test_review_rejects_internal_model_addresses(tmp_path, monkeypatch, base_url):
+    def should_not_call(*args, **kwargs):
+        raise AssertionError("model request must not be attempted")
+
+    monkeypatch.setattr(assistant, "generate", should_not_call)
+    with make_client(tmp_path, deployment="review") as client:
+        sign_in(client)
+        response = client.post("/api/assistant/answer", json={
+            "question": "what happened?",
+            "model": {"profile": "custom", "base_url": base_url,
+                      "model": "deepseek-flash", "api_key": API_KEY},
+        })
+    assert response.status_code == 403
+    assert response.json()["detail"] == "model_address_not_allowed"
+
+
+def test_review_allows_only_the_configured_model_host(tmp_path):
+    settings = make_settings(tmp_path, deployment="review")
+    assert settings.allows_review_model("https://api.example.com/v1")
+    assert not settings.allows_review_model("https://127.0.0.1/v1")
+    assert not settings.allows_review_model("https://other.example.com/v1")
+
+
+def test_review_model_post_does_not_follow_redirects(monkeypatch):
+    seen = {}
+
+    class Opener:
+        def open(self, request, timeout=None):
+            seen["url"] = request.full_url
+            return _FakeResponse({"choices": [{"message": {"content": "ok"}}]})
+
+    monkeypatch.setattr(assistant.urllib.request, "build_opener",
+                        lambda handler: Opener())
+    settings = ModelSettings(profile="custom", base_url="https://api.example.com/v1",
+                             model="test-model", api_key=API_KEY, updated_at=None)
+    assert assistant.generate("q", [], settings, allow_redirects=False) == "ok"
+    assert seen["url"].endswith("/chat/completions")

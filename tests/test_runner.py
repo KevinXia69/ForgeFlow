@@ -92,7 +92,7 @@ def test_thinking_mode_is_opt_in_and_changes_only_adapter_kwarg(tmp_path):
     assert changed[position - 1] == "--ak"
     del changed[position - 1:position + 1]
     assert changed == baseline
-    assert not any("max_output_tokens=" in part for part in changed)
+    assert "max_output_tokens=32768" in changed
 
 
 @pytest.mark.parametrize(
@@ -115,7 +115,7 @@ def test_guidance_is_pi_only_opt_in_and_independent_of_output_budget(tmp_path, p
         tmp_path, "A", "pi", tmp_path / "run", **kwargs, execution_guidance=profile,
     )
     assert guided == baseline + ["--ak", f"execution_guidance={profile}"]
-    assert not any("max_output_tokens" in item for item in guided)
+    assert "max_output_tokens=32768" in guided
     with pytest.raises(ValueError, match="only for the Pi agent"):
         run_task(tmp_path, "A", "oracle", execution_guidance=profile)
     with pytest.raises(ValueError, match="Unknown execution guidance"):
@@ -131,7 +131,8 @@ def test_planner_is_pi_only_opt_in_and_independent_of_other_profiles(tmp_path, p
         planner_profile=planner_profile,
     )
     assert planned == baseline + ["--ak", f"planner_profile={planner_profile}"]
-    assert not any("max_output_tokens" in item or "execution_guidance" in item for item in planned)
+    assert "max_output_tokens=32768" in planned
+    assert not any("execution_guidance" in item for item in planned)
     for agent, profile, message in (
         ("oracle", planner_profile, "only for the Pi agent"),
         ("nop", planner_profile, "only for the Pi agent"),
@@ -709,24 +710,21 @@ def test_run_injects_only_nebius_and_redacts_all_recorded_output(
     assert secret not in " ".join(manifest["command"])
     assert manifest["execution_config_overrides"] == {
         "agent.network_mode": "allowlist",
-        "agent.allowed_hosts": ["api.tokenfactory.nebius.com"],
+        "agent.allowed_hosts": ["api.deepseek.com"],
     }
     assert manifest["task_derivation"]["derived_task_integrity_after"] is True
     assert manifest["task_derivation"]["original_files_modified"] is False
     assert manifest["data_profile"]["name"] == "original"
     assert manifest["budget"]["agent_setup_timeout_sec"] == 1800
     assert manifest["budget"]["agent_timeout_sec"] == 3600
-    assert manifest["budget"]["max_output_tokens"] == output_budget
+    assert manifest["budget"]["max_output_tokens"] == (32768 if output_budget is None else output_budget)
     assert manifest["budget"]["max_output_tokens_source"] == (
-        "provider_default" if output_budget is None else "explicit_run_argument"
+        "verified_model_ceiling" if output_budget is None else "explicit_run_argument"
     )
-    assert manifest["budget"]["output_limit_request_fields"] == (
-        "omitted" if output_budget is None else "included"
-    )
-    assert manifest["budget"]["output_policy_version"] == (
-        "all-requests-v2" if output_budget is None else "explicit"
-    )
-    assert manifest["budget"]["context_window_tokens"] == 131072
+    assert manifest["budget"]["output_limit_request_fields"] == "included"
+    assert manifest["budget"]["output_policy_version"] == "pi-context-clamp-v1"
+    assert manifest["budget"]["context_window_tokens"] == 1048576
+    assert manifest["budget"]["context_safety_tokens"] == 4096
     expected_sampling = {"temperature": 1.0, "top_p": 0.95}
     if thinking_mode == "off":
         expected_sampling["chat_template_kwargs"] = {"enable_thinking": False}
@@ -734,7 +732,7 @@ def test_run_injects_only_nebius_and_redacts_all_recorded_output(
     assert ("thinking_mode=off" in manifest["command"]) == (thinking_mode == "off")
     assert "thinking_mode=provider-default" not in manifest["command"]
     if output_budget is None:
-        assert not any("max_output_tokens=" in value for value in manifest["command"])
+        assert "max_output_tokens=32768" in manifest["command"]
     else:
         assert f"max_output_tokens={output_budget}" in manifest["command"]
     assert manifest["execution_guidance"] == resolve_execution_guidance(execution_guidance)

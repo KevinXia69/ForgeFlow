@@ -180,6 +180,20 @@ def test_api_and_mcp_share_host_scope_and_refresh(tmp_path, monkeypatch):
         reply = client.post('/api/assistant/answer', json={'question': 'My cases?'}).json()
         assert len(json.loads(reply['answer'])) == 2
         assert second['case_id'] in reply['answer']
+        home_cases = client.get('/api/product/cases').json()
+        home_runs = client.get('/api/runs').json()
+        summary = mcp_module(calls[-1])._call('workspace_summary', {})
+        assert summary['counts'] == {
+            'decision': sum('decision' in row['home_views'] for row in home_cases),
+            'executing': sum('executing' in row['home_views'] for row in home_cases),
+            'verified': sum('verified' in row['home_views'] for row in home_cases),
+            'evidence': len(home_runs),
+        }
+        assert summary['decision_breakdown']['awaiting_approval'] == summary['counts']['decision'] == 2
+        assert {row['case_id'] for row in summary['cases']} == {case['case_id'], second['case_id']}
+        assert mcp._call('workspace_summary', {})['total_cases'] == 0
+        with pytest.raises(ValueError, match='invalid_tool_arguments'):
+            mcp._call('workspace_summary', {'uid': uid_a})
 
 
 def test_missing_scope_fails_closed_and_public_runs_are_labelled(tmp_path):
@@ -431,3 +445,53 @@ def test_case_decision_matches_disconnected_capability_and_review(tmp_path, monk
         assert not any(detail['decision'][key] for key in ('can_approve', 'can_reject', 'can_request_changes',
                                                          'can_select_candidate', 'can_resume_selection'))
         assert detail['decision']['reason'] == 'review_read_only'
+
+
+def test_browser_scope_precedes_queries_model_requests_and_logout(tmp_path):
+    cfg = settings_for(tmp_path)
+    with TestClient(create_app(cfg), base_url="https://testserver") as client:
+        client.post("/api/auth/session", json={"invite_code": CODES[0]})
+        old = client.get("/api/auth/me").json()["scope_id"]
+        client.post("/api/auth/session", json={"invite_code": CODES[1]})
+        new = client.get("/api/auth/me").json()["scope_id"]
+        assert old != new
+        headers = {"X-ForgeFlow-Workspace": old}
+        for method, path, payload in (
+            ("GET", "/api/product/cases", None),
+            ("POST", "/api/assistant/answer", {"question": "Read this order"}),
+            ("POST", "/api/assistant/stream", {"question": "Read this order"}),
+            ("POST", "/api/settings/model/test", {}),
+            ("DELETE", "/api/auth/session", None),
+        ):
+            response = client.request(method, path, headers=headers, json=payload)
+            assert response.status_code == 409
+            assert response.json()["detail"] == "workspace_changed"
+            assert response.headers["X-ForgeFlow-Workspace-Changed"] == "1"
+        progress = client.get("/api/product/cases/absent/events", params={"workspace_scope": old})
+        assert progress.status_code == 409
+        assert client.get("/api/auth/me").json()["scope_id"] == new
+        assert client.get("/api/product/cases").status_code == 200
+        assert client.get("/api/product/cases", headers={"X-ForgeFlow-Workspace": new}).status_code == 200
+        client.delete("/api/auth/session", headers={"X-ForgeFlow-Workspace": new})
+        assert client.get("/api/product/cases", headers=headers).status_code == 401
+
+
+def test_answer_returns_sdk_passages(tmp_path, monkeypatch):
+    passage = {"path": "docs/TECHNICAL_GUIDE.md", "start_line": 2, "end_line": 2,
+               "text": "DSH runs the read-only loop."}
+
+    class Harness:
+        def with_evidence(self, path):
+            class Scoped:
+                def ask(self, question, key):
+                    return DshReply("DSH is the read-only loop.", ["docs/TECHNICAL_GUIDE.md:2-2"],
+                                    [], None, "project", passages=[passage])
+            return Scoped()
+
+    monkeypatch.setattr("forgeflow.api.app.DshHarness.from_env", lambda: Harness())
+    with TestClient(create_app(settings_for(tmp_path), product_executor=FakeProductExecutor()),
+                    base_url="https://testserver") as client:
+        login(client)
+        reply = client.post("/api/assistant/answer", json={"question": "What is DSH?"})
+        assert reply.status_code == 200
+        assert reply.json()["passages"] == [passage]

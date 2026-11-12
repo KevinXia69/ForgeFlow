@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
+
+from forgeflow.product.readiness import project_order_readiness
 
 from .budget_context import BUDGET_CONTEXT_RULE, budget_fact
 from .evidence import public_evidence
@@ -103,7 +106,45 @@ def _execution_reference(value: Any) -> dict | None:
     return result
 
 
-def case_context(case: dict[str, Any]) -> str:
+def _readiness_summary(plan, question):
+    if not isinstance(plan, dict):
+        return None, None
+    try:
+        readiness = project_order_readiness(plan.get("order_readiness"), plan_id=plan.get("plan_id"),
+                                            snapshot_sha256=plan.get("snapshot_sha256"))
+    except ValueError:
+        return None, None
+    if readiness is None:
+        return None, None
+    rows = readiness["orders"]
+    buffers = [row["buffer_days"] for row in rows]
+    summary = {
+        "recorded_order_count": len(rows),
+        "planned_on_time_orders": sum(row["status"] == "on_time" for row in rows),
+        "planned_late_orders": sum(row["status"] == "late" for row in rows),
+        "zero_buffer_orders": buffers.count(0),
+        "unknown_buffer_orders": buffers.count(None),
+        "minimum_buffer_days": min(buffers) if None not in buffers else None,
+        "time_basis": "planned availability relative to each order's own due date; actual delivery unmeasured",
+    }
+
+    # Answer for a named order before filling the remaining sample with other
+    # orders. Only a complete projection can establish an order is absent.
+    sample = rows
+    if len(rows) > 8 and question:
+        def named(row):
+            label = re.escape(row["order_ref"])
+            return bool(re.search(rf"(?<![A-Za-z0-9_]){label}(?![A-Za-z0-9_])", question, re.I))
+        sample = sorted(rows, key=named, reverse=True)
+    fields = ("order_ref", "demand_units", "planned_ready_date", "customer_due_date", "buffer_days", "status")
+    return summary, {
+        "all_orders_listed": len(rows) <= 8,
+        "columns": fields,
+        "orders": [[row[key] for key in fields] for row in sample[:8]],
+    }
+
+
+def case_context(case: dict[str, Any], *, topic: str | None = None, question: str = "") -> str:
     public = public_evidence(case)
     has_impact = False
 
@@ -141,6 +182,31 @@ def case_context(case: dict[str, Any]) -> str:
     def encode(value):
         return json.dumps(value, ensure_ascii=False, sort_keys=True)
 
+    selected = public.get("plan")
+    readiness, schedule = _readiness_summary(case.get("plan"), question)
+    if topic == "incident":
+        # A short operational question needs no SKU, financial dictionary or
+        # aggregate order header (whose first due date is not every order's).
+        brief = {"state": public.get("state")}
+        decision = public.get("decision") or {}
+        pending = [key for key in ("selection_pending", "revision_pending", "repreparation_pending")
+                   if decision.get(key) is True]
+        if pending:
+            brief["unconfirmed_changes"] = pending
+        brief["disruption"] = _scalars(public.get("disruption"), ("kind",))
+        impact = selected.get("impact_chain_summary") if isinstance(selected, dict) else None
+        scope = impact.get("direct_scope") if isinstance(impact, dict) else None
+        if isinstance(scope, dict):
+            groups = scope.get("failed_supply_by_product") or []
+            brief["direct_order_count"] = scope.get("direct_order_count")
+            if len(groups) == 1:
+                brief["lost_supply_units"] = groups[0].get("units")
+            elif groups:
+                brief["lost_supply_by_product"] = groups
+        briefing = encode(brief)
+        if len(briefing) <= MAX_CONTEXT_CHARS:
+            return briefing
+
     plan_rows = [public.get("plan"), *((public.get("comparison") or {}).get("plans") or [])]
     has_budget = any(isinstance(plan, dict) and plan.get("budget_check") is not None for plan in plan_rows)
     public["margin_check_interpretation"] = MARGIN_CONTEXT_RULE
@@ -173,7 +239,6 @@ def case_context(case: dict[str, Any]) -> str:
     comparison = public.get("comparison")
     candidates = comparison.get("plans", []) if isinstance(comparison, dict) else []
     candidates = candidates[:3] if isinstance(candidates, list) else []
-    selected = public.get("plan")
     add("plan", _plan_reference(selected, selected=True))
     if isinstance(comparison, dict):
         summary = _scalars(comparison, ("status", "reason", "version", "comparison_id", "selection_revision", "selected_plan_id"))
@@ -188,6 +253,23 @@ def case_context(case: dict[str, Any]) -> str:
         add(key, summary)
     approval = public.get("approval")
     add("approval", _scalars(approval, ("phase", "plan_id")) if isinstance(approval, dict) else None)
+
+    for key in ("order", "disruption"):
+        add(key, _scalars(public.get(key)))
+    if readiness is not None:
+        add("selected_order_readiness", readiness)
+    if isinstance(selected, dict) and isinstance(selected.get("impact_chain_summary"), dict):
+        add("selected_impact_chain", selected["impact_chain_summary"])
+
+    date_terms = ("date", "when", "ready", "time", "late", "deadline", "ship", "deliver", "signed",
+                  "备齐", "备好", "交期", "日期", "哪天", "几号", "几天", "日", "签收", "迟交", "按时")
+    question = question.casefold()
+    needs_schedule = schedule is not None and (
+        any(term in question for term in date_terms)
+        or any(row[0].casefold() in question for row in schedule["orders"])
+    )
+    if needs_schedule:
+        add("selected_order_schedule", schedule)
 
     # Enrich already-preserved sections only after decision and receipt facts.
     # A failed enrichment omits its details, never the existing core section.
@@ -206,19 +288,6 @@ def case_context(case: dict[str, Any]) -> str:
         add("execution", summary, omission="detailed_execution_receipt")
     if isinstance(approval, dict):
         add("approval", _scalars(approval), omission="approval_details")
-    for key in ("order", "disruption"):
-        add(key, _scalars(public.get(key)))
-    readiness = selected.get("order_readiness") if isinstance(selected, dict) else None
-    if isinstance(readiness, dict) and isinstance(readiness.get("orders"), list):
-        rows = readiness["orders"]
-        buffers = [row.get("buffer_days") for row in rows if isinstance(row, dict)]
-        # Optional detail cannot displace the comparison, choice or receipt.
-        add("selected_order_readiness", {
-            "recorded_order_count": len(rows),
-            "minimum_buffer_days": min(buffers) if buffers and all(type(x) is int for x in buffers) else None,
-            "time_basis": "planned supply availability in calendar days; transport and actual delivery unmeasured",
-            "detail": "per-order rows omitted from this summary; do not infer individual dates",
-        })
     metrics = selected.get("decision_metrics") if isinstance(selected, dict) else None
     if isinstance(metrics, dict):
         add("selected_decision_metrics", {"margin": _scalars(metrics.get("margin")),
@@ -227,7 +296,7 @@ def case_context(case: dict[str, Any]) -> str:
             "readiness": _scalars(metrics.get("readiness")),
             "basis": "same selected plan; planning values, not actual funds, daily calendar or risk probabilities",
             "detail": "per-workcenter and per-order headroom omitted; consult case details"})
-    if isinstance(selected, dict) and isinstance(selected.get("impact_chain_summary"), dict):
-        add("selected_impact_chain", selected["impact_chain_summary"])
+    if schedule is not None and not needs_schedule:
+        add("selected_order_schedule", schedule)
     facts["omitted_sections"] = omitted
     return encode(facts)

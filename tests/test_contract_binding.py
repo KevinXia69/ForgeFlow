@@ -61,6 +61,7 @@ def test_executor_start_command_carries_the_policy(monkeypatch):
     monkeypatch.setenv("FORGEFLOW_CONTRACT_JSON", json.dumps(payload))
     agent = object.__new__(PiNebius)
     agent.contract_payload = payload
+    agent.recovery_mode = "autonomous"
     command = agent._executor_start_command()
     assert "--policy-file /var/lib/forgeflow/recovery/policy.json" in command
     assert "base64 -d" in command

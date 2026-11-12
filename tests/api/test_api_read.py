@@ -238,3 +238,17 @@ def test_knowledge_endpoint_selects_the_requested_language_corpus(client, settin
     )
     assert chinese.status_code == 200
     assert not any(c.startswith("docs/en/") for c in chinese.json()["citations"])
+
+
+def test_static_task_routes_are_not_shadowed_by_ticket_detail(client, settings):
+    """``/api/tasks/{ticket_id}`` used to be declared first.
+
+    It matched the literal words ``attentions`` and ``failures`` as a ticket id
+    and answered 400 ``invalid_ticket_id``, so both lists were unreachable from
+    the UI.  The static routes must be resolved before the dynamic one.
+    """
+    auth = _auth(client, settings)
+    for path in ("/api/tasks/attentions", "/api/tasks/failures"):
+        response = client.get(path, headers=auth)
+        assert response.status_code == 200, (path, response.text)
+        assert isinstance(response.json(), list), (path, response.json())

@@ -92,6 +92,38 @@ assert.ok(tools[1].description.includes('does not assert external benchmark succ
 """)
 
 
+def test_prepare_only_exposes_no_execute_tool_or_execution_guidance():
+    run_node("""
+const f=fixture();
+const tools=createRecoveryTools(f.pi,f.io,'prepare-only');
+assert.deepEqual(tools.map(t=>t.name),['prepare_recovery']);
+assert.ok(!JSON.stringify(tools).includes('execute_recovery'));
+const result=await tools[0].execute('prepare',request);
+assert.deepEqual(result.details,prepared);
+assert.equal(f.calls.length,1);
+assert.equal(f.calls[0].args[2],'prepare');
+process.env.FORGEFLOW_RECOVERY_MODE='prepare-only';
+const registered=[];register({registerTool:t=>registered.push(t)});
+assert.deepEqual(registered.map(t=>t.name),['prepare_recovery']);
+process.env.FORGEFLOW_RECOVERY_MODE='investigation';
+assert.throws(()=>register({registerTool(){throw Error('must not register')}}),/Invalid native recovery mode/);
+""")
+
+
+@pytest.mark.parametrize("reason", ["planning_model_infeasible", "solver_incomplete", "unsupported_recovery_scope"])
+def test_solver_outcome_survives_native_feedback(reason):
+    run_node("""
+const f=fixture();
+const reason=process.argv[2];
+f.pi.exec=async()=>({code:2,killed:false,stdout:JSON.stringify({
+  ok:false,error_code:'recovery_prepare_failed',odoo_writes:false,
+  feedback:{code:'plan_rejected',reason,missing_sales_order_ids:[]}})});
+await assert.rejects(createRecoveryTools(f.pi,f.io,'prepare-only')[0].execute('prepare',request),error=>{
+  assert.equal(JSON.parse(error.message).feedback.reason,reason);return true;
+});
+""", reason)
+
+
 @pytest.mark.parametrize("case", ["extra", "nested_extra", "budget_extra", "string_budget",
                                    "nan_budget", "duplicate_ids", "bad_date", "missing"])
 def test_prepare_invalid_request_never_persists_or_executes(case):
@@ -354,7 +386,7 @@ assert.ok(!JSON.stringify(toolResult).includes('private-fixture'));
 
 
 @pytest.mark.parametrize("case", ["demand", "contract", "missing_offer", "change_binding",
-                                  "change_quantity", "change_mapping", "change_generic", "unknown"])
+                                  "change_quantity", "change_mapping", "change_scope", "change_generic", "unknown"])
 def test_prepare_feedback_crosses_real_python_exit_and_js_boundary(tmp_path, monkeypatch, case):
     """The real CLI exits 2 after a real socket error; JS preserves only safe facts."""
     import json
@@ -398,7 +430,10 @@ def test_prepare_feedback_crosses_real_python_exit_and_js_boundary(tmp_path, mon
             from forgeflow.recovery.change_set import ChangeSetError, build_change_set
 
             request, snapshot, blueprint, plan = inputs()
-            if case == "change_binding":
+            if case == "change_scope":
+                raise ChangeSetError("private-fixture-secret: unsupported nested BoM",
+                                     code="unsupported_recovery_scope")
+            elif case == "change_binding":
                 plan["blueprint_sha256"] = "0" * 64
             elif case == "change_quantity":
                 plan["plan"]["purchase_orders"][0]["quantity"] += 1
@@ -454,6 +489,7 @@ await assert.rejects(createRecoveryTools(f.pi,f.io)[0].execute('id',request),err
           ? {code:'plan_rejected',reason:({change_binding:'change_set_binding_mismatch',
             change_quantity:'change_set_supply_quantity_mismatch',
             change_mapping:'change_set_mapping_unproven',
+            change_scope:'unsupported_recovery_scope',
             change_generic:'change_set_rejected'})[which],missing_sales_order_ids:[]}
         : {code:'prepare_rejected',reason:'details_unavailable',missing_sales_order_ids:[]};
   assert.deepEqual(safe.feedback,expected);

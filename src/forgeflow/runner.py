@@ -23,12 +23,22 @@ from importlib.metadata import version
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from forgeflow.budget import BUDGET_MECHANISM_VERSION, CLEANUP_ALLOWANCE_SEC, SETUP_BUDGET_SEC
+from forgeflow.budget import (
+    BUDGET_MECHANISM_VERSION,
+    BUSINESS_AUDIT_TABLES,
+    CLEANUP_ALLOWANCE_SEC,
+    MIN_NEXT_CALL_TOKENS,
+    SETUP_BUDGET_SEC,
+    TOKEN_BUDGET_MECHANISM,
+    resolve_total_token_budget,
+)
 from forgeflow.config import (
     VERIFIER_HARDENING,
     load_config,
     resolve_execution_guidance,
     validate_execution_guidance,
+    validate_investigation_event_payload,
+    validate_recovery_mode,
     validate_security_profile,
     validate_thinking_mode,
 )
@@ -92,10 +102,12 @@ def build_run_command(
     agent_timeout_sec: int = 3600,
     task_path: str | Path | None = None,
     max_output_tokens: int | None = None,
+    max_total_tokens: int | None = None,
     thinking_mode: str = "provider-default",
     execution_guidance: str = "none",
     planner_profile: str = "none",
     security_profile: str = "none",
+    recovery_mode: str = "autonomous",
     execution_root: str | Path | None = None,
     host_runtime: dict | None = None,
 ) -> list[str]:
@@ -106,11 +118,16 @@ def build_run_command(
     if isinstance(agent_timeout_sec, bool) or not isinstance(agent_timeout_sec, int) or agent_timeout_sec <= 0:
         raise ValueError("Agent timeout must be a positive integer in seconds.")
     _validate_output_budget_argument(agent, max_output_tokens)
+    max_total_tokens = resolve_total_token_budget(max_total_tokens, agent=agent, recovery_mode=recovery_mode)
     _validate_thinking_mode_argument(agent, thinking_mode)
     validate_execution_guidance(
         execution_guidance, agent=agent, planner_profile=planner_profile,
     )
     _planner_record(agent, planner_profile)
+    validate_recovery_mode(
+        recovery_mode, agent=agent, planner_profile=planner_profile,
+        security_profile=security_profile, execution_guidance=execution_guidance,
+    )
     outer_agent_sec = agent_timeout_sec + (CLEANUP_ALLOWANCE_SEC if agent == "pi" else 0)
     if host_runtime is not None:
         from forgeflow.host_runtime import harbor_command
@@ -138,13 +155,16 @@ def build_run_command(
         "--quiet",
     ]
     if agent == "pi":
+        from forgeflow.agents.pi_nebius import resolve_max_output_tokens
+
         if not model or any(character.isspace() for character in model):
             raise ValueError("Pi requires an explicit Nebius model identifier.")
         source_root = Path(execution_root).resolve() if execution_root else root
         command.extend(["-m", f"nebius/{model}", "--ak", f"workspace_root={source_root}"])
         command.extend(["--ak", f"agent_budget_sec={agent_timeout_sec}"])
-        if max_output_tokens is not None:
-            command.extend(["--ak", f"max_output_tokens={max_output_tokens}"])
+        command.extend(["--ak", f"max_output_tokens={resolve_max_output_tokens(max_output_tokens)}"])
+        if max_total_tokens is not None:
+            command.extend(["--ak", f"max_total_tokens={max_total_tokens}"])
         if thinking_mode != "provider-default":
             command.extend(["--ak", f"thinking_mode={thinking_mode}"])
         if execution_guidance != "none":
@@ -153,6 +173,8 @@ def build_run_command(
             command.extend(["--ak", f"planner_profile={planner_profile}"])
         if security_profile != "none":
             command.extend(["--ak", f"security_profile={security_profile}"])
+        if recovery_mode != "autonomous":
+            command.extend(["--ak", f"recovery_mode={recovery_mode}"])
     return command
 
 
@@ -377,9 +399,14 @@ def stage_task(
     allowed_host: str | None = None,
     data_profile: str = "original",
     security_profile: str = "none",
+    investigation_event: str | None = None,
 ) -> tuple[Path, dict]:
     """Apply declared compatibility fixes and optional planning-data visibility."""
     validate_security_profile(security_profile)
+    if investigation_event is not None:
+        if agent != "pi" or security_profile != "permission-split-v1":
+            raise ValueError("Investigation event requires Pi with permission-split-v1.")
+        _validate_investigation_event(investigation_event)
     profile_record = _data_profile_record(data_profile)
     if agent not in AGENTS:
         raise ValueError("Agent must be oracle, nop, or pi.")
@@ -509,6 +536,20 @@ def stage_task(
             "reason": "Copy the generated provisioning script into /setup.",
         })
     profile_diff = None
+    event_record = None
+    if investigation_event is not None:
+        derived_files["instruction.md"] = investigation_event
+        # Only the supplied public event enters the task copy. The original
+        # instruction remains on the host and is never saved as a backup here.
+        event_record = {
+            "source_type": "user-event-file",
+            "sha256": hashlib.sha256(investigation_event.encode("utf-8")).hexdigest(),
+        }
+        patches.append({
+            "path": "instruction.md", "reason": "Replace full task inputs with the supplied public business event.",
+            "source_sha256": original_hashes["instruction.md"],
+            "execution_sha256": event_record["sha256"],
+        })
     if data_profile == "planning-metadata-v1":
         scenario_path = "environment/scenario_data.json"
         derived_text, profile_record, profile_diff = _planning_metadata_projection(
@@ -553,6 +594,7 @@ def stage_task(
         "execution_patches": patches,
         "data_profile": profile_record,
         "permission_profile": permission_profile_record,
+        "investigation_event": event_record,
         "security_profile": {
             "name": security_profile,
             "verifier_env_added": verifier_env_added,
@@ -576,6 +618,24 @@ def stage_pi_task(
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _validate_investigation_event(text: str) -> str:
+    if not isinstance(text, str) or not text.strip() or "\x00" in text or len(text.encode("utf-8")) > 16 * 1024:
+        raise ValueError("Investigation event must be nonempty UTF-8 text of at most 16 KiB.")
+    return text
+
+
+def _read_investigation_event(path: str | Path) -> str:
+    try:
+        source = Path(path)
+        if not source.is_file():
+            raise ValueError("Investigation event must be a readable UTF-8 file.")
+        with source.open("rb") as handle:
+            raw = handle.read(16 * 1024 + 1)
+        return _validate_investigation_event(raw.decode("utf-8"))
+    except (OSError, UnicodeError) as error:
+        raise ValueError("Investigation event must be a readable UTF-8 file.") from error
 
 
 def _redact(text: str, secrets: tuple[str, ...]) -> str:
@@ -894,6 +954,7 @@ def run_task(
     agent_timeout_sec: int = 3600,
     run_id: str | None = None,
     max_output_tokens: int | None = None,
+    max_total_tokens: int | None = None,
     thinking_mode: str = "provider-default",
     execution_guidance: str = "none",
     data_profile: str = "original",
@@ -903,6 +964,9 @@ def run_task(
     contract_path: str | Path | None = None,
     require_contract: bool = False,
     contract_guidance: str = "none",
+    recovery_mode: str = "autonomous",
+    investigation_event_file: str | Path | None = None,
+    data_root: str | Path | None = None,
 ) -> Path:
     """Run one trial; preserve preflight failures, process failures and exceptions.
 
@@ -911,8 +975,23 @@ def run_task(
     """
     root = Path(root).resolve()
     task_name = resolve_task(task)
+    requested_total_tokens = max_total_tokens
+    max_total_tokens = resolve_total_token_budget(max_total_tokens, agent=agent, recovery_mode=recovery_mode)
     contract_payload = None
     contract = None
+    validate_recovery_mode(
+        recovery_mode, agent=agent, planner_profile=planner_profile,
+        security_profile=security_profile, execution_guidance=execution_guidance,
+        contract_guidance=contract_guidance,
+    )
+    if recovery_mode == "investigation" and contract_path is None:
+        raise ValueError("Investigation recovery_mode requires a reviewed task contract or investigation policy.")
+    if recovery_mode == "investigation" and investigation_event_file is None:
+        raise ValueError("Investigation recovery_mode requires an investigation event file.")
+    if investigation_event_file is not None and recovery_mode == "autonomous":
+        raise ValueError("Investigation event files require prepare-only or investigation recovery_mode.")
+    investigation_event = (_read_investigation_event(investigation_event_file)
+                           if investigation_event_file is not None else None)
     if require_contract and contract_path is None:
         raise ValueError("This run requires a reviewed task contract.")
     if contract_path is not None:
@@ -924,7 +1003,11 @@ def run_task(
             raise ValueError("Contract must be a readable JSON object.") from error
         if not isinstance(contract_payload, dict):
             raise ValueError("Contract must be a JSON object.")
-        contract = contract_from_payload(contract_payload)
+        if recovery_mode == "investigation":
+            from forgeflow.investigation.policy import load_investigation_policy
+            contract = load_investigation_policy(contract_payload)
+        else:
+            contract = contract_from_payload(contract_payload)
         if contract.task_id != task_name:
             raise ValueError("Contract task_id does not match the requested task.")
     if agent not in AGENTS:
@@ -945,11 +1028,20 @@ def run_task(
         raise ValueError("permission-split-v1 requires cp-sat-recovery-v1 for the Pi agent")
     profile_record = _data_profile_record(data_profile)
     planner_record = _planner_record(agent, planner_profile)
+    if recovery_mode != "autonomous":
+        planner_record.update(read_only=True, execution="disabled",
+                              experimental_factor="recovery_preparation" if recovery_mode == "prepare-only"
+                              else "evidence_bound_investigation")
     if run_id is None:
         run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ") + f"-{agent}-{uuid.uuid4().hex[:6]}"
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}", run_id):
         raise ValueError("Run ID must be a simple directory name.")
-    runs_root = root / "runs"
+    if data_root is None:
+        runs_root = root / "runs"
+    else:
+        runs_root = Path(data_root)
+        if runs_root.is_symlink():
+            raise ValueError("The run data directory must not be a symlink.")
     if runs_root.is_symlink():
         raise ValueError("The runs directory must not be a symlink.")
     runs_root.mkdir(mode=0o700, exist_ok=True)
@@ -961,7 +1053,10 @@ def run_task(
         "task": task_name,
         "agent": agent,
         "thinking_mode": thinking_mode if agent == "pi" else None,
-        "mode": "benchmark" if agent == "pi" else "environment_control",
+        "recovery_mode": recovery_mode if agent == "pi" else None,
+        "mode": ("recovery_preparation" if recovery_mode == "prepare-only" else
+                 "recovery_investigation" if recovery_mode == "investigation" else
+                 "benchmark" if agent == "pi" else "environment_control"),
         "data_profile": profile_record,
         "planner": planner_record,
         "state": "preflight",
@@ -986,10 +1081,22 @@ def run_task(
         "frozen_execution": None,
         "execution_guidance": resolve_execution_guidance(execution_guidance) if agent == "pi" else None,
         "contract_guidance": contract_guidance_record,
+        "investigation_event": ({"source_type": "user-event-file",
+                                 "sha256": hashlib.sha256(investigation_event.encode("utf-8")).hexdigest()}
+                                if investigation_event is not None else None),
         "redacted_artifacts": [],
     }
+    if max_total_tokens is not None:
+        manifest["budget"]["total_tokens"] = {
+            "mechanism": TOKEN_BUDGET_MECHANISM, "max_total_tokens": max_total_tokens,
+            "min_next_call_tokens": MIN_NEXT_CALL_TOKENS,
+            "source": "explicit_run_argument" if requested_total_tokens is not None else "preparation_development_default",
+            "scope": "main_pi_provider_requests", "in_flight_can_exceed_limit": True,
+        }
     if data_profile != "original":
         manifest["mode"] += "_visibility_experiment"
+    if investigation_event is not None:
+        manifest["task_input_policy"] = "Supplied public event replaces task instruction; original authorization remains enforced."
     secrets: tuple[str, ...] = ()
     process = None
     watchdog = None
@@ -1002,6 +1109,7 @@ def run_task(
             "id": contract.contract_id,
             "sha256": contract.digest(),
             "task_id": contract.task_id,
+            "kind": contract_payload.get("kind"),
         }
         _write_json(run_dir / "contract.json", contract_payload)
     _write_json(run_dir / "manifest.json", manifest)
@@ -1015,6 +1123,12 @@ def run_task(
         heavy_lease = lease
         manifest["resource_policy"] = {"heavy_operation_concurrency": 1, "lease_acquired": True}
         environment = _child_environment(root)
+        environment["FORGEFLOW_RUN_ID"] = run_id
+        if investigation_event is not None:
+            environment["FORGEFLOW_INVESTIGATION_EVENT_JSON"] = json.dumps({
+                "text": investigation_event,
+                "sha256": hashlib.sha256(investigation_event.encode("utf-8")).hexdigest(),
+            })
         if residue_path.exists() or residue_path.is_symlink():
             raise RuntimeError(
                 "An earlier research run has unconfirmed cleanup; reconcile its recorded resources first."
@@ -1035,11 +1149,13 @@ def run_task(
             )
             manifest["model"] = config.public_dict()
             from forgeflow.agents.pi_nebius import (
+                MODEL_CONTEXT_SAFETY_TOKENS,
                 PiNebius,
                 build_models_config,
+                resolve_max_output_tokens,
             )
 
-            effective_output_tokens = max_output_tokens
+            effective_output_tokens = resolve_max_output_tokens(max_output_tokens)
             model_settings = build_models_config(
                 config, model, max_output_tokens=effective_output_tokens,
                 thinking_mode=thinking_mode,
@@ -1047,13 +1163,15 @@ def run_task(
             manifest["budget"].update(
                 max_output_tokens=effective_output_tokens,
                 max_output_tokens_source=(
-                    "provider_default" if max_output_tokens is None else "explicit_run_argument"
+                    "verified_model_ceiling" if max_output_tokens is None else "explicit_run_argument"
                 ),
-                output_limit_request_fields="omitted" if max_output_tokens is None else "included",
-                output_policy_version="all-requests-v2" if max_output_tokens is None else "explicit",
+                output_limit_request_fields="included",
+                output_policy_version="pi-context-clamp-v1",
                 context_window_tokens=model_settings["contextWindow"],
+                context_safety_tokens=MODEL_CONTEXT_SAFETY_TOKENS,
                 sampling_params=model_settings["samplingParams"],
-                output_budget_scope="Per model response, shared by reasoning and answer tokens.",
+                output_budget_scope=("Per model response, shared by reasoning and answer tokens; "
+                                    "clamped to estimated remaining context minus the safety reserve."),
             )
 
             setup_timeout = PiNebius.__dict__.get("DEFAULT_SETUP_TIMEOUT_SEC")
@@ -1080,6 +1198,7 @@ def run_task(
             allowed_host=(urlsplit(config.base_url).hostname or "") if agent == "pi" else None,
             data_profile=data_profile,
             security_profile=security_profile,
+            investigation_event=investigation_event,
         )
         manifest["task_derivation"] = derivation
         manifest["data_profile"] = derivation["data_profile"]
@@ -1089,6 +1208,8 @@ def run_task(
             "Original vendor task preserved; execution copy applies only declared Docker build "
             "compatibility and Pi Agent network policy patches; no host task directory is mounted into the Agent"
         )
+        if investigation_event is not None:
+            manifest["task_input_policy"] += "; instruction.md is replaced by the supplied public event"
         if data_profile != "original":
             manifest["task_input_policy"] += (
                 "; planning-metadata-v1 also appends existing workcenter fields to public notes "
@@ -1140,11 +1261,13 @@ def run_task(
             root, task_name, agent, run_dir, model=model,
             agent_timeout_sec=agent_timeout_sec, task_path=task_path,
             max_output_tokens=effective_output_tokens if agent == "pi" else None,
+            max_total_tokens=max_total_tokens,
             thinking_mode=thinking_mode,
             execution_guidance=execution_guidance,
             planner_profile=planner_profile,
             security_profile=security_profile,
             execution_root=execution_root,
+            recovery_mode=recovery_mode,
             host_runtime=runtime,
         )
         manifest["command"] = command
@@ -1264,10 +1387,19 @@ def run_task(
         manifest["redacted_artifacts"] = _sanitize_harbor_artifacts(run_dir, secrets)
         _write_json(run_dir / "manifest.json", manifest, secrets)
         summary = summarize_run(run_dir)
-        if summary["environment_chain_ok"] is False and manifest["state"] == "completed":
+        if (recovery_mode == "autonomous" and summary["environment_chain_ok"] is False
+                and manifest["state"] == "completed"):
             manifest["state"] = "failed"
             _write_json(run_dir / "manifest.json", manifest, secrets)
             summary = summarize_run(run_dir)
+        if recovery_mode != "autonomous":
+            manifest["preparation_result"] = {key: summary.get(key) for key in (
+                "preparation_status", "preparation_success", "preparation_bindings_verified",
+                "investigation_completed", "prepared_plan_ids", "review_path", "preparation_issues", "plan_preparation_status",
+                "business_table_audit",
+            )}
+            manifest["token_budget_result"] = summary.get("token_budget")
+            _write_json(run_dir / "manifest.json", manifest, secrets)
         _write_json(run_dir / "summary.json", summary, secrets)
         key_path = attest_key or os.environ.get(ATTESTATION_KEY_ENV)
         if key_path:
@@ -1300,6 +1432,8 @@ def rule_projection(reward: dict | None) -> dict | None:
     Returns ``None`` when the reward carries no parseable rule rows, so callers
     keep "unknown" instead of treating missing rules as a pass. Skipped (NA)
     rules stay out of the applicable count, and a failed rule is never dropped.
+    Declared summary totals are checked against the rows; a contradictory
+    receipt becomes an invalid projection rather than a pass.
     """
     rules = reward.get("rules") if isinstance(reward, dict) else None
     if not isinstance(rules, dict) or not isinstance(rules.get("by_dimension"), dict):
@@ -1313,19 +1447,248 @@ def rule_projection(reward: dict | None) -> dict | None:
     ):
         return None
     issue = None
-    if any(
-        "applicable" in row and row["applicable"] != (row["status"] != "NA")
-        for row in rows
-    ):
-        issue = "Rule applicability flags disagree with rule statuses."
+    for row in rows:
+        status = row["status"]
+        if "applicable" in row and row["applicable"] != (status != "NA"):
+            issue = "Rule applicability flags disagree with rule statuses."
+            break
+        if "passed" in row and (type(row["passed"]) is not bool or row["passed"] != (status == "PASS")):
+            issue = "Rule passed flags disagree with rule statuses."
+            break
     applicable = [row for row in rows if row.get("applicable", row["status"] != "NA")]
-    return {
+    declared = {
+        "total": len(rows),
         "applicable": len(applicable),
         "passed": sum(row["status"] == "PASS" for row in applicable),
-        "failed": sum(row["status"] == "FAIL" for row in applicable) if applicable else None,
+        "failed": sum(row["status"] == "FAIL" for row in applicable),
+        "not_applicable": sum(row["status"] == "NA" for row in rows),
+    }
+    for key, expected in declared.items():
+        if key not in rules:
+            continue
+        value = rules[key]
+        if type(value) is not int or value != expected:
+            issue = "Rule summary disagrees with its rows."
+            break
+    return {
+        "applicable": len(applicable),
+        "passed": declared["passed"],
+        "failed": declared["failed"] if applicable else None,
         "all_pass": all(row["status"] == "PASS" for row in applicable) if applicable else None,
         "issue": issue,
     }
+
+def _business_table_audit_result(trial: Path | None) -> dict:
+    """Separate database evidence from a plan's own no-write declaration."""
+    from forgeflow.recovery.storage import StorageError, read_json
+
+    result = {"status": "unknown", "business_tables_unchanged": None, "table_count": 16,
+              "changed_tables": [], "scope": "sixteen_business_tables_not_system_metadata"}
+    if trial is None:
+        return result
+    try:
+        logs = trial / "agent"
+        report = read_json(logs / "recovery-export.json")
+        index = {row["path"]: row for row in report.get("copied_files", [])}
+        snapshots = {}
+        for phase in ("before", "after"):
+            relative = f"business-audit/{phase}.json"
+            row = index[relative]
+            path = logs / "recovery" / relative
+            if (row.get("root_owned_read_only") is not True
+                    or any(p.is_symlink() for p in (logs, logs / "recovery", path.parent, path))):
+                raise ValueError("untrusted_business_audit")
+            value = read_json(path, limit=16 * 1024)
+            raw = path.read_bytes()
+            if row.get("bytes") != len(raw) or row.get("sha256") != hashlib.sha256(raw).hexdigest():
+                raise ValueError("business_audit_binding_changed")
+            if value.get("status") == "failed":
+                result["status"] = "failed"
+                return result
+            tables = value.get("tables")
+            if (value.get("schema_version") != 1 or value.get("phase") != phase
+                    or value.get("status") != "captured" or value.get("read_only_transaction") is not True
+                    or not isinstance(tables, dict) or set(tables) != set(BUSINESS_AUDIT_TABLES)):
+                raise ValueError("invalid_business_audit")
+            for item in tables.values():
+                if (not isinstance(item, dict) or type(item.get("count")) is not int or item["count"] < 0
+                        or not isinstance(item.get("digest"), str)
+                        or not re.fullmatch(r"(?:[0-9a-f]{32}|empty)", item["digest"])):
+                    raise ValueError("invalid_business_audit")
+            snapshots[phase] = tables
+        changed = [name for name in BUSINESS_AUDIT_TABLES if snapshots["before"][name] != snapshots["after"][name]]
+        result.update(status="changed" if changed else "unchanged", business_tables_unchanged=not changed,
+                      changed_tables=changed)
+    except (OSError, ValueError, KeyError, TypeError, StorageError):
+        result["status"] = "unknown"
+    return result
+
+
+def _preparation_result(trial: Path | None, manifest: dict, *, runtime_ok: bool) -> dict:
+    """Verify exported preparation bindings without treating them as ERP acceptance."""
+    from forgeflow.recovery.storage import StorageError, digest, read_json
+
+    outcome = {"preparation_status": None, "preparation_success": False,
+               "preparation_bindings_verified": False, "investigation_completed": False,
+               "prepared_plan_ids": [], "review_path": None, "preparation_issues": []}
+    if trial is None:
+        outcome["preparation_issues"].append("missing_trial")
+        return outcome
+    logs = trial / "agent"
+    try:
+        if logs.is_symlink():
+            raise ValueError("unsafe_preparation_export")
+        report = read_json(logs / "recovery-export.json")
+        if report.get("schema_version") != 1 or report.get("complete") is not True:
+            raise ValueError("incomplete_preparation_export")
+        records = report.get("copied_files")
+        if not isinstance(records, list):
+            raise ValueError("invalid_preparation_export")
+        index = {row["path"]: row for row in records if isinstance(row, dict) and isinstance(row.get("path"), str)}
+
+        def artifact(relative):
+            row = index.get(relative)
+            if row is None:
+                raise ValueError("missing_preparation_artifact")
+            path = logs / "recovery" / relative
+            if any(parent.is_symlink() for parent in (path, *path.parents) if parent != trial.parent):
+                raise ValueError("unsafe_preparation_artifact")
+            value = read_json(path)
+            # Export hashes bind exact bytes; plan/review identities use the
+            # shared canonical JSON digest and are checked independently below.
+            raw = path.read_bytes()
+            if len(raw) != row.get("bytes") or hashlib.sha256(raw).hexdigest() != row.get("sha256"):
+                raise ValueError("preparation_export_changed")
+            if not isinstance(value, dict):
+                raise ValueError("invalid_preparation_artifact")
+            return value
+
+        def plan_binding(plan_id, expected_request=None):
+            if not isinstance(plan_id, str) or not re.fullmatch(r"[0-9a-f]{64}", plan_id):
+                raise ValueError("invalid_prepared_plan_id")
+            bound = artifact(f"{plan_id}/manifest.json")
+            prepared = artifact(f"{plan_id}/prepared.json")
+            request = artifact(f"{plan_id}/request.json")
+            if (not isinstance(bound.get("artifacts"), dict)
+                    or set(bound["artifacts"]) != {"request", "snapshot", "blueprint", "plan", "change-set", "baseline", "binding"}):
+                raise ValueError("incomplete_prepared_manifest")
+            if (digest(bound) != plan_id or prepared.get("plan_id") != plan_id
+                    or prepared.get("ok") is not True or prepared.get("odoo_writes") is not False
+                    or bound.get("artifacts", {}).get("request") != digest(request)
+                    or (expected_request is not None and digest(request) != expected_request)):
+                raise ValueError("prepared_request_binding_changed")
+            if any(f"{plan_id}/{name}" in index for name in ("success.json", "journal.jsonl")):
+                raise ValueError("execution_present_in_preparation_run")
+            for name, expected in bound.get("artifacts", {}).items():
+                if not isinstance(name, str) or not re.fullmatch(r"[a-z-]+", name):
+                    raise ValueError("invalid_prepared_manifest")
+                if digest(artifact(f"{plan_id}/{name}.json")) != expected:
+                    raise ValueError("prepared_artifact_binding_changed")
+            contract = manifest.get("contract")
+            if isinstance(contract, dict) and prepared.get("policy_sha256") != contract.get("sha256"):
+                raise ValueError("prepared_contract_binding_changed")
+            return request
+
+        if manifest.get("recovery_mode") == "investigation":
+            state = artifact("investigation/state.json")
+            contract_sha = (manifest.get("contract") or {}).get("sha256")
+            partial_policy = (manifest.get("contract") or {}).get("kind") == "forgeflow.investigation_policy"
+            event_sha = (manifest.get("investigation_event") or {}).get("sha256")
+            def event_matches(record):
+                if event_sha is None:
+                    return True
+                try:
+                    event = validate_investigation_event_payload(record.get("event"))
+                except ValueError:
+                    return False
+                return event["sha256"] == event_sha == record.get("event_sha256")
+            if (state.get("schema_version") != 1 or state.get("run_id") != manifest.get("run_id")
+                    or not contract_sha or state.get("policy_sha256", state.get("contract_sha256")) != contract_sha
+                    or not event_matches(state)):
+                raise ValueError("investigation_state_binding_changed")
+            status = state.get("status")
+            outcome["preparation_status"] = status
+            if status == "prepared":
+                if partial_policy or state.get("contract_sha256") != contract_sha:
+                    raise ValueError("complete_contract_required_for_preparation")
+                prepared = state.get("prepared") or {}
+                review = artifact("investigation/review.json")
+                if (review.get("schema_version") != 1 or review.get("run_id") != state["run_id"]
+                        or review.get("contract_sha256") != contract_sha
+                        or review.get("policy_sha256", review.get("contract_sha256")) != contract_sha
+                        or not event_matches(review)
+                        or review.get("plan_id") != prepared.get("plan_id")
+                        or prepared.get("bindings_verified") is not True
+                        or review.get("bindings_verified") is not True
+                        or prepared.get("review_sha256") != digest(review)
+                        or prepared.get("request_sha256") != review.get("request_sha256")
+                        or digest(review.get("request")) != review.get("request_sha256")
+                        or review.get("odoo_writes") is not False
+                        or review.get("execution_validated") is not False
+                        or review.get("benchmark_success") is not None):
+                    raise ValueError("investigation_review_binding_changed")
+                plan_binding(prepared.get("plan_id"), prepared.get("request_sha256"))
+                outcome.update(prepared_plan_ids=[prepared["plan_id"]], preparation_bindings_verified=True,
+                               preparation_success=runtime_ok, investigation_completed=runtime_ok,
+                               review_path=str(Path("agent/recovery/investigation/review.json")))
+            elif status in {"needs_clarification", "unsupported", "infeasible", "budget_exhausted", "technical_failure"}:
+                terminal = state.get("terminal")
+                if not isinstance(terminal, dict) or not isinstance(terminal.get("reason"), str) or not terminal["reason"]:
+                    raise ValueError("missing_investigation_terminal_reason")
+                outcome["investigation_completed"] = runtime_ok and status not in {"technical_failure", "budget_exhausted"}
+            elif status not in {"investigating", "preparing"}:
+                raise ValueError("unknown_investigation_status")
+        else:
+            plan_ids = sorted({relative.split("/")[0] for relative in index
+                               if re.fullmatch(r"[0-9a-f]{64}/prepared.json", relative)})
+            for plan_id in plan_ids:
+                plan_binding(plan_id)
+            outcome.update(prepared_plan_ids=plan_ids, preparation_bindings_verified=bool(plan_ids),
+                           preparation_success=runtime_ok and bool(plan_ids),
+                           preparation_status="prepared" if plan_ids else "not_prepared")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, StorageError) as error:
+        # Fixed local reason names only; never echo arbitrary artifact contents.
+        reason = str(error)
+        outcome["preparation_issues"].append(reason if re.fullmatch(r"[a-z_]{1,80}", reason) else "invalid_preparation_artifact")
+    return outcome
+
+
+def _token_budget_result(trial: Path | None, manifest: dict) -> dict | None:
+    policy = (manifest.get("budget") or {}).get("total_tokens")
+    if not isinstance(policy, dict):
+        return None
+    from forgeflow.recovery.storage import StorageError, read_json
+
+    unknown = {"mechanism": TOKEN_BUDGET_MECHANISM, "status": "token_usage_unknown",
+               "reported_total_tokens": None, "partial_usage_unknown": True,
+               "max_total_tokens": policy.get("max_total_tokens"),
+               "scope": "main_pi_provider_requests", "in_flight_can_exceed_limit": True}
+    try:
+        if trial is None or (trial / "agent").is_symlink():
+            return unknown
+        record = read_json(trial / "agent/token-budget.json", limit=16 * 1024)
+        if (not isinstance(record, dict) or record.get("schema_version") != 1
+                or record.get("mechanism") != TOKEN_BUDGET_MECHANISM
+                or record.get("max_total_tokens") != policy.get("max_total_tokens")
+                or record.get("min_next_call_tokens") != policy.get("min_next_call_tokens")
+                or any(type(record.get(key)) is not int or record[key] < 0 for key in (
+                    "reported_total_tokens", "completed_responses", "provider_requests"))
+                or any(type(record.get(key)) is not bool for key in ("in_flight", "partial_usage_unknown"))
+                or record.get("stop_reason") not in {None, "token_budget_exhausted", "token_usage_unknown"}):
+            return unknown
+        partial = record["partial_usage_unknown"] or record["in_flight"]
+        if partial or record["completed_responses"] != record["provider_requests"]:
+            status = "token_usage_unknown"
+        elif record["stop_reason"]:
+            status = record["stop_reason"]
+        elif record["reported_total_tokens"] >= record["max_total_tokens"]:
+            status = "token_budget_exhausted"
+        else:
+            status = "within_reported_budget"
+        return {**record, "status": status, "partial_usage_unknown": partial,
+                "scope": "main_pi_provider_requests", "in_flight_can_exceed_limit": True}
+    except (OSError, ValueError, TypeError, StorageError):
+        return unknown
 
 
 def summarize_run(run_dir: str | Path) -> dict:
@@ -1412,6 +1775,23 @@ def summarize_run(run_dir: str | Path) -> dict:
     agent_result = agent_result if isinstance(agent_result, dict) else {}
     data_profile = manifest.get("data_profile")
     planner = manifest.get("planner")
+    preparation = {}
+    if manifest.get("recovery_mode") in {"prepare-only", "investigation"}:
+        preparation = _preparation_result(trial, manifest, runtime_ok=(
+            manifest.get("state") == "completed" and manifest.get("harbor_returncode") == 0
+            and result is not None and not exception
+            and result.get("task_name") == f"agentic-labs/{manifest.get('task')}"
+        ))
+        preparation["business_table_audit"] = _business_table_audit_result(trial)
+        if trial is not None and preparation.get("review_path"):
+            preparation["review_path"] = str(trial.relative_to(run_dir) / preparation["review_path"])
+    token_budget = _token_budget_result(trial, manifest)
+    if preparation and token_budget and token_budget["status"] != "within_reported_budget":
+        # Keep the concrete prepared plan IDs available for review, but do not
+        # count an unaccounted or over-budget episode as a successful evaluation.
+        preparation["plan_preparation_status"] = preparation.get("preparation_status")
+        preparation.update(preparation_status=token_budget["status"], preparation_success=False,
+                           investigation_completed=False)
     return {
         "schema_version": 1,
         "run_id": manifest.get("run_id", run_dir.name),
@@ -1420,6 +1800,7 @@ def summarize_run(run_dir: str | Path) -> dict:
         "mode": manifest.get("mode"),
         "data_profile": data_profile.get("name") if isinstance(data_profile, dict) else None,
         "planner_profile": planner.get("profile") if isinstance(planner, dict) else None,
+        "recovery_mode": manifest.get("recovery_mode", "autonomous"),
         "state": manifest.get("state", "unknown"),
         "score": score,
         "score_scale": [0, 100],
@@ -1437,5 +1818,7 @@ def summarize_run(run_dir: str | Path) -> dict:
         "raw_reward_path": str(reward_path.relative_to(run_dir)) if reward_path and reward_path.exists() else None,
         "raw_result_path": str(result_path.relative_to(run_dir)) if result_path and result_path.exists() else None,
         "metrics": {key: agent_result.get(key) for key in ("n_input_tokens", "n_output_tokens", "n_cache_tokens", "cost_usd")},
+        "token_budget": token_budget,
         "issues": issues,
+        **preparation,
     }

@@ -20,6 +20,8 @@
       </button>
 
       <nav class="nav">
+        <a class="nav-item" id="recovery-review-link" href="/recovery-review" hidden><span class="nav-icon" aria-hidden="true">◇</span> 供应异常评审</a>
+        <a class="nav-item" id="investigation-link" href="/investigation" hidden><span class="nav-icon" aria-hidden="true">↳</span> 调查续接</a>
         <button class="nav-item is-active" type="button" data-view="assistant">
           <span class="nav-icon" aria-hidden="true">◌</span> 助手
         </button>
@@ -57,7 +59,7 @@
       <section id="login-card" class="login-wrap" aria-labelledby="login-title">
         <div class="login-card">
           <h1 id="login-title">回到你的处置工作台</h1>
-          <p class="muted">输入邀请码，查看运行记录、恢复计划与审批；所有写入只经 root 执行器。</p>
+          <p class="muted">输入邀请码，查看历史运行、恢复计划与审批记录。</p>
           <form id="login-form" novalidate>
             <label for="invite-code">邀请码</label>
             <input id="invite-code" name="invite_code" type="password"
@@ -73,14 +75,14 @@
           <div class="hero">
             <span class="hero-mark" aria-hidden="true">✦</span>
             <h1>今天想处理哪条生产异常？</h1>
-            <p>先看证据，再批准计划。Agent 只读，写入只经 root 执行器。</p>
+            <p>查看过往运行的证据、计划与审批记录。</p>
           </div>
 
           <div class="status-card">
             <div class="status-line">
               <span class="dot" aria-hidden="true"></span>
               <strong>本地工作区可用</strong>
-              <span class="muted">运行记录只读 · 审批写入独立审计</span>
+              <span class="muted">运行与审批记录只读</span>
             </div>
             <p class="muted small">
               支持场景：供应商断供 A · 产线停机 B。回答只引用项目文档原文，不生成结论。
@@ -99,7 +101,7 @@
             </div>
           </form>
           <p id="kb-status" class="composer-note" role="status"></p>
-          <p class="composer-note">问答不会触发任务或 ERP 写入；需要执行时请到「运行与计划」。</p>
+          <p class="composer-note">问答仅检索项目文档。「运行与计划」提供历史证据。</p>
 
           <div class="quick-grid">
             <button class="quick" type="button" data-quick="runs">
@@ -135,7 +137,7 @@
                     <option value="A">A · 供应商断供</option>
                     <option value="B">B · 产线停机</option>
                   </select>
-                  <button id="create-run" type="button" class="primary">新建运行</button>
+                  <button id="create-run" type="button" class="primary" title="此实例未开放新建基准运行" disabled>新建运行</button>
                   <button id="runs-refresh" type="button" class="secondary">刷新</button>
                 </div>
               </div>
@@ -181,14 +183,13 @@
 
               <div id="approval-panel" hidden>
                 <div class="panel-head">
-                  <h3>审批</h3>
-                  <button id="approve-button" type="button" class="primary">批准该计划</button>
+                  <h3>历史审批记录</h3>
                 </div>
                 <p id="approval-status" class="status" role="status"></p>
                 <div class="table-wrap">
                   <table>
                     <thead>
-                      <tr><th>Nonce</th><th>状态</th><th>到期时间</th><th>操作</th></tr>
+                      <tr><th>Nonce</th><th>状态</th><th>到期时间</th></tr>
                     </thead>
                     <tbody id="approvals-body"></tbody>
                   </table>
@@ -201,6 +202,6 @@
     </main>
   </div>
 
-  <script src="/static/app.js" defer></script>
+  <script type="module" src="/static/app.js"></script>
 </body>
 </html>

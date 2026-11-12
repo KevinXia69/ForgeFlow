@@ -15,6 +15,7 @@ from typing import Any
 class ProgressHub:
     def __init__(self) -> None:
         self._events: dict[str, list[dict[str, Any]]] = {}
+        self._seq: dict[str, int] = {}
         self._lock = threading.Lock()
 
     def reset(self, case_id: str) -> None:
@@ -22,14 +23,16 @@ class ProgressHub:
             self._events[case_id] = []
 
     def emit(self, case_id: str, phase: str, status: str, detail: str = "") -> None:
-        event = {
-            "phase": phase,
-            "status": status,
-            "detail": detail,
-            "ts": round(time.time(), 3),
-        }
         with self._lock:
-            self._events.setdefault(case_id, []).append(event)
+            sequence = self._seq.get(case_id, 0) + 1
+            self._seq[case_id] = sequence
+            self._events.setdefault(case_id, []).append({
+                "seq": sequence,
+                "phase": phase,
+                "status": status,
+                "detail": detail,
+                "ts": round(time.time(), 3),
+            })
 
     def snapshot(self, case_id: str) -> list[dict[str, Any]]:
         with self._lock:

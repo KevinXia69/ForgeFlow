@@ -35,10 +35,13 @@ def load_local_comparison(executor, case, decision, constraints):
         if (selected is None and (len(rows) == 1 or decision["state"] != "prepared")
                 or selected is not None and (selected not in rows or decision["state"] != "selected")):
             raise ValueError
-        directory = executor.store / "product-comparisons"
-        if directory.is_symlink():
-            raise ValueError
-        audit = read_json(directory / (comparison_id + ".json"))
+        if getattr(executor, "artifact_rpc", False):
+            audit = executor.load_comparison(case, comparison_id)
+        else:
+            directory = executor.store / "product-comparisons"
+            if directory.is_symlink():
+                raise ValueError
+            audit = read_json(directory / (comparison_id + ".json"))
         audit_sha = digest(audit)
         context = next(iter(rows.values()))["product"]
         candidate_ids = audit.get("candidate_plan_ids")

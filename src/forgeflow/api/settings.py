@@ -25,6 +25,7 @@ DEPLOYMENT_KEY = "FORGEFLOW_DEPLOYMENT"
 PUBLIC_RUNS_KEY = "FORGEFLOW_PUBLIC_RUNS"
 TRUSTED_HOSTS_KEY = "FORGEFLOW_TRUSTED_HOSTS"
 GENERATION_KEY = "FORGEFLOW_ENVIRONMENT_GENERATION"
+REVIEW_MODEL_HOSTS_KEY = "FORGEFLOW_REVIEW_MODEL_HOSTS"
 COOKIE_NAME = "ff_session"
 DEFAULT_TTL_SEC = 12 * 60 * 60
 MIN_SECRET_LEN = 32
@@ -67,6 +68,7 @@ class Settings:
     public_runs: tuple[str, ...] = ()
     trusted_hosts: tuple[str, ...] = ()
     environment_generation: str | None = None
+    review_model_hosts: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "data_root", Path(self.data_root).expanduser())
@@ -77,6 +79,11 @@ class Settings:
         object.__setattr__(self, "invite_codes", tuple(self.invite_codes))
         object.__setattr__(self, "public_runs", tuple(self.public_runs))
         object.__setattr__(self, "trusted_hosts", tuple(self.trusted_hosts))
+        object.__setattr__(self, "review_model_hosts", tuple(
+            str(host).strip().lower() for host in self.review_model_hosts if str(host).strip()
+        ))
+        if not all(_host_parts(host) is not None for host in self.review_model_hosts):
+            raise ValueError(f"{REVIEW_MODEL_HOSTS_KEY} must contain exact hostnames or IPs.")
         if not isinstance(self.session_secret, str) or len(self.session_secret) < MIN_SECRET_LEN:
             raise ValueError(f"{SECRET_KEY} must be set to at least {MIN_SECRET_LEN} characters.")
         if not self.invite_codes:
@@ -115,6 +122,24 @@ class Settings:
             object.__setattr__(self, "trusted_hosts", tuple(
                 host.lower() for host in self.trusted_hosts
             ))
+
+    def allows_review_model(self, base_url: str) -> bool:
+        """Only administrator-approved model authorities are reachable in review."""
+        if self.deployment != "review":
+            return True
+        try:
+            parsed = urlsplit(base_url)
+            host, port = parsed.hostname, parsed.port
+        except ValueError:
+            return False
+        if not isinstance(host, str) or not host:
+            return False
+        for entry in self.review_model_hosts:
+            allowed = _host_parts(entry)
+            if allowed is not None and host.lower() == allowed[0] and (
+                    allowed[1] is None or port == allowed[1]):
+                return True
+        return False
 
     def allows_host(self, authority: str) -> bool:
         """Match a request Host against explicit hosts, including IPv4/IPv6."""
@@ -160,6 +185,9 @@ def create_settings(env: Mapping[str, str] | None = None) -> Settings:
     trusted_hosts = tuple(
         part.strip() for part in source.get(TRUSTED_HOSTS_KEY, "").split(",") if part.strip()
     )
+    review_model_hosts = tuple(
+        part.strip() for part in source.get(REVIEW_MODEL_HOSTS_KEY, "").split(",") if part.strip()
+    )
     render_host = source.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
     if render_host and render_host not in trusted_hosts:
         trusted_hosts += (render_host,)
@@ -176,4 +204,5 @@ def create_settings(env: Mapping[str, str] | None = None) -> Settings:
         public_runs=public_runs,
         trusted_hosts=trusted_hosts,
         environment_generation=source.get(GENERATION_KEY, "").strip() or None,
+        review_model_hosts=review_model_hosts,
     )

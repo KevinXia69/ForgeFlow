@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createProductCase, createProductFromDraft, getCapabilities, getProductCase, getProductCases, previewProductDraft, type ProductDraft } from "./api";
 import { startCaseReadWatch } from "./caseReadWatch";
 import { CaseDetail } from "./CaseDetail";
-import { environmentAccessNotice } from "./environmentAccess";
 import { CaseChatView } from "./CaseChatView";
 import { buildFixtureCase } from "./caseFixture";
 import { caseOutcomeLabel, dueWindow, errorDetail, formatDateTime, exceptionText, formatQuantity, isCaseVerified, matchesSavedView, severityLabel, severityOf, type SavedCaseView } from "./caseUi";
+import { Odoo20PlanPanel } from "./Odoo20PlanPanel";
 import { SelectMenu } from "./SelectMenu";
 import { useI18n, type MessageKey } from "./i18n";
 import { caseRoute, navigate, useWorkspace } from "./workspace";
@@ -17,12 +17,11 @@ const VIEWS: { id: SavedCaseView; label: MessageKey }[] = [
 ];
 const matches = matchesSavedView;
 type Props = {
-  selectedId: string | null; chat: boolean; evidence: boolean; demo: boolean; initialView?: string | null;
+  selectedId: string | null; chat: boolean; evidence: boolean; demo: boolean; initialView?: string | null; planId?: number | null;
   onSelectCase: (id: string | null) => void;
   onAskCase: (item: CaseFile, mode: "live" | "fixture") => void;
-  onOpenEvidence: () => void;
 };
-export function CasesView({ selectedId, chat, evidence, demo, initialView, onSelectCase, onAskCase, onOpenEvidence }: Props) {
+export function CasesView({ selectedId, chat, evidence, demo, initialView, planId, onSelectCase, onAskCase }: Props) {
   const { t, lang } = useI18n();
   const identity = useWorkspace();
   const fixture = useMemo(() => buildFixtureCase(t), [t]);
@@ -39,15 +38,9 @@ export function CasesView({ selectedId, chat, evidence, demo, initialView, onSel
   const [selected, setSelected] = useState<CaseFile | null>(null);
   const [selectedConfirmedAt, setSelectedConfirmedAt] = useState<string | null>(null);
   const [draft, setDraft] = useState<ProductDraft>({ kind: "supplier_cancellation", product_code: "P27637E67E7-LED-CRS-009", units: 50, due_days: 8 });
-  const [draftResult, setDraftResult] = useState<{ valid: boolean; errors: string[]; scenario: string | null } | null>(null);
+  const [preview, setPreview] = useState<{ draft: ProductDraft; result: Awaited<ReturnType<typeof previewProductDraft>> } | null>(null);
+  const draftResult = preview?.draft === draft ? preview.result : null;
   const [draftBusy, setDraftBusy] = useState(false);
-  const [welcome, setWelcome] = useState(() => {
-    try { return localStorage.getItem("forgeflow.welcome.v1") !== "dismissed"; } catch { return true; }
-  });
-  const dismissWelcome = () => {
-    setWelcome(false);
-    try { localStorage.setItem("forgeflow.welcome.v1", "dismissed"); } catch { /* storage unavailable */ }
-  };
   const [error, setError] = useState("");
   const [detailError, setDetailError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -90,6 +83,8 @@ export function CasesView({ selectedId, chat, evidence, demo, initialView, onSel
   const next = selectedIndex < 0 ? null : visible[selectedIndex + 1];
   const availableScenarios = caps?.product_scenarios ?? [];
   const selectedScenario = availableScenarios.find(item => item.id === scenario) ?? availableScenarios[0];
+  const draftScenarioAvailable = availableScenarios.some(item => item.id === draftResult?.scenario && item.can_create);
+  const canCreateDraft = draftResult?.valid && draftScenarioAvailable && caps?.case_create === true && !isDemo && !loading;
   const canCreate = caps?.case_create === true && selectedScenario?.can_create === true && !loading && !isDemo;
   const create = async () => {
     if (!canCreate || !selectedScenario || busy) return;
@@ -119,34 +114,33 @@ export function CasesView({ selectedId, chat, evidence, demo, initialView, onSel
     });
   }, [shouldWatch, selectedId, updated, watchGeneration]);
   const updateDraft = (kind: string) => {
-    setDraftResult(null);
     setDraft(kind === "workcenter_outage"
       ? { kind, product_code: "P1223565D60-SOL-CSC-007", units: 228, due_days: 8 }
       : { kind, product_code: "P27637E67E7-LED-CRS-009", units: 50, due_days: 8 });
   };
   const previewDraft = async () => {
     if (isDemo) return;
-    setDraftBusy(true); setDraftResult(null);
-    try { setDraftResult(await previewProductDraft(draft)); }
+    setDraftBusy(true); setPreview(null);
+    try { setPreview({ draft, result: await previewProductDraft(draft) }); }
     catch (failure) { setError(errorDetail(failure)); }
     finally { setDraftBusy(false); }
   };
   const createDraft = async () => {
-    if (isDemo || !draftResult?.valid) return;
+    if (!canCreateDraft || draftBusy) return;
     setDraftBusy(true);
     try { const created = await createProductFromDraft(draft); onSelectCase(created.case_id); }
     catch (failure) { setError(errorDetail(failure)); }
     finally { setDraftBusy(false); }
   };
 
-  const statusKey: MessageKey = identity.deployment === "review" ? "v9.review" : loading ? "v10.connectionChecking" : caps?.environment?.execution === "live_sandbox" && caps.environment.ready === true ? "v9.ready" : caps?.environment?.execution === "synthetic_executor" && caps.environment.ready === true ? "v9.synthetic" : "v9.offline";
-  const environmentNotice = !isDemo ? environmentAccessNotice(t, caps, selected) : null;
-  const environment = <div className="environment-banner" role="status" data-environment="true" data-environment-restriction={environmentNotice?.cause}><span>{environmentNotice ? `${environmentNotice.reason} ${environmentNotice.recovery}` : isDemo ? t("v11.demoBanner") : t(statusKey)}{!isDemo && !environmentNotice && caps?.environment?.execution !== "synthetic_executor" && caps?.environment?.scenario ? ` · ${t(caps.environment.scenario === "B" ? "v9.scenarioB" : "v9.scenarioA")}` : ""}</span><button type="button" className="activity-link" disabled={loading} onClick={() => void refresh()}>{t("v9.reconnect")}</button></div>;
   // Freshness is exposed as data, not as prose on the page: the human-readable
   // form lives inside the collapsed case details.
   if (selectedId) return <div className={`view cases-detail-view${chat ? " with-case-chat" : ""}`} data-cases-view="true" data-cases-mode={isDemo ? "fixture" : "live"} data-cases-ready="true" data-case-read-at={selectedConfirmedAt ?? undefined}>
-    {environment}
-
+    {isDemo ? <div className="demo-banner" data-demo-banner="true">{t("cases.demoBanner")}</div> : null}
+    {!isDemo && <button type="button" className="secondary" data-case-refresh="true"
+      aria-label={t("v9.reconnect")} disabled={loading} onClick={() => void refresh()}>
+      {t(loading ? "cases.refreshing" : "v9.reconnect")}
+    </button>}
     {watchExpired && <p role="alert" data-case-watch-expired="true">{t("v10.autoReadStopped")}</p>}
     {detailError && <div role="alert"><p>{t(selected ? "v9.staleCase" : "v9.readError")} {detailError}</p>{!selected && <button className="secondary" onClick={() => onSelectCase(null)}>{t("case.back")}</button>}</div>}
     {selected ? <>
@@ -160,19 +154,13 @@ export function CasesView({ selectedId, chat, evidence, demo, initialView, onSel
       {chat && <aside className="case-chat-drawer" aria-label={t("caseChat.title")}><CaseChatView key={`${identity.scope_id}:${selected.case_id}`} caseFile={selected} mode={isDemo ? "fixture" : "live"} onBack={() => navigate(caseRoute(selected.case_id))} /></aside>}
     </> : !detailError ? <p>{t("cases.loading")}</p> : null}
   </div>;
+  const openDemoButton = <button type="button" className="secondary" data-open-demo="true" onClick={() => navigate(caseRoute(fixture.case_id))}>{t("v11.welcomeDemo")}</button>;
   return <div className="view cases-view cases-home" data-cases-view="true" data-cases-mode={isDemo ? "fixture" : "live"} data-cases-ready={!loading}>
-    <header className="cases-head"><div><h1>{t("v9.title")}</h1><p className="muted">{t("v9.subtitle")}</p></div></header>
-    {environment}
-    {welcome ? <section className="cases-welcome" data-first-run-welcome="true">
-      <div><strong>{t("v11.welcomeTitle")}</strong><p>{t("v11.welcomeBody")}</p></div>
-      <div className="cases-welcome-actions">
-        <button type="button" className="secondary" data-open-demo="true" onClick={() => navigate(caseRoute(fixture.case_id))}>{t("v11.welcomeDemo")}</button>
-        <button type="button" className="activity-link" onClick={dismissWelcome}>{t("v11.welcomeDismiss")}</button>
-      </div>
-    </section> : null}
+    <header className="cases-head"><div className="cases-heading"><h1>{t("v9.title")}</h1></div></header>
+    {isDemo ? <div className="demo-banner" data-demo-banner="true">{t("cases.demoBanner")}</div> : null}
+    <Odoo20PlanPanel initialPlanId={planId ?? null} />
     {!isDemo && caps?.case_create === true ? <details className="cases-draft" data-case-draft="true">
       <summary>{t("v11.draftTitle")}</summary>
-      <p className="settings-note">{t("v11.draftNote")}</p>
       <div className="cases-draft-grid">
         <label>{t("v11.draftKind")}
           <SelectMenu
@@ -191,9 +179,9 @@ export function CasesView({ selectedId, chat, evidence, demo, initialView, onSel
       </div>
       <div className="cases-draft-actions">
         <button type="button" className="secondary" disabled={draftBusy} onClick={() => void previewDraft()}>{t("v11.draftPreview")}</button>
-        <button type="button" className="primary" disabled={draftBusy || !draftResult?.valid} onClick={() => void createDraft()}>{t("v11.draftCreate")}</button>
+        <button type="button" className="primary" disabled={draftBusy || !canCreateDraft} onClick={() => void createDraft()}>{t("v11.draftCreate")}</button>
       </div>
-      {draftResult ? <p role="status" data-draft-result={draftResult.valid ? "valid" : "invalid"}>{draftResult.valid ? t("v11.draftValid", { scenario: draftResult.scenario ?? "—" }) : draftResult.errors.join(" · ")}</p> : null}
+      {draftResult ? <p role="status" data-draft-result={draftResult.valid ? "valid" : "invalid"}>{draftResult.valid ? t(draftScenarioAvailable ? "v11.draftValid" : "v11.draftUnavailable", { scenario: draftResult.scenario ?? "—" }) : draftResult.errors.join(" · ")}</p> : null}
     </details> : null}
     <div className="cases-actions">
       {availableScenarios.length > 1 && <SelectMenu
@@ -204,39 +192,27 @@ export function CasesView({ selectedId, chat, evidence, demo, initialView, onSel
         disabled={busy || loading}
       />}
       <button className={cases.length ? "secondary" : "primary"} type="button" disabled={!canCreate || busy} onClick={() => void create()} data-create-case="true">{busy ? t("cases.creating") : t(selectedScenario?.id === "B" ? "v9.newExampleB" : "v9.newExample")}</button>
+      {openDemoButton}
       <button className="secondary" type="button" onClick={() => void refresh()} disabled={loading} data-cases-refresh="true">{t("cases.refresh")}</button>
     </div>
-    {/* The note must not disappear with the button: a disabled action needs its reason. */}
-    <p className="muted" data-create-note={canCreate ? "available" : "unavailable"}>
-      {canCreate
-        ? t(caps?.environment?.execution === "synthetic_executor" ? "v9.syntheticExampleNote" : "v9.exampleNote", { scenario: selectedScenario?.id ?? "—" })
-        : environmentNotice ? `${environmentNotice.reason} ${environmentNotice.recovery}`
-          : caps?.deployment === "hosted" ? `${t("environment.unavailable")} ${t("environment.unavailableRecovery")}`
-            : t("v13.createUnavailableNote")}
-    </p>
-    {isDemo && <div className="cases-demo-banner" data-demo-banner="true">{t("case.fixtureLabel")}</div>}
     {error && <p className="case-error" role="alert">{t("v9.readError")} {error}</p>}
     <div className="cases-filterbar" role="group" aria-label={t("cases.savedViews")}>
       {VIEWS.map(item => <button key={item.id} className={`cases-filter${view === item.id ? " is-active" : ""}`} type="button" data-saved-view={item.id} aria-pressed={view === item.id} onClick={() => setView(item.id)}>{t(item.label)} <span>{effective.filter(row => matches(row, item.id)).length}</span></button>)}
     </div>
     {loading && <p role="status">{t("cases.loading")}</p>}
-    {!loading && visible.length === 0 && <div className="cases-empty" data-cases-empty="true"><p>{t(cases.length ? "cases.emptyFilteredTitle" : "v9.noCases")}</p>{view !== "all" && <button className="secondary" onClick={() => setView("all")}>{t("cases.showAll")}</button>}</div>}
+    {!loading && visible.length === 0 && <div className="cases-empty" data-cases-empty="true">{view !== "all" && <button className="secondary" onClick={() => setView("all")}>{t("cases.showAll")}</button>}</div>}
     <div className="cases-cards">{visible.map(item => <button key={item.case_id} type="button" className="case-row case-card" data-case-row="true" data-case-id={item.case_id} data-case-state={item.state} onClick={() => onSelectCase(item.case_id)}>
       <span className="case-card-main">
         <strong className="case-card-title">{exceptionText(item, t)}</strong>
         <span className="case-card-meta">{item.order.product} · {formatQuantity(item.order.units)} {t("cases.units")} · {dueWindow(item, t)}</span>
-        {/* Two cases can share exception, product, units and due date; the
-            record time is what tells them apart without reading the pill. */}
-        <span className="case-card-when" data-case-when="true">
+        <span className="case-card-when sr-only" data-case-when="true">
           {t("v13.caseRecordedAt", { time: formatDateTime(item.updated_at ?? item.created_at, lang) })}
         </span>
       </span>
       <span className="case-card-side">
-        <span className="case-severity is-secondary">{severityLabel(severityOf(item), t)}</span>
+        <span className="case-severity is-secondary sr-only">{severityLabel(severityOf(item), t)}</span>
         <span className={`case-state-pill is-${isCaseVerified(item) ? "green" : "neutral"}`}>{caseOutcomeLabel(item, t)}</span>
       </span>
     </button>)}</div>
-    <p><button type="button" className="activity-link" onClick={onOpenEvidence}>{t("v9.historyEvidence")}</button></p>
-    <footer className="cases-disclaimer">{t(identity.deployment === "review" ? "cases.disclaimer" : "cases.disclaimerLocal")}</footer>
   </div>;
 }

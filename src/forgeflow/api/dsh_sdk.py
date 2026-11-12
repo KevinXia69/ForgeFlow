@@ -18,16 +18,21 @@ import time
 from pathlib import Path
 from typing import Any
 
-from .case_qa import PLANNED_COST_CONTEXT
+from .answer_text import clean_answer
 from .dsh_harness import (
     MAX_ACTIVITY,
     DshReply,
     DshUnavailable,
     _citations,
     _finish_tool_step,
+    _knowledge_passages,
+    _result_payload,
+    _result_text,
     _short,
     _tool_step,
+    _web_citations,
 )
+from .model_settings import assistant_model
 
 
 def _session_id_for(key: str) -> str:
@@ -36,10 +41,13 @@ def _session_id_for(key: str) -> str:
     return f"session-{digest}"
 
 
-def _events_to_view(events: list[dict[str, Any]]) -> tuple[str, list[dict[str, Any]], str | None]:
+def _events_to_view(events: list[dict[str, Any]]) -> tuple[
+        str, list[dict[str, Any]], str | None, list[dict[str, Any]], list[str]]:
     """Map SDK session events to ForgeFlow's bounded activity/answer contract."""
     activity: list[dict[str, Any]] = []
     tools: dict[str, dict[str, Any]] = {}
+    passages: list[dict[str, Any]] = []
+    tool_citations: list[str] = []
     final = ""
     session_id: str | None = None
     for event in events:
@@ -52,11 +60,15 @@ def _events_to_view(events: list[dict[str, Any]]) -> tuple[str, list[dict[str, A
             content = message.get("content")
             if not isinstance(content, list):
                 continue
-            for block in content:
-                if not isinstance(block, dict):
-                    continue
-                if block.get("type") == "text" and isinstance(block.get("text"), str):
-                    final = block["text"]
+            texts = [
+                block["text"] for block in content
+                if isinstance(block, dict) and block.get("type") == "text"
+                and isinstance(block.get("text"), str)
+            ]
+            if texts:
+                # Only the last assistant message is the final answer; join its
+                # text blocks instead of overwriting earlier blocks.
+                final = "\n".join(texts)
         elif kind == "tool/call":
             call_id = str(data.get("callId", ""))
             tool = _short(data.get("name"), 40) or "tool"
@@ -78,9 +90,18 @@ def _events_to_view(events: list[dict[str, Any]]) -> tuple[str, list[dict[str, A
                     "status": "error" if message.get("isError") is True else "completed",
                     "result": message.get("content"),
                 })
+                payload = _result_payload(_result_text(message.get("content")))
+                new_passages, new_citations = _knowledge_passages(
+                    str(step.get("kind", "")), payload)
+                for passage in new_passages:
+                    if passage not in passages:
+                        passages.append(passage)
+                for citation in new_citations:
+                    if citation not in tool_citations:
+                        tool_citations.append(citation)
         elif kind == "session" and isinstance(event.get("sessionId"), str):
             session_id = event["sessionId"]
-    return final, activity[:MAX_ACTIVITY], session_id
+    return clean_answer(final), activity[:MAX_ACTIVITY], session_id, passages[:5], tool_citations[:5]
 
 
 class SdkDshHarness:
@@ -94,10 +115,12 @@ class SdkDshHarness:
         home: Path,
         workspace: Path,
         node: str = "node",
-        model: str = "nvidia/Nemotron-3.5-Super-VL",
+        model: str = "deepseek-flash",
         timeout: float = 180.0,
         sessions_file: Path | None = None,
         queue_timeout: float = 60.0,
+        knowledge_root: Path | None = None,
+        reasoning_effort: str | None = None,
     ) -> None:
         self.cli = Path(cli)
         self.patch = Path(patch)
@@ -105,6 +128,9 @@ class SdkDshHarness:
         self.workspace = Path(workspace)
         self.node = node
         self.model = model
+        self.reasoning_effort = (reasoning_effort or "").strip() or None
+        self.provider = assistant_model()["provider"]
+        self.knowledge_root = Path(knowledge_root) if knowledge_root else self.workspace
         self.timeout = timeout
         self.queue_timeout = queue_timeout
         self.sessions_file = sessions_file or (workspace.parent / "dsh-sdk-sessions.json")
@@ -130,19 +156,24 @@ class SdkDshHarness:
         patch = os.environ.get("FORGEFLOW_DSH_PATCH", "").strip()
         if not cli or not patch:
             return None
+        from .dsh_environment import runtime_directories
+
+        home, workspace = runtime_directories(os.environ)
         return cls(
             cli=Path(cli), patch=Path(patch),
-            home=Path(os.environ.get("FORGEFLOW_DSH_HOME", ".runtime/dsh-home")),
-            workspace=Path(os.environ.get("FORGEFLOW_DSH_WORKSPACE", ".runtime/assistant-workspace")),
+            home=home, workspace=workspace,
             node=os.environ.get("FORGEFLOW_DSH_NODE", "node"),
-            model=os.environ.get("FORGEFLOW_DSH_MODEL", "nvidia/Nemotron-3.5-Super-VL"),
+            model=os.environ.get("FORGEFLOW_DSH_MODEL", "deepseek-flash"),
+            reasoning_effort=os.environ.get("FORGEFLOW_DSH_REASONING_EFFORT"),
         )
 
     def with_evidence(self, evidence: Path):
         from .dsh_environment import share_scoped_patch
-        from .dsh_permissions import scoped_patch
+        from .dsh_permissions import scoped_image_root, scoped_patch
+        image_root = scoped_image_root(self.workspace, evidence)
         try:
-            patch = scoped_patch(self.patch, evidence)
+            patch = scoped_patch(self.patch, evidence, image_root=image_root,
+                image_tool_module=self.cli.parent.parent.parent / "dsh-tool-fs/lib/index.js")
             share_scoped_patch(patch)
         except (OSError, ValueError):
             raise DshUnavailable("dsh_permissions_unavailable") from None
@@ -150,8 +181,11 @@ class SdkDshHarness:
             cli=self.cli, patch=patch, home=self.home, workspace=self.workspace,
             node=self.node, model=self.model, timeout=self.timeout,
             sessions_file=evidence.with_suffix(".sessions.json"),
+            knowledge_root=self.knowledge_root,
+            reasoning_effort=self.reasoning_effort,
         )
         scoped.evidence_path = evidence
+        scoped.image_root = image_root
         return scoped
 
     def close(self) -> None:
@@ -208,8 +242,9 @@ class SdkDshHarness:
             dsh_bin=str(self._wrapper()),
             profile="sdk",
             patches=(str(self.patch),),
-            provider="nebius",
+            provider=self.provider,
             model=self.model,
+            reasoning_effort=self.reasoning_effort,
             env=env,
             request_timeout_seconds=self.timeout,
         )
@@ -238,7 +273,8 @@ class SdkDshHarness:
             return session
 
     def _reply(self, question: str, key: str, on_notification=None, cancel_event=None,
-               *, stop_event=None) -> tuple[DshReply, Any]:
+               *, stop_event=None, on_provider_start=None, dispatch_lock=None,
+               cleanup_requested=None) -> tuple[DshReply, Any]:
         # The SDK has no per-session interrupt operation. Finish an in-flight
         # turn before admitting another prompt; cancelled queued turns never
         # send. Output cancellation does not claim provider billing stopped.
@@ -259,21 +295,29 @@ class SdkDshHarness:
         try:
             check_cancelled()
             session = self._session(key)
-            prompt = question
-            if hasattr(self, "evidence_path") and PLANNED_COST_CONTEXT not in prompt:
-                prompt = f"ForgeFlow evidence field meaning: {PLANNED_COST_CONTEXT}\n\nQuestion: {question}"
-            check_cancelled()
-            result = session.run(prompt, on_notification=on_notification)
+            if dispatch_lock is None:
+                dispatch_lock = threading.Lock()
+            with dispatch_lock:
+                # Cleanup takes this same lock before checking whether a
+                # provider call has started. Cancellation therefore either
+                # wins before dispatch or marks the call as started and waits
+                # for it; it cannot fall between the check and the dispatch.
+                if cleanup_requested is not None and cleanup_requested.is_set():
+                    raise DshUnavailable("turn_cancelled")
+                check_cancelled()
+                if on_provider_start is not None:
+                    on_provider_start()
+            result = session.run(question, on_notification=on_notification)
         finally:
             turn_lock.release()
-        final, activity, sid = _events_to_view(result.events)
-        final = final or result.final_response
+        final, activity, sid, passages, tool_citations = _events_to_view(result.events)
+        final = clean_answer(final or result.final_response)
         if not final:
             raise DshUnavailable("dsh_no_final")
-        citations = _citations(final, self.workspace)
+        citations = list(tool_citations) + _citations(final, self.knowledge_root) + _web_citations(final)
         for step in activity:
             for value in (step.get("label"), step.get("detail")):
-                for found in _citations(str(value or ""), self.workspace):
+                for found in _citations(str(value or ""), self.knowledge_root) + _web_citations(str(value or "")):
                     if found not in citations:
                         citations.append(found)
         scope = "project" if citations or any(
@@ -281,10 +325,11 @@ class SdkDshHarness:
         ) else "general"
         return DshReply(
             answer=final,
-            citations=citations[:5],
+            citations=list(dict.fromkeys(citations))[:5],
             activity=activity,
             session_id=sid or getattr(result, "session_id", None),
             scope=scope,
+            passages=passages,
         ), result
 
     def ask(self, question: str, conversation_id: str | None = None) -> DshReply:
@@ -307,6 +352,9 @@ class SdkDshHarness:
         # The worker checks both events directly. No extra thread needs to wait
         # for an external cancellation that may never arrive after completion.
         stop = threading.Event()
+        provider_started = threading.Event()
+        cleanup_requested = threading.Event()
+        dispatch_lock = threading.Lock()
 
         def on_notification(notification) -> None:
             if stop.is_set() or (cancel_event is not None and cancel_event.is_set()):
@@ -321,7 +369,10 @@ class SdkDshHarness:
         def worker() -> None:
             try:
                 reply, result = self._reply(question, key, on_notification=on_notification,
-                                            cancel_event=cancel_event, stop_event=stop)
+                                            cancel_event=cancel_event, stop_event=stop,
+                                            on_provider_start=provider_started.set,
+                                            dispatch_lock=dispatch_lock,
+                                            cleanup_requested=cleanup_requested)
                 queue_in.put(("final", reply))
             except Exception as error:  # noqa: BLE001
                 queue_in.put(("error", error))
@@ -342,7 +393,7 @@ class SdkDshHarness:
                     continue
                 last_event_time = time.monotonic()
                 if kind == "trace":
-                    _, activity, _ = _events_to_view(value)
+                    _, activity, *_ = _events_to_view(value)
                     if activity != last_activity:
                         last_activity = activity
                         yield {"type": "trace", "activity": activity}
@@ -351,12 +402,19 @@ class SdkDshHarness:
                     yield {
                         "type": "final", "found": True, "mode": "harness",
                         "answer": reply.answer, "citations": reply.citations,
-                        "passages": [], "activity": reply.activity,
+                        "passages": reply.passages, "activity": reply.activity,
                         "scope": reply.scope, "session_id": reply.session_id,
+                        "model": self.model, "provider": self.provider,
                     }
                     return
                 else:
                     raise value if isinstance(value, DshUnavailable) else DshUnavailable("dsh_failed")
         finally:
-            # Also stop queued work when a consumer closes the generator.
+            # Output cancellation must not release the execution slot while the
+            # provider call is still running. Wait for the inner worker to end.
             stop.set()
+            cleanup_requested.set()
+            with dispatch_lock:
+                started = provider_started.is_set()
+            if started and thread.is_alive():
+                thread.join()

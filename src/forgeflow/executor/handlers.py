@@ -18,6 +18,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 import stat
 import traceback
 from datetime import UTC, datetime
@@ -62,6 +63,8 @@ class RecoveryHandlers:
         policy_file: Path | None = None,
         product_verifier=None,
         retention_profile=None,
+        investigation_mode=False,
+        investigation_event=None,
     ) -> None:
         self.connection_factory = connection_factory
         self.store = Path(store)
@@ -73,6 +76,11 @@ class RecoveryHandlers:
         self.policy_file = Path(policy_file) if policy_file is not None else self.store.parent / "policy.json"
         self.product_verifier = product_verifier
         self.retention_profile = service._retention_profile(retention_profile)
+        self.investigation_mode = investigation_mode
+        self.investigation_event = investigation_event
+        self._investigator = None
+        if investigation_mode and (not require_grant or product_verifier is not None):
+            raise ValueError("investigation_requires_prepare_only")
 
     def _record_failure(self, op: str, reason: str, detail: str | None = None) -> None:
         """Keep the unmapped service reason for the trial log, never on the wire."""
@@ -104,8 +112,12 @@ class RecoveryHandlers:
             "status": {"owner_sha256"},
             "cancel_unstarted": {"owner_sha256", "plan_id", "approval"},
             "artifact": {"owner_sha256", "plan_id", "name", "offset"},
+            "comparison": {"owner_sha256", "comparison_id"},
         }
-        optional = {"product_objectives"} if action == "prepare" else set()
+        optional = {"product_objectives"} if action == "prepare" else (
+            {"allow_never_accepted"} if action == "cancel_unstarted" else set())
+        if "allow_never_accepted" in payload and type(payload["allow_never_accepted"]) is not bool:
+            raise ProtocolError("invalid_field", 400)
         if (not isinstance(action, str) or action not in fields or not isinstance(payload, dict)
                 or not fields[action] <= set(payload) or set(payload) - fields[action] - optional):
             raise ProtocolError("invalid_field", 400)
@@ -122,6 +134,9 @@ class RecoveryHandlers:
             elif action == "artifact":
                 decision = versions.status(run_id, owner)
                 return self._artifact(decision, payload)
+            elif action == "comparison":
+                decision = versions.status(run_id, owner)
+                return {"audit": self._comparison(decision, payload)}
             elif action == "decide":
                 result = versions.decide(run_id, owner, **{k: v for k, v in payload.items() if k != "owner_sha256"})
             elif action == "authorize":
@@ -153,6 +168,42 @@ class RecoveryHandlers:
             code = getattr(error, "code", None)
             safe = code if code in CHANGE_SET_REASONS else "details_unavailable"
             raise ProtocolError("plan_rejected", 422, reason=safe) from None
+
+    def _comparison(self, decision: dict, payload: dict) -> dict:
+        """Read one owner-bound candidate audit through the root executor."""
+        comparison_id = payload.get("comparison_id")
+        if (not isinstance(comparison_id, str)
+                or re.fullmatch(r"[a-f0-9]{32}", comparison_id) is None):
+            raise ProtocolError("invalid_field", 400)
+        if decision.get("comparison_id") != comparison_id:
+            raise ProtocolError("comparison_not_found", 404)
+        store_fd = directory_fd = file_fd = None
+        try:
+            store_fd = os.open(self.store, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            directory_fd = os.open("product-comparisons", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                   dir_fd=store_fd)
+            file_fd = os.open(comparison_id + ".json", os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW,
+                              dir_fd=directory_fd)
+            info = os.fstat(file_fd)
+            if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+                    or not 0 <= info.st_size <= MAX_ARTIFACT_BYTES):
+                raise ProtocolError("comparison_unavailable", 409)
+            with os.fdopen(file_fd, "rb", closefd=False) as handle:
+                raw = handle.read(MAX_ARTIFACT_BYTES + 1)
+            if len(raw) != info.st_size:
+                raise ProtocolError("comparison_unavailable", 409)
+            audit = json.loads(raw.decode("utf-8"))
+            if not isinstance(audit, dict):
+                raise ValueError
+            return audit
+        except FileNotFoundError:
+            raise ProtocolError("comparison_missing", 404) from None
+        except (OSError, ValueError):
+            raise ProtocolError("comparison_unavailable", 409) from None
+        finally:
+            for descriptor in (file_fd, directory_fd, store_fd):
+                if descriptor is not None:
+                    os.close(descriptor)
 
     def _artifact(self, decision: dict, payload: dict) -> dict:
         """Read a bounded, named artifact of an owner-bound product plan.
@@ -209,6 +260,9 @@ class RecoveryHandlers:
             raise ProtocolError("internal_error", 500, reason="policy_file_untrusted")
         if self.policy_file.stat().st_size > MAX_POLICY_BYTES:
             raise ProtocolError("internal_error", 500, reason="policy_file_untrusted")
+        if self.investigation_mode:
+            from forgeflow.investigation.policy import load_investigation_policy
+            return load_investigation_policy(read_json(self.policy_file))
         return contract_from_payload(read_json(self.policy_file))
 
     def _grant(
@@ -253,6 +307,8 @@ class RecoveryHandlers:
 
 
     def prepare(self, run_id: str, request: dict) -> dict:
+        if self.investigation_mode:
+            raise classify("prepare", "investigation_validation_required")
         if self.require_grant and self.product_verifier is not None:
             raise classify("prepare", "product_version_required")
         contract = self._contract()
@@ -304,6 +360,8 @@ class RecoveryHandlers:
         return {**summary, "run_id": run_id}
 
     def apply(self, run_id: str, plan_id: str, approval: dict | None) -> dict:
+        if self.investigation_mode:
+            raise ProtocolError("approval_rejected", 403, reason="approval_required")
         from forgeflow.recovery.product_versions import VersionError
 
         grant = self._grant(run_id, plan_id, approval)
@@ -331,6 +389,37 @@ class RecoveryHandlers:
                                  traceback.format_exc())
             raise
         return {**result, "run_id": run_id}
+
+    def investigation(self, run_id: str, action: str, payload: dict) -> dict:
+        if not self.investigation_mode:
+            raise ProtocolError("investigation_operations_disabled", 404)
+        from forgeflow.investigation.policy import PartialPolicy
+        from forgeflow.investigation.service import InvestigationError, InvestigationService
+        from forgeflow.investigation.sources import OdooSource, SourceError, source_error_feedback
+
+        try:
+            policy = self._contract()
+            if self._investigator is not None and (
+                    policy is None or policy.digest() != self._investigator.policy.digest()):
+                raise InvestigationError("investigation_binding_changed")
+            if self._investigator is None:
+                if policy is None:
+                    raise InvestigationError("policy_required")
+                visible = policy.source_policy() if isinstance(policy, PartialPolicy) else policy
+                self._investigator = InvestigationService(
+                    source=OdooSource(self.connection_factory(), visible), contract=policy,
+                    store=self.store, bundle=self.bundle,
+                    connection_factory=self.connection_factory,
+                    event=self.investigation_event,
+                )
+            return {"investigation": self._investigator.dispatch(run_id, action, payload)}
+        except InvestigationError:
+            raise ProtocolError("invalid_field", 400, reason="investigation_request_rejected") from None
+        except SourceError as error:
+            raise ProtocolError("invalid_field", 400,
+                                reason=source_error_feedback(error.code)["reason"]) from None
+        except ValueError:
+            raise ProtocolError("invalid_field", 400, reason="investigation_query_rejected") from None
 
     def status(self, run_id: str, plan_id: str) -> dict:
         directory = self.store / plan_id

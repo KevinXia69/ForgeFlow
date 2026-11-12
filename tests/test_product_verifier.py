@@ -88,3 +88,42 @@ def test_nonzero_process_with_reward_preserves_original_failure(monkeypatch):
     assert result["strict_success"] is False
     assert result["evaluation_valid"] is False
     assert json.loads(result["_original_reward_json"]) == raw
+
+
+def _reward(rows, **summary):
+    return {"overall_score": 100, "passed": True,
+            "rules": {"by_dimension": {"constraint": rows}, **summary}}
+
+
+def test_rule_projection_requires_summary_and_row_consistency():
+    from forgeflow.product.state import execution_result
+    from forgeflow.runner import rule_projection
+
+    complete = _reward([
+        {"rule": "a", "status": "PASS", "passed": True},
+        {"rule": "b", "status": "PASS", "passed": True},
+    ], total=2, applicable=2, passed=2, failed=0, not_applicable=0)
+    assert rule_projection(complete)["issue"] is None
+
+    contradictory = _reward([
+        {"rule": "a", "status": "PASS", "passed": True},
+    ], total=2, applicable=2, passed=1, failed=1)
+    projection = rule_projection(contradictory)
+    assert projection["issue"] is not None
+    projected = module.project_original_reward(contradictory)
+    assert projected["evaluation_valid"] is False
+    assert projected["strict_success"] is not True
+    final = execution_result({
+        "status": "succeeded", "readback": {"execution_validated": True},
+        "verifier": projected,
+    }, "succeeded")
+    assert final["verified"] is False
+
+
+def test_rule_projection_rejects_a_row_passed_flag_that_disagrees_with_status():
+    from forgeflow.runner import rule_projection
+
+    projection = rule_projection(_reward([
+        {"rule": "a", "status": "PASS", "passed": False},
+    ], total=1, applicable=1, passed=1, failed=0))
+    assert projection is not None and projection["issue"] is not None

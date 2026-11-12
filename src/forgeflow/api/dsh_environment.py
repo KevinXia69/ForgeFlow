@@ -11,6 +11,15 @@ PROCESS_ENVIRONMENT = frozenset({
 })
 
 
+def runtime_directories(source: Mapping[str, str]) -> tuple[Path, Path]:
+    """Initialize mutable state only after an enabled harness is configured."""
+    home = Path(source.get("FORGEFLOW_DSH_HOME", ".runtime/dsh-home"))
+    workspace = Path(source.get("FORGEFLOW_DSH_WORKSPACE", ".runtime/assistant-workspace"))
+    home.mkdir(parents=True, exist_ok=True)
+    workspace.mkdir(parents=True, exist_ok=True)
+    return home, workspace
+
+
 def assistant_environment(source: Mapping[str, str], *, home: Path,
                           evidence: Path | str = "") -> dict[str, str]:
     """Never inherit API identity, ERP, Docker, loader, or broad storage settings."""

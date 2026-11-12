@@ -12,6 +12,7 @@ from pathlib import Path
 from forgeflow import __version__
 from forgeflow.config import (
     EXECUTION_GUIDANCE_PROFILES,
+    RECOVERY_MODES,
     SECURITY_PROFILES,
     THINKING_MODES,
     ConfigError,
@@ -51,7 +52,11 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--timeout", type=int, default=3600, help="Agent 秒数预算")
     run.add_argument(
         "--max-output-tokens", type=int, default=None,
-        help="仅 Pi：显式设置每次回复的输出 token 预算；默认不发送输出限制字段，使用模型服务默认值",
+        help="仅 Pi：每次回复输出上限；默认已验证模型最大值1048576，Pi按当轮输入预留上下文空间",
+    )
+    run.add_argument(
+        "--max-total-tokens", type=int, default=None,
+        help="仅 Pi：按已报告累计token阻止后续派发；只准备模式默认2000000，已发送请求可能超额",
     )
     run.add_argument(
         "--thinking-mode", choices=THINKING_MODES, default="provider-default",
@@ -67,8 +72,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="数据可见性配置：默认 original；planning-metadata-v1 为独立备注补充实验",
     )
     run.add_argument(
+        "--data-root", type=Path, default=None,
+        help="运行输出根目录；默认 <workspace>/runs，必须与 API 的 FORGEFLOW_DATA_ROOT 一致",
+    )
+    run.add_argument(
         "--planner-profile", choices=PLANNER_PROFILES, default="none",
         help="仅 Pi：规划或受控计划修复工具，默认关闭；与数据和执行提示分别配置",
+    )
+    run.add_argument(
+        "--recovery-mode", choices=RECOVERY_MODES, default="autonomous",
+        help="仅 Pi：prepare-only 与 investigation 仅准备方案，必须启用权限分离和恢复工具",
+    )
+    run.add_argument(
+        "--investigation-event-file", type=Path, default=None,
+        help="仅只准备模式：UTF-8 可见业务事件文件（最多16KiB），investigation 必填；替换任务说明",
     )
     run.add_argument(
         "--require-contract", action="store_true",
@@ -188,10 +205,14 @@ def main(argv: list[str] | None = None) -> int:
                 agent_timeout_sec=args.timeout,
                 run_id=args.run_id,
                 max_output_tokens=args.max_output_tokens,
+                max_total_tokens=args.max_total_tokens,
                 thinking_mode=args.thinking_mode,
                 execution_guidance=args.execution_guidance,
                 data_profile=args.data_profile,
+                data_root=args.data_root,
                 planner_profile=args.planner_profile,
+                recovery_mode=args.recovery_mode,
+                investigation_event_file=args.investigation_event_file,
                 security_profile=args.security_profile,
                 attest_key=args.attest_key,
                 contract_path=args.contract,
@@ -202,6 +223,9 @@ def main(argv: list[str] | None = None) -> int:
             _emit({"run_dir": str(run_dir), "summary": summary})
             if summary.get("state") == "interrupted":
                 return 130
+            if args.recovery_mode != "autonomous":
+                return 0 if (summary.get("preparation_success") is True
+                             or summary.get("investigation_completed") is True) else 1
             if summary.get("environment_chain_ok") is not True:
                 return 1
             if args.agent in ("oracle", "nop"):

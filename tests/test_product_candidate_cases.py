@@ -6,6 +6,7 @@ import json
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,7 @@ from forgeflow.api.evidence import public_evidence
 from forgeflow.planning.tool import SolverFailure
 from forgeflow.product import ProductCaseError, ProductCaseService
 from forgeflow.product.candidate_store import CandidateStore
+from forgeflow.product.executor import ProductExecutionError
 from forgeflow.recovery import client, service
 from forgeflow.recovery.product_versions import ProductVersions, owner_scope
 from forgeflow.recovery.storage import atomic_json, read_json
@@ -456,3 +458,63 @@ def test_root_selection_conflict_preserves_candidates_without_claiming_preparati
         assert any(row["field"] == "reason" and row["value"] == "product_selection_conflict" for row in reply["citations"])
     assert cases.get(case_id, ACTOR) == failed
     assert len(calls) == 2 and not system[0].writes
+
+
+def test_ordinary_lost_authorization_reply_closes_after_expiry(case_service, monkeypatch):
+    cases, case_id, executor, system, calls, _, _ = case_service
+    prepared = cases.prepare(case_id, ACTOR)
+    selected = choose(cases, case_id, prepared)
+    plan_id = selected["plan"]["plan_id"]
+    original = executor.authorize
+
+    def lost(context, plan):
+        original(context, plan)
+        raise ProductExecutionError("unavailable")
+
+    monkeypatch.setattr(executor, "authorize", lost)
+    pending = cases.approve(case_id, ACTOR, plan_id)
+    assert pending["decision"]["authorization_pending"]
+    stored = cases._read(case_id)
+    assert stored.approval["phase"] == "authorizing" and "executor_grant" not in stored.approval
+    before_writes = len(system[0].writes)
+
+    with monkeypatch.context() as patch:
+        future = datetime.now(UTC) + timedelta(days=1)
+        patch.setattr("forgeflow.product.service._now", lambda: future)
+        with pytest.raises(ProductCaseError, match="approval_expired"):
+            cases.approve(case_id, ACTOR, plan_id)
+        assert cases.get(case_id, ACTOR)["decision"]["can_cancel_unstarted"]
+        closed = cases.cancel_unstarted(case_id, ACTOR, plan_id)
+
+    assert closed["state"] == "rejected"
+    assert not closed["decision"]["can_cancel_unstarted"]
+    assert len(system[0].writes) == before_writes
+    assert cases.cancel_unstarted(case_id, ACTOR, plan_id) == closed
+
+
+def test_ordinary_authorization_never_reaches_executor_closes_after_expiry(case_service, monkeypatch):
+    cases, case_id, executor, system, calls, _, _ = case_service
+    prepared = cases.prepare(case_id, ACTOR)
+    selected = choose(cases, case_id, prepared)
+    plan_id = selected["plan"]["plan_id"]
+
+    def not_sent(context, plan):
+        raise ProductExecutionError("unavailable")
+
+    monkeypatch.setattr(executor, "authorize", not_sent)
+    pending = cases.approve(case_id, ACTOR, plan_id)
+    assert pending["decision"]["authorization_pending"]
+    stored = cases._read(case_id)
+    assert stored.approval["phase"] == "authorizing" and "executor_grant" not in stored.approval
+    before_writes = len(system[0].writes)
+
+    with monkeypatch.context() as patch:
+        future = datetime.now(UTC) + timedelta(days=1)
+        patch.setattr("forgeflow.product.service._now", lambda: future)
+        with pytest.raises(ProductCaseError, match="approval_expired"):
+            cases.approve(case_id, ACTOR, plan_id)
+        assert cases.get(case_id, ACTOR)["decision"]["can_cancel_unstarted"]
+        closed = cases.cancel_unstarted(case_id, ACTOR, plan_id)
+
+    assert closed["state"] == "rejected"
+    assert len(system[0].writes) == before_writes

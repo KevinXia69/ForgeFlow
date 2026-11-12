@@ -245,3 +245,27 @@ def test_local_revision_keeps_objective_set_and_retires_all_previous_candidates(
         assert current["plans"][plan["plan_id"]]["state"] == "retired"
     with pytest.raises(ProductExecutionError, match="product_plan_retired|product_revision_conflict"):
         executor.continue_selection(view, comparison, intent)
+
+
+def test_rpc_mode_reads_the_bound_comparison_audit(wired_candidates):
+    executor, case, *_ = wired_candidates
+    expected = prepare(wired_candidates)
+    view = ProductCaseService._executor_view(case)
+    decision = executor._product(view, "status", {"owner_sha256": view["_owner_sha256"]})["decision"]
+    audit = read_json(executor.store / "product-comparisons" / (decision["comparison_id"] + ".json"))
+    calls = []
+    original_product = executor._product
+
+    def product(case_view, action, payload):
+        if action == "artifact":
+            return original_product(case_view, action, payload)
+        assert action == "comparison"
+        assert payload == {"owner_sha256": view["_owner_sha256"],
+                           "comparison_id": decision["comparison_id"]}
+        calls.append(payload)
+        return {"audit": audit}
+
+    executor.artifact_rpc = True
+    executor._product = product
+    assert load_local_comparison(executor, view, decision, {}) == expected
+    assert calls

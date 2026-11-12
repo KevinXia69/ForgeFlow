@@ -218,6 +218,37 @@ def _company(snapshot, request):
     return next(iter(companies))
 
 
+def _initial_tables(snapshot, request):
+    """Merge explicitly captured protection inventory, never infer it later.
+
+    Legacy snapshots keep their strict original ID equality. An absent
+    protection section cannot authorize extra company documents discovered
+    during baseline capture. Protection adds no planner or operation scope.
+    """
+    models = _tables(snapshot)
+    if "protection" not in snapshot:
+        return models
+    protection = snapshot["protection"]
+    need(isinstance(protection, dict)
+         and set(protection) == {"schema_version", "company_id", "models"}
+         and protection["schema_version"] == 1
+         and protection["company_id"] == _company(snapshot, request)
+         and isinstance(protection["models"], dict)
+         and set(protection["models"]) == {"purchase.order", "purchase.order.line"},
+         "invalid_purchase_protection_scope")
+    protected = {model: rows_by_id(rows) for model, rows in protection["models"].items()}
+    need(all(row.get("company_id") == protection["company_id"]
+             for row in protected["purchase.order"].values()), "invalid_purchase_protection_scope")
+    need(all(row.get("order_id") in protected["purchase.order"]
+             and row.get("product_id") not in models["product.product"]
+             for row in protected["purchase.order.line"].values()),
+         "invalid_purchase_protection_scope")
+    for model, rows in protected.items():
+        need(not models[model].keys() & rows.keys(), "overlapping_purchase_protection_scope")
+        models[model].update(rows)
+    return models
+
+
 def _read_scope(connection, snapshot, request):
     fresh = collect_snapshot(connection, request)
     models = _tables(fresh)
@@ -253,7 +284,7 @@ def _read_scope(connection, snapshot, request):
     models["stock.picking"] = _read(connection, "stock.picking", picking_ids)
     # Original IDs MUST remain readable even if search domains stopped matching.
     for model in ("mrp.production", "mrp.workorder", "purchase.order", "purchase.order.line"):
-        original = set(_tables(snapshot)[model])
+        original = set(_initial_tables(snapshot, request)[model])
         missing = sorted(original - models[model].keys())
         if missing:
             models[model].update(_read(connection, model, missing))
@@ -271,8 +302,8 @@ def _stock_totals(rows):
     return {key: value for key, value in totals.items() if abs(value) > 1e-6}
 
 
-def _initial_matches(snapshot, models):
-    original = _tables(snapshot)
+def _initial_matches(snapshot, models, request):
+    original = _initial_tables(snapshot, request)
     for model, before in original.items():
         need(model in models and before.keys() == models[model].keys(), "baseline_scope_drift")
         for identity, row in before.items():
@@ -283,7 +314,7 @@ def capture_execution_baseline(connection, snapshot, request):
     """Read only; return an envelope for atomic persistence by the executor."""
     validate_request(request)
     models = _read_scope(connection, snapshot, request)
-    _initial_matches(snapshot, models)
+    _initial_matches(snapshot, models, request)
     payload = {
         "schema_version": 1,
         "captured_at": datetime.now(timezone.utc).isoformat(),
@@ -328,7 +359,7 @@ class ScopeGuard:
         )
         self.before = {model: rows_by_id(rows) for model, rows in payload["models"].items()}
         self._before_sha256 = digest(self.before)
-        _initial_matches(snapshot, self.before)
+        _initial_matches(snapshot, self.before, request)
         self._supported()
         compiler_path = Path(__file__).with_name("compiler.py")
         compiler_source = compiler_path.read_bytes()

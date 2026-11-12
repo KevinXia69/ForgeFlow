@@ -1,2 +1,0 @@
-# Published evidence hashes refer to exact bytes on every checkout platform.
-docs/evidence/**/*.json -text

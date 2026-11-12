@@ -54,6 +54,42 @@ PROFILES: dict[str, dict[str, str]] = {
 }
 
 
+# The read-only assistant has one model binding per deployment. Only the
+# profiles below are wired into its process environment, so an unreviewed
+# profile name cannot select an arbitrary provider.
+ASSISTANT_PROFILES = frozenset({"nemotron", "deepseek_flash"})
+ASSISTANT_PROVIDERS = {"nemotron": "nebius", "deepseek_flash": "deepseek"}
+ASSISTANT_KEY_ENV = {
+    "nemotron": "NEBIUS_API_KEY",
+    "deepseek_flash": "DEEPSEEK_API_KEY",
+}
+
+
+def assistant_model(env: Mapping[str, str] | None = None) -> dict[str, str]:
+    """Resolve the assistant's provider, model and key variable.
+
+    DeepSeek Flash is the default for this deployment. The historical
+    Nemotron profile remains available only for explicitly configured
+    compatibility; a deployment selects a reviewed profile with
+    ``FORGEFLOW_ASSISTANT_PROFILE``. Explicit model and base URL overrides are
+    accepted for local experiments.
+    """
+    source = os.environ if env is None else env
+    profile = (source.get("FORGEFLOW_ASSISTANT_PROFILE") or "deepseek_flash").strip()
+    if profile not in ASSISTANT_PROFILES:
+        profile = "deepseek_flash"
+    spec = PROFILES[profile]
+    model = (source.get("FORGEFLOW_ASSISTANT_MODEL") or spec["model"]).strip()
+    base_url = (source.get("FORGEFLOW_ASSISTANT_BASE_URL") or spec["base_url"]).strip()
+    return {
+        "profile": profile,
+        "provider": ASSISTANT_PROVIDERS[profile],
+        "model": model,
+        "base_url": base_url,
+        "api_key_env": ASSISTANT_KEY_ENV[profile],
+    }
+
+
 class ModelSettingsError(Exception):
     """A stable, client-safe model settings failure code."""
 
@@ -328,13 +364,14 @@ def platform_settings(env: Mapping[str, str] | None = None) -> ModelSettings | N
     source = os.environ if env is None else env
     api_key = (
         source.get(PLATFORM_ENV["api_key"], "").strip()
+        or source.get("DEEPSEEK_API_KEY", "").strip()
         or source.get("NEBIUS_API_KEY", "").strip()
     )
     if not api_key:
         return None
-    profile = source.get(PLATFORM_ENV["profile"], "").strip() or "nemotron"
+    profile = source.get(PLATFORM_ENV["profile"], "").strip() or "deepseek_flash"
     if profile not in PROFILES:
-        profile = "nemotron"
+        profile = "deepseek_flash"
     spec = PROFILES[profile]
     base_url = source.get(PLATFORM_ENV["base_url"], "").strip() or spec["base_url"]
     model = source.get(PLATFORM_ENV["model"], "").strip() or spec["model"]

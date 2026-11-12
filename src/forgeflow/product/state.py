@@ -17,9 +17,11 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from forgeflow.approval import Approval
 from forgeflow.planning.objectives import PRODUCT_OBJECTIVE_KINDS
 from forgeflow.recovery.failure import failure_projection
 from forgeflow.recovery.product_costs import project_cost_report
+from forgeflow.recovery.storage import digest
 
 from .budget_checks import project_budget_check
 from .capacity import project_capacity
@@ -67,6 +69,7 @@ REQUIRED_CHECKS = frozenset({"margin", "budget", "policy", "demand", "on_time"})
 
 SCENARIO_A_ORDER: dict[str, Any] = {
     "ref": "SO-1..5",
+    "order_count": 5,
     "product": "Clean Room Sealed Fixture",
     "units": 50,
     "due_days": 8,
@@ -91,7 +94,8 @@ SCENARIOS: dict[str, dict[str, Any]] = {
         "product_code": "P1223565D60-SOL-CSC-007",
         "label": "Workcenter outage",
         "order": {
-            "ref": "SO-1..12", "product": "Carport Solar Canopy Module",
+            "ref": "SO-1..12", "order_count": 12,
+            "product": "Carport Solar Canopy Module",
             "units": 228, "due_days": 8, "due_days_max": 12,
             "customer": "12 confirmed sales orders",
         },
@@ -143,6 +147,8 @@ def _project_order(order: dict[str, Any]) -> dict[str, Any]:
     }
     if "due_days_max" in order:
         projected["due_days_max"] = order["due_days_max"]
+    if type(order.get("order_count")) is int and order["order_count"] > 0:
+        projected["order_count"] = order["order_count"]
     return projected
 
 
@@ -302,6 +308,34 @@ def _bound_decision_metrics(plan):
 def _bound_impact_chain(plan):
     return project_impact_chain(plan.get("impact_chain"), plan_id=plan["plan_id"],
         snapshot_sha256=plan["snapshot_sha256"], readiness=plan.get("order_readiness"))
+
+
+def approval_payload(case_id, approval, plan):
+    """Reconstruct the exact grant requested by an already persisted approval intent."""
+    return {
+        "nonce": approval.get("nonce"), "run_id": f"local-{case_id}", "plan_id": plan["plan_id"],
+        "policy_sha256": plan["policy_sha256"], "snapshot_sha256": plan["snapshot_sha256"],
+        "approver": approval.get("approver"), "issued_at_utc": approval.get("issued_at"),
+        "expires_at_utc": approval.get("expires_at"),
+    }
+
+
+def unstarted_receipt_matches(receipt, expected, *, allow_unissued):
+    """Bind a root closure to the original grant, or to its never-issued intent."""
+    if (not isinstance(receipt, dict) or receipt.get("plan_retired") is not True
+            or not isinstance(receipt.get("observed_at"), str)
+            or not isinstance(receipt.get("receipt_sha256"), str)
+            or re.fullmatch(r"[a-f0-9]{64}", receipt["receipt_sha256"]) is None
+            or any(receipt.get(key) != expected[key]
+                   for key in ("run_id", "plan_id", "policy_sha256", "snapshot_sha256"))):
+        return False
+    token = Approval(**expected)
+    if receipt.get("outcome") == "never_approved":
+        return (allow_unissued and receipt.get("approval_invalidated") is False
+                and "approval_sha256" not in receipt
+                and receipt.get("intent_sha256") == digest(token.issuance_intent()))
+    return (receipt.get("outcome") == "not_started" and receipt.get("approval_invalidated") is True
+            and receipt.get("approval_sha256") == token.digest())
 
 
 def _project_approval(approval: dict[str, Any]) -> dict[str, Any]:
@@ -728,6 +762,8 @@ class ProductCase:
     preparation_history: list[dict[str, Any]] = field(default_factory=list)
     comparison: dict[str, Any] | None = None
     selection: dict[str, Any] | None = None
+    handoff: dict[str, Any] | None = None
+    reviews: list[dict[str, Any]] = field(default_factory=list)
 
     @classmethod
     def new(cls, uid: str, scenario: str) -> "ProductCase":
@@ -767,6 +803,8 @@ class ProductCase:
             preparation_history=copy.deepcopy(record.get("preparation_history", [])),
             comparison=copy.deepcopy(record.get("comparison")),
             selection=copy.deepcopy(record.get("selection")),
+            handoff=copy.deepcopy(record.get("handoff")),
+            reviews=copy.deepcopy(record.get("reviews", [])),
             reason=record.get("reason"),
             revision=copy.deepcopy(record.get("revision") or {
                 "version": 1, "parent_plan_id": None, "reason": None, "changes": {},
@@ -786,6 +824,13 @@ class ProductCase:
             raise ValueError("invalid_synthetic")
         if not isinstance(case.order, dict) or not isinstance(case.disruption, dict):
             raise ValueError("invalid_scenario_data")
+        if case.handoff is not None:
+            from .handoff import valid_summary
+
+            if (not valid_summary(case.handoff)
+                    or case.order.get("product") != case.handoff.get("product_code")
+                    or case.scenario != "A"):
+                raise ValueError("invalid_handoff")
         if not isinstance(case.created_at, str) or not isinstance(case.updated_at, str):
             raise ValueError("invalid_timestamp")
         if case.plan is not None and not isinstance(case.plan, dict):
@@ -842,6 +887,14 @@ class ProductCase:
             raise ValueError("invalid_reason")
         if not isinstance(case.revision, dict) or not isinstance(case.history, list) or not isinstance(case.audit, list):
             raise ValueError("invalid_history")
+        if not isinstance(case.reviews, list) or len(case.reviews) > 64 or any(
+            not isinstance(item, dict) or not isinstance(item.get("operation_id"), str)
+            or item.get("status") not in {"noted", "pending", "held", "repreparing", "retained",
+                                          "corrected", "failed", "rejected"}
+            or not isinstance(item.get("plan_id"), str) or PLAN_ID.fullmatch(item["plan_id"]) is None
+            for item in case.reviews
+        ):
+            raise ValueError("invalid_case_reviews")
         _validate_saved_plan_facts(case)
         return case
 
@@ -869,6 +922,8 @@ class ProductCase:
             "revision": copy.deepcopy(self.revision),
             "history": copy.deepcopy(self.history),
             "audit": copy.deepcopy(self.audit),
+            **({"handoff": copy.deepcopy(self.handoff)} if self.handoff is not None else {}),
+            **({"reviews": copy.deepcopy(self.reviews)} if self.reviews else {}),
         }
 
     def view(self) -> dict[str, Any]:
@@ -898,4 +953,6 @@ class ProductCase:
                         for entry in self.history],
             "audit": [{key: copy.deepcopy(value) for key, value in entry.items() if key != "uid"}
                       for entry in self.audit],
+            **({"handoff": copy.deepcopy(self.handoff)} if self.handoff is not None else {}),
+            **({"reviews": copy.deepcopy(self.reviews)} if self.reviews else {}),
         }

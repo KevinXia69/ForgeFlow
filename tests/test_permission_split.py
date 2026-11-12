@@ -61,6 +61,25 @@ def _stage(tmp_path: Path, task: str, name: str = "run") -> tuple[Path, dict, Pa
     return staged, derivation, run_dir
 
 
+def test_public_event_replaces_full_instruction_without_a_backup_in_task(tmp_path):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    event = "A supplier cancelled its incoming supply. Investigate the authorized recovery scope.\n"
+    source = PROJECT_ROOT / "vendor/erp-bench/tasks" / EXPECTED["A"]["task"] / "instruction.md"
+    original = source.read_bytes()
+    staged, derivation = stage_task(PROJECT_ROOT, "A", run_dir, agent="pi", allowed_host=ALLOWED_HOST,
+                                    security_profile=PROFILE, investigation_event=event)
+    assert (staged / "instruction.md").read_text() == event
+    assert source.read_bytes() == original
+    assert derivation["investigation_event"] == {
+        "source_type": "user-event-file", "sha256": hashlib.sha256(event.encode()).hexdigest(),
+    }
+    assert derivation["execution_file_sha256"]["instruction.md"] == hashlib.sha256(event.encode()).hexdigest()
+    assert derivation["original_file_sha256"]["instruction.md"] == hashlib.sha256(original).hexdigest()
+    assert "instruction.md" in derivation["expected_modified_files"]
+    assert not any(path.read_bytes() == original for path in staged.rglob("*") if path.is_file())
+
+
 @pytest.mark.parametrize("task", ["A", "B"])
 def test_stage_task_projects_the_pinned_instruction(tmp_path: Path, task: str) -> None:
     expected = EXPECTED[task]

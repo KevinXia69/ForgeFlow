@@ -13,6 +13,8 @@ INSERTION = (
     b"\t\t\tif (forgeflowPayloadPolicy) {\n"
     b"\t\t\t\tparams = forgeflowPayloadPolicy(params, model);\n"
     b"\t\t\t}\n"
+    b"\t\t\tconst forgeflowBudgetPolicy = (globalThis as any).__forgeflowProviderRequestBudget;\n"
+    b"\t\t\tif (forgeflowBudgetPolicy) params = forgeflowBudgetPolicy(params, model);\n"
 )
 
 
@@ -23,11 +25,11 @@ def patch_provider_source(source: bytes) -> tuple[bytes, dict]:
         raise RuntimeError("Pi provider source differs from the reviewed patch target.")
     modified = source.replace(ANCHOR, INSERTION + ANCHOR)
     return modified, {
-        "id": "provider-default-all-requests-v2",
+        "id": "provider-final-budget-v3",
         "path": PROVIDER_SOURCE,
         "source_sha256": before,
         "execution_sha256": hashlib.sha256(modified).hexdigest(),
         "scope": "Final OpenAI-compatible payload after onPayload, before SDK dispatch.",
-        "activation": "Fixed extension installs the policy only for provider-default runs.",
+        "activation": "Fixed output policy when selected; budget policy for every budgeted Pi run.",
         "upstream_modified": False,
     }

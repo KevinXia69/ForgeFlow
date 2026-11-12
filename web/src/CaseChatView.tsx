@@ -8,7 +8,7 @@ import {
   type ChatResponder,
 } from "./Assistant";
 import { useI18n } from "./i18n";
-import { localCaseAnswer, caseOutcomeLabel, stateLabel, formatDateTime } from "./caseUi";
+import { localCaseAnswer, caseOutcomeLabel, phaseLabel, formatDateTime } from "./caseUi";
 import { answerContextKind, caseAnswerContext, readAnswerContext, type AnswerContextNotice } from "./caseAnswerContext";
 import type { CaseFile } from "./types";
 
@@ -30,8 +30,8 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
   const displayAnswerText = useMemo(() => {
     const fullId = caseFile.case_id;
     const protectedOrId = new RegExp(String.raw`\[[^\]]*\]\([^)]*\)|<[^>]*>|(?:https?:\/\/|\/|#)[^\s<>]*|${fullId}`, "g");
-    const withoutReference = /(?:^|\n)(?:Reference|参考|Case|案例)\s*[:：].*(?:\n|$)/gi;
-    const caseLabel = lang === "zh" ? "本案例" : "this case";
+    const withoutReference = /(?:^|\n)(?:Reference|Case)\s*[:].*(?:\n|$)/gi;
+    const caseLabel = "this case";
     return (text: string) => text.replace(withoutReference, "").replace(protectedOrId, match => match === fullId ? caseLabel : match);
   }, [caseFile.case_id]);
 
@@ -46,7 +46,7 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
       verification_failed: "v9.verificationFailed",
     };
     const state = recorded.selection_pending ? t("candidate.pendingTitle")
-      : recorded.outcome && outcomes[recorded.outcome] ? t(outcomes[recorded.outcome]) : stateLabel(recorded.state, t);
+      : recorded.outcome && outcomes[recorded.outcome] ? t(outcomes[recorded.outcome]) : phaseLabel(recorded.state, t);
     return { kind, text: t(kind === "earlier" ? "caseChat.answerEarlier" : "caseChat.answerRecorded", {
       version: recorded.version ?? "—", state, at: formatDateTime(recorded.updated_at, lang),
       currentVersion: current.version ?? "—", currentState: caseOutcomeLabel(caseFile, t),
@@ -54,16 +54,16 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
   }, [caseFile, lang, t]);
 
   const responder = useMemo<ChatResponder>(
-    () => async (question, _history, trace, signal, conversation, turn) => {
+    () => async (question, _history, trace, signal, conversation, turn, image) => {
       const local = localCaseAnswer(caseFile, question, t, mode === "fixture");
       if (mode !== "fixture") {
         try {
           let response;
           try {
-            response = turn && trace ? await streamProductCase(caseFile.case_id, question, conversation ?? "default", trace, signal, turn) : await askProductCase(caseFile.case_id, question, conversation, signal);
+            response = turn && trace ? await streamProductCase(caseFile.case_id, question, conversation ?? "default", trace, signal, turn, image) : await askProductCase(caseFile.case_id, question, conversation, signal, image);
           } catch (failure) {
             if (turn?.resume || signal?.aborted || !(failure instanceof ApiError && ([404, 405, 501].includes(failure.status) || failure.status === 503 && failure.message === "stream_unavailable"))) throw failure;
-            response = await askProductCase(caseFile.case_id, question, conversation, signal);
+            response = await askProductCase(caseFile.case_id, question, conversation, signal, image);
           }
           const text =
             typeof response.answer === "string" ? response.answer.trim() : "";
@@ -106,7 +106,7 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
         meta: {
           mode: "case",
           caseContext: caseAnswerContext(caseFile),
-          note: mode === "fixture" ? t("caseChat.demoNote") : t("caseChat.localNote"),
+          note: mode === "fixture" ? t("caseChat.demoBadge") : t("caseChat.localNote"),
           citations: local.citations,
           passages: [],
         },
@@ -128,7 +128,7 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
             <span>{caseFile.order.product}</span>
             <span>{caseFile.order.units} {t("cases.units")}</span>
             <span>{caseOutcomeLabel(caseFile, t)}</span>
-            {mode === "fixture" ? <span className="case-chat-demo">{t("cases.demoBanner")}</span> : null}
+            {mode === "fixture" ? <span className="case-chat-demo">{t("caseChat.demoBadge")}</span> : null}
           </div>
         </div>
       </header>
@@ -146,11 +146,8 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
             t("caseChat.presetPlan"),
             t("caseChat.presetExecution"),
           ]}
-          presetsTitle={t("caseChat.presetsTitle")}
           emptyText={t("caseChat.empty")}
           composerPlaceholder={t("caseChat.placeholder")}
-          composerHint={t("caseChat.hint")}
-          composerNote={t(mode === "fixture" ? "v9.scopeDemo" : "v9.scope")}
           composerAria={t("caseChat.title")}
           className="case-chat-surface case-chat-page-surface"
         />

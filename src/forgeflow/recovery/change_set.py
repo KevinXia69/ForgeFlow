@@ -26,6 +26,7 @@ from forgeflow.recovery.margin import (
 from forgeflow.recovery.product_constraints import check_product_margin, constrained_blueprint
 
 CHANGE_SET_REASONS = frozenset({
+    "unsupported_recovery_scope", "additional_purchase_cancellation_unsupported",
     "change_set_binding_mismatch", "change_set_supply_quantity_mismatch",
     "change_set_existing_offer_ambiguous", "change_set_mapping_unproven",
     "change_set_origin_capacity_mismatch",
@@ -173,6 +174,7 @@ def build_change_set(request, snapshot, blueprint, fresh_plan, *, product_constr
     need(
         len(manufactured) == 1 and manufactured[0]["product"]["code"] == code,
         "Prototype supports only one manufactured target and one-level BoM",
+        code="unsupported_recovery_scope",
     )
     manufacture = manufactured[0]
     components = {
@@ -1336,6 +1338,12 @@ def validate_projection(result, request, snapshot, blueprint, fresh_plan, *, pro
         <= {o["target"]["name"] for o in result["operations"] if o["action"] == "cancel"},
         "Broken commitment was not cancelled",
     )
+    notified = request["disruption"].get("purchase_order_id")
+    if notified is not None:
+        cancelled_purchases = [op["target"]["id"] for op in result["operations"]
+                               if op["kind"] == "purchase_order" and op["action"] == "cancel"]
+        need(cancelled_purchases == [notified], "Cancellation exceeds the notified purchase",
+             code="additional_purchase_cancellation_unsupported")
     live_names = {
         x["ref"]
         for key in ("seeded_manufacturing_orders", "seeded_purchase_orders")

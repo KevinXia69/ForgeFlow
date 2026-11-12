@@ -112,6 +112,12 @@ def test_context_omits_graph_without_losing_candidate_and_execution_decision_fac
     assert "source_facts" not in encoded and '"impact_chain"' not in encoded
     assert "detailed_impact_chain" in context["omitted_sections"]
     assert [plan["costs"]["planned"]["total"] for plan in context["comparison"]["plans"]] == ["70", "71", "72"]
+    assert context["selected_impact_chain"]["status"] == "recorded"
+    readiness = context["selected_order_readiness"]
+    buffers = [row["buffer_days"] for row in case["plan"]["order_readiness"]["orders"]]
+    assert readiness["planned_on_time_orders"] == sum(row["status"] == "on_time" for row in case["plan"]["order_readiness"]["orders"])
+    assert readiness["zero_buffer_orders"] == buffers.count(0)
+    assert readiness["unknown_buffer_orders"] == buffers.count(None)
     assert context["execution"]["status"] == "unknown"
     assert checked_chain(case["plan"]) is not None
 
@@ -140,3 +146,23 @@ def test_saved_current_and_retired_graphs_reject_identity_or_relationship_mutati
     for project in (case.to_record, case.view):
         with pytest.raises(ValueError):
             project()
+
+
+def test_referential_impact_followup_keeps_the_selected_order_scope():
+    reply = answer_case("这些订单受什么影响？", impact_case().view(), order_refs=("SO2",))
+    assert "SO2" in reply["answer"]
+    assert "SO1" not in reply["answer"]
+
+
+def test_chinese_text_immediately_after_an_order_reference_still_matches():
+    reply = answer_case("SO2的供应路径是什么？", impact_case().view())
+    assert "SO2" in reply["answer"]
+    assert "没有找到" not in reply["answer"]
+
+
+def test_impact_answer_obeys_the_resolved_exclusion_scope():
+    case = impact_case().view()
+    excluded = answer_case("排除 SO1，其余订单的供应路径是什么？", case, order_refs=("SO2",))
+    assert "SO2" in excluded["answer"] and "SO1" not in excluded["answer"]
+    mixed = answer_case("只看 SO1、SO2，不包括 SO2，供应路径是什么？", case, order_refs=("SO1",))
+    assert "SO1" in mixed["answer"] and "SO2" not in mixed["answer"]

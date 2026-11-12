@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Approval is a permission, not a database column.  The executor re-checks
+         that the recorded approver still holds this group before any write. -->
+    <record id="group_forgeflow_approver" model="res.groups">
+        <field name="name">ForgeFlow Approver</field>
+        <field name="user_ids" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+    </record>
+</odoo>

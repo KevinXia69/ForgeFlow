@@ -23,18 +23,18 @@ def base():
             "dsh_node": "/usr/local/bin/node"}
 
 
-def test_five_judges_and_qa_have_disjoint_sensitive_resources():
+def test_eight_judges_and_qa_have_disjoint_sensitive_resources():
     configs = [reviewers.definition(name, base()) for name in
                reviewers.REVIEWER_NAMES]
     for key in ("api_user", "dsh_user", "sandbox_root", "case_root", "data_root", "socket",
                 "container", "odoo_port", "api_port", "dsh_root", "dsh_config", "dsh_launcher",
                 "service_unit"):
-        assert len({config[key] for config in configs}) == 8, key
+        assert len({config[key] for config in configs}) == 11, key
     assert all(config["api_port"] != 8000 and config["odoo_port"] != 18069 for config in configs)
     assert all(not config["socket"].startswith("/run/forgeflow/") for config in configs)
 
 
-@pytest.mark.parametrize("name", ["../../root", "default", "legacy", "judge6", "qa4", "qa10", "judge1;id"])
+@pytest.mark.parametrize("name", ["../../root", "default", "legacy", "judge9", "qa4", "qa10", "judge1;id"])
 def test_installer_has_no_user_selected_paths_or_arbitrary_instance_names(name):
     with pytest.raises(ValueError, match="unknown_reviewer_instance"):
         reviewers.definition(name, base())
@@ -73,12 +73,29 @@ def test_instance_backup_bindings_do_not_point_at_another_reviewer():
     assert all("judge1" not in str(value) for value in backup.values())
 
 
+def test_judge6_uses_a_free_port_beyond_the_qa_bindings():
+    config = reviewers.definition("judge6", base())
+    assert (config["api_port"], config["odoo_port"]) == (8109, 18109)
+    assert config["api_user"] == "forgeflow-api-judge6"
+    assert config["sandbox_root"].endswith("/reviewers/judge6/sandbox")
+
+
+def test_judge7_and_judge8_use_the_next_free_ports():
+    seven = reviewers.definition("judge7", base())
+    eight = reviewers.definition("judge8", base())
+    assert (seven["api_port"], seven["odoo_port"]) == (8110, 18110)
+    assert (eight["api_port"], eight["odoo_port"]) == (8111, 18111)
+    assert seven["container"] != eight["container"]
+    assert seven["socket"] != eight["socket"]
+
+
 def test_qa3_uses_next_fixed_ports_and_rejects_a_legacy_or_registered_collision():
     config = reviewers.definition("qa3", base())
     assert (config["api_port"], config["odoo_port"]) == (8108, 18108)
     legacy = {"api_port": 8000, "odoo_port": 18069}
-    index = {"instances": {name: {"port": 8100 + i, "odoo_port": 18100 + i}
-                          for i, name in enumerate(reviewers.REVIEWER_NAMES[:-1], 1)}}
+    index = {"instances": {name: {"port": 8100 + reviewers.PORT_OFFSETS[name],
+                                  "odoo_port": 18100 + reviewers.PORT_OFFSETS[name]}
+                          for name in reviewers.REVIEWER_NAMES if name != "qa3"}}
     reviewers.check_ports({"qa3": config}, legacy, index)
     with pytest.raises(ValueError, match="reviewer_port_conflict"):
         reviewers.check_ports({"qa3": config}, {**legacy, "odoo_port": 8108}, index)
@@ -179,12 +196,13 @@ def test_preparing_qa3_twice_preserves_existing_reviewers_and_issued_credentials
         "sandbox_root": "/var/lib/legacy", "case_root": "/var/lib/legacy/cases",
         "data_root": "/var/lib/legacy/runs", "socket": "/run/legacy.sock",
         "container": "legacy-odoo", "scenario": "A", "api_port": 8000, "odoo_port": 18069})
-    codes = [str(i) * 32 for i in range(6)]
+    codes = [str(i) * 32 for i in range(9)]
     index = {"schema": 1, "trusted_hosts": ["example.test"],
         "legacy": {"id": "legacy", "port": 8000, "invite_code": codes[0]},
-        "instances": {name: {"id": name, "port": 8100 + i, "odoo_port": 18100 + i,
+        "instances": {name: {"id": name, "port": 8100 + reviewers.PORT_OFFSETS[name],
+                             "odoo_port": 18100 + reviewers.PORT_OFFSETS[name],
                              "invite_code": name + "-retained-credential", "history": ["must-remain"]}
-                      for i, name in enumerate(reviewers.REVIEWER_NAMES[:-1], 1)}}
+                      for name in reviewers.REVIEWER_NAMES if name != "qa3"}}
     initial = copy.deepcopy(index)
     key = tmp_path / "backup.key"
     documents = {config_root / "runtime.json": runtime,
