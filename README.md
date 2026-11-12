@@ -57,12 +57,10 @@ The recovery plan coordinates **five sales orders totaling 50 units**.
 ForgeFlow replaces the failed purchase while retaining the valid supply
 arrangements:
 
-| Supply in the recovery plan | Units |
-| --- | ---: |
-| Available finished stock | 7 |
-| Retained manufacturing arrangements | 40 |
-| Replacement purchase for the same SKU | 3 |
-| **Total planned coverage** | **50** |
+![Supplier recovery case: 3 units of failed supply, 13 units of directly linked demand, and 50 units across five sales orders. Planned coverage uses 7 stock units, 40 retained manufacturing units, and 3 replacement units.](assets/readme/forgeflow-recovery-case-en.png)
+
+**Planned supply:** 7 units from finished stock + 40 from retained manufacturing +
+3 from replacement purchasing = **50 units**.
 
 For the directly linked order, the plan covers all **13 units** from the combined
 finished stock, retained manufacturing, and replacement supply.
@@ -78,20 +76,7 @@ ForgeFlow separates model-driven investigation, numerical planning, and
 business execution. The control layer persists task progress and validates the
 authority to move from one stage to the next.
 
-```mermaid
-flowchart TD
-    I["Business request or exception event"] --> R["Router: route the task"]
-    R --> W["Investigation Worker: gather evidence"]
-    W --> P["CP-SAT: prepare a recovery plan"]
-    P --> A["Human approval: authorize a specific plan"]
-    A --> E["Executor: apply approved ERP actions"]
-    E --> V["Verifier: independently read back ERP state"]
-    V --> O["Recorded business outcome"]
-
-    C["Control Engine: context, tasks, durable effects, authorization"] -.-> R
-    C -.-> A
-    C -.-> E
-```
+![ForgeFlow recovery architecture: Business inputs to Router, Investigation Worker, CP-SAT planner, Human approval, Executor, Verifier, and a tracked outcome; shared Control Engine retains context, tasks, durable actions, and authorization.](assets/readme/forgeflow-architecture-en.png)
 
 The workbench assistant explains scoped business evidence through read-only
 tools. The investigation runtime can produce structured plan requests. CP-SAT
