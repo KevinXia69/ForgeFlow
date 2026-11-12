@@ -61,10 +61,7 @@ npm run typecheck
 npm run build
 ```
 
-The built frontend is served under `/app/` by the ForgeFlow API. See
-`deploy/` only if you are adapting the example deployment; do not reuse
-production credentials or private infrastructure values.
-
+The built frontend is served under `/app/` by the ForgeFlow API. 
 For a local configuration, set at minimum:
 
 ```text
