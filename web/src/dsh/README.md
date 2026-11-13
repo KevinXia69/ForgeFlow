@@ -1,6 +1,6 @@
-# Vendored harness client components
+# Vendored DeepSeek Harness client components
 
-Source: upstream harness repository
+Source: https://github.com/deepseek-ai/deepseek-harness
 Version: 0.2.1-rc.2
 License: MIT (see LICENSE)
 
@@ -12,4 +12,4 @@ Ported source files:
 - their CSS modules
 
 Adapted only where ForgeFlow supplies its own React state/stream data. The
-visual/interaction behavior stays the upstream component's.
+visual/interaction behavior stays the DSH component's.

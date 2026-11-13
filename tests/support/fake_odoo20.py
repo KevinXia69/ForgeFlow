@@ -166,7 +166,7 @@ class FakeOdoo20:
         if order:
             key = order.split()[0].lstrip("-")
             rows.sort(key=lambda row: (row.get(key) is None, row.get(key)),
-                      reverse=order.strip().startswith("-"))
+                      reverse=order.strip().startswith("-") or order.strip().endswith(" desc"))
         else:
             rows.sort(key=lambda row: row.get("id", 0))
         page = rows[offset:offset + max(1, min(int(limit), 500))]
@@ -250,6 +250,7 @@ class FakeOdoo20:
             "company_id": [1, "Company"], "version": 1, "plan_hash": plan_hash,
             "action_digest": logic.action_digest(validated),
             "action_count": len(validated), "fact_snapshot_hash": snapshot_hash,
+            "fact_snapshot_json": json.dumps(fact_snapshot or {}, ensure_ascii=False, default=str),
             "environment_generation": environment_generation, "tenant_ref": tenant_ref,
             "rule_version": int(rule_version), "state": "awaiting_approval",
             "payload_json": json.dumps({"actions": validated,
@@ -305,11 +306,19 @@ class FakeOdoo20:
             raise FakeOdooError(error.code) from None
 
     def approve_plan(self, plan_id: int, approver_id: int, execution_identity: str, *,
-                     expires_in_hours: int = 24, comment: str = "") -> int:
+                     expires_in_hours: int = 24, comment: str = "",
+                     expected_plan_version: int | None = None,
+                     expected_plan_digest: str | None = None,
+                     expected_action_digest: str | None = None) -> int:
         plan = self._plans[int(plan_id)]
         if plan["state"] not in ("awaiting_approval", "draft"):
             raise FakeOdooError("plan_not_awaiting_approval")
         digest = self._plan_digest(plan_id)
+        if (expected_plan_version is not None and expected_plan_version != plan["version"]
+                or expected_plan_digest is not None and expected_plan_digest != digest
+                or expected_action_digest is not None
+                and expected_action_digest != plan["action_digest"]):
+            raise FakeOdooError("approval_plan_changed")
         decision_id = self._id("forgeflow.decision_record")
         self.records["forgeflow.decision_record"][decision_id] = {
             "id": decision_id, "plan_id": int(plan_id), "decision": "approved",
@@ -325,12 +334,13 @@ class FakeOdoo20:
         plan.update({"state": "approved", "plan_digest": digest})
         return decision_id
 
-    def _fingerprint(self, plan_id: int, action: dict) -> str:
+    def _fingerprint(self, plan_id: int, action: dict, execution_identity: str) -> str:
         plan = self._plans[int(plan_id)]
         return logic.idempotency_fingerprint(
             company_id=1, environment_generation=plan.get("environment_generation") or "",
             plan_id=int(plan_id), plan_version=int(plan["version"]),
-            action_id=action["action_id"], params=action.get("params") or {})
+            action_id=action["action_id"], params=action.get("params") or {},
+            execution_identity=execution_identity)
 
     def apply_plan_action(self, plan_id: int, action_id: str, idempotency_key: str,
                           execution_identity: str | None = None) -> dict[str, Any]:
@@ -343,7 +353,12 @@ class FakeOdoo20:
         approval = self._approval(plan_id, digest)
         if execution_identity and approval["execution_identity"] != execution_identity:
             raise FakeOdooError("execution_identity_mismatch")
-        fingerprint = self._fingerprint(plan_id, action)
+        fingerprint = self._fingerprint(plan_id, action, approval["execution_identity"])
+        execution_key = logic.plan_execution_key(
+            plan_id=int(plan_id), plan_version=int(plan["version"]), plan_digest=digest,
+            execution_identity=approval["execution_identity"],
+            environment_generation=plan.get("environment_generation") or "")
+        plan["execution_key"] = execution_key
         existing = [row for row in self.records["forgeflow.execution_operation"].values()
                     if row.get("idempotency_key") == idempotency_key]
         if existing:
@@ -360,6 +375,7 @@ class FakeOdoo20:
             "request_hash": logic.digest(action), "fingerprint": fingerprint,
             "environment_generation": plan.get("environment_generation"),
             "execution_identity": approval["execution_identity"],
+            "execution_key": execution_key,
             "idempotency_key": idempotency_key, "state": "dispatched",
             "company_id": [1, "Company"],
             "request_json": json.dumps(action, ensure_ascii=False, default=str),
@@ -427,6 +443,7 @@ class FakeOdoo20:
         payload = operation.get("response_json") or "{}"
         self.records["forgeflow.execution_receipt"][receipt_id] = {
             "id": receipt_id, "operation_id": operation["id"],
+            "company_id": [1, "Company"],
             "state": state or operation["state"],
             "readback_json": payload, "verified": False}
         return {"operation_id": operation["id"], "state": operation["state"],

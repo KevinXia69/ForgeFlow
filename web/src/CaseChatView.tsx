@@ -30,8 +30,8 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
   const displayAnswerText = useMemo(() => {
     const fullId = caseFile.case_id;
     const protectedOrId = new RegExp(String.raw`\[[^\]]*\]\([^)]*\)|<[^>]*>|(?:https?:\/\/|\/|#)[^\s<>]*|${fullId}`, "g");
-    const withoutReference = /(?:^|\n)(?:Reference|Case)\s*[:].*(?:\n|$)/gi;
-    const caseLabel = "this case";
+    const withoutReference = /(?:^|\n)(?:Reference|参考|Case|案例)\s*[:：].*(?:\n|$)/gi;
+    const caseLabel = lang === "zh" ? "本案例" : "this case";
     return (text: string) => text.replace(withoutReference, "").replace(protectedOrId, match => match === fullId ? caseLabel : match);
   }, [caseFile.case_id]);
 

@@ -21,6 +21,7 @@ export default function App() {
   const [runError, setRunError] = useState("");
   const [hash, setHash] = useState(location.hash);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<"general" | "model">("general");
   const [settingsProfile, setSettingsProfile] = useState<ModelProfile | undefined>(undefined);
   useEffect(() => {
     const update = () => setHash(location.hash);
@@ -31,7 +32,8 @@ export default function App() {
   const caseId = params.get("case");
   const runId = params.get("run");
   const planId = Number(params.get("plan") || 0);
-  // Start page by default; the other views keep their explicit routes.
+  // Start page by default: a bare entry point or #home/#knowledge shows the ask
+  // surface. Cases, a case and evidence keep their own explicit routes.
   const view: WorkbenchView = params.has("setup")
     ? "setup"
     : runId || params.has("runs")
@@ -99,12 +101,8 @@ export default function App() {
     <div className="app">
       <Sidebar runs={runs} view={view} onView={switchView} workbenches={config.workbenches}
         onOpenRun={(id) => navigate(`#run=${encodeURIComponent(id)}`)}
-        onOpenSettings={() => { setSettingsProfile(undefined); setSettingsOpen(true); }} />
+        onOpenSettings={() => { setSettingsProfile(undefined); setSettingsTab("general"); setSettingsOpen(true); }} />
       <main className="workspace">
-        <header className="topbar">
-          <span className="topbar-title"><span className="topbar-brand">ForgeFlow</span><span className="chev" aria-hidden="true">/</span>
-            <span className="topbar-view">{t(view === "setup" ? "app.topbarSetup" : view === "cases" ? "app.topbarCases" : view === "runs" ? "app.topbarEvidence" : "app.topbarKnowledge")}</span></span>
-        </header>
         {config.deployment === "review" && <div className="review-banner">{t("app.reviewBanner")}</div>}
         <div className={`app-panel${view === "cases" ? " app-panel-workbench" : ""}`}>
           {view === "cases" ? <CasesView selectedId={caseId} chat={params.has("chat")} evidence={params.has("evidence")}
@@ -113,10 +111,10 @@ export default function App() {
             onAskCase={(item) => navigate(caseRoute(item.case_id, "chat"))} />
             : view === "setup" ? <SetupView />
               : view === "runs" ? <RunsView runs={runs} config={config} selected={runId} error={runError}
-              onSelect={(id) => navigate(`#run=${encodeURIComponent(id)}`)} onRefresh={() => void loadRuns()} /> : <HomeView onOpenModelSettings={(profile) => { setSettingsProfile(profile); setSettingsOpen(true); }} />}
+              onSelect={(id) => navigate(`#run=${encodeURIComponent(id)}`)} onRefresh={() => void loadRuns()} /> : <HomeView onOpenModelSettings={(profile) => { setSettingsProfile(profile); setSettingsTab("model"); setSettingsOpen(true); }} />}
         </div>
       </main>
-      {settingsOpen && <SettingsDialog initialProfile={settingsProfile} onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && <SettingsDialog initialTab={settingsTab} initialProfile={settingsProfile} onClose={() => setSettingsOpen(false)} />}
     </div>
   </WorkspaceContext.Provider>;
 }

@@ -34,7 +34,7 @@ export const MODEL_PROFILES: Record<ModelProfile, ModelProfilePreset> = {
     model: "deepseek-flash",
   },
   openai: {
-    label: "OpenAI-compatible",
+    label: "OpenAI",
     base_url: "https://api.openai.com/v1",
     model: "gpt-4o-mini",
   },
@@ -44,7 +44,7 @@ export const MODEL_PROFILES: Record<ModelProfile, ModelProfilePreset> = {
     model: "openai/gpt-4o-mini",
   },
   gemini: {
-    label: "Gemini-compatible",
+    label: "Google Gemini",
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai/",
     model: "gemini-3-flash-preview",
   },

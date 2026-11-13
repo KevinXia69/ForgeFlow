@@ -248,6 +248,9 @@ class Odoo20PlanRequest(BaseModel):
 
 
 class Odoo20ApprovalRequest(BaseModel):
+    expected_plan_version: int = Field(gt=0)
+    expected_plan_digest: str = Field(min_length=64, max_length=64)
+    expected_action_digest: str = Field(min_length=64, max_length=64)
     comment: str = Field(default="", max_length=1000)
 
 
@@ -2873,10 +2876,17 @@ def create_app(
             return {"exception_id": prepared.exception_id, "plan_id": prepared.plan_id,
                     "plan_hash": prepared.plan_hash,
                     "snapshot_hash": prepared.snapshot_hash,
+                    "plan_version": prepared.plan_version,
+                    "expires_at": prepared.expires_at,
+                    "plan_state": prepared.plan_state,
+                    "plan_digest": prepared.plan_digest,
+                    "action_digest": prepared.action_digest,
+                    "facts": prepared.facts,
+                    "line_count": len(prepared.facts.get("lines", [])),
                     "order": prepared.facts["order"], "lines": prepared.facts["lines"],
                     "task": task,
-                    "actions": prepared_plan["actions"],
-                    "action_count": len(prepared_plan["actions"]),
+                    "actions": list(prepared.actions),
+                    "action_count": len(prepared.actions),
                     "plan_status": prepared_plan["plan"].status.value}
         finally:
             store.close()
@@ -2985,6 +2995,8 @@ def create_app(
     @app.post("/api/odoo20/plans/{plan_id}/approve")
     def approve_odoo20_plan(plan_id: int, body: Odoo20ApprovalRequest,
                             uid: str = Depends(require_principal)) -> dict[str, Any]:
+        from ..integrations.odoo20.adapter import NATIVE_AUTHORIZATION_ERRORS, Odoo20Error
+
         if settings.deployment == "review":
             raise HTTPException(status_code=403, detail="review_read_only")
         store, ctx, _actor, service, linked = _odoo20_plan_access(
@@ -2992,7 +3004,11 @@ def create_app(
         try:
             from ..superagent.execution import approve_plan, request_execution
 
-            approval = approve_plan(store, ctx, service, plan_id=plan_id, comment=body.comment)
+            approval = approve_plan(
+                store, ctx, service, plan_id=plan_id, comment=body.comment,
+                expected_review={"plan_version": body.expected_plan_version,
+                                 "plan_digest": body.expected_plan_digest,
+                                 "action_digest": body.expected_action_digest})
             task = {"attention": approval["attention"], "need": linked.need_type,
                     "ticket_id": linked.ticket_id}
             try:
@@ -3004,6 +3020,11 @@ def create_app(
                     "task": task, "execution": execution}
         except HTTPException:
             raise
+        except Odoo20Error as error:
+            raise HTTPException(
+                status_code=NATIVE_AUTHORIZATION_ERRORS.get(error.code, 503),
+                detail=error.code if error.code in NATIVE_AUTHORIZATION_ERRORS
+                else "odoo20_unavailable") from None
         except PermissionError as error:
             raise HTTPException(status_code=403, detail=str(error)) from None
         except LookupError:
@@ -3084,6 +3105,8 @@ def create_app(
     @app.post("/api/odoo20/plans/{plan_id}/apply")
     def apply_odoo20_plan(plan_id: int, body: Odoo20ApplyRequest,
                           uid: str = Depends(require_principal)) -> dict[str, Any]:
+        from ..integrations.odoo20.adapter import NATIVE_AUTHORIZATION_ERRORS, Odoo20Error
+
         if settings.deployment == "review":
             raise HTTPException(status_code=403, detail="review_read_only")
         store, ctx, _actor, service, linked = _odoo20_plan_access(
@@ -3120,6 +3143,11 @@ def create_app(
                     (ctx.tenant_id, ticket_id))
         except HTTPException:
             raise
+        except Odoo20Error as error:
+            raise HTTPException(
+                status_code=NATIVE_AUTHORIZATION_ERRORS.get(error.code, 503),
+                detail=error.code if error.code in NATIVE_AUTHORIZATION_ERRORS
+                else "odoo20_unavailable") from None
         except ValueError as error:
             raise HTTPException(status_code=409, detail=str(error)) from None
         except Exception:
@@ -3148,6 +3176,13 @@ def create_app(
             store.close()
         return {"plan_id": prepared.plan_id, "exception_id": prepared.exception_id,
                 "plan_hash": prepared.plan_hash, "snapshot_hash": prepared.snapshot_hash,
+                "plan_version": prepared.plan_version,
+                "expires_at": prepared.expires_at,
+                "plan_digest": prepared.plan_digest,
+                "action_digest": prepared.action_digest,
+                "plan_state": prepared.plan_state,
+                "facts": prepared.facts,
+                "line_count": len(prepared.facts.get("lines", [])),
                 "order": prepared.facts.get("order"), "lines": prepared.facts.get("lines", []),
                 "actions": list(prepared.actions),
                 "action_count": len(prepared.actions),

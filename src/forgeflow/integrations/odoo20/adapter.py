@@ -21,6 +21,29 @@ from .contracts import (
     OdooVersion,
 )
 
+# Stable public rejection codes; never expose a native traceback or DB values.
+NATIVE_AUTHORIZATION_ERRORS = {
+    "approval_permission_unavailable": 503,
+    "forgeflow_role_denied": 403,
+    "forgeflow_company_denied": 403,
+    "approver_permission_denied": 403,
+    "approval_approver_not_permitted": 403,
+    "approval_approver_inactive": 403,
+    "approval_approver_company_denied": 403,
+    "approval_caller_unverified": 403,
+    "approval_delegation_required": 403,
+    "approval_delegation_permission_denied": 403,
+    "approval_delegation_scope_mismatch": 403,
+    "approval_delegation_revoked": 409,
+    "approval_delegation_expired": 409,
+    "approval_revoked": 409,
+    "approval_expired": 409,
+    "plan_review_stale": 409,
+    "recovery_plan_snapshot_incomplete": 409,
+    "plan_expired": 409,
+    "plan_not_awaiting_approval": 409,
+}
+
 
 class Odoo20Unavailable(RuntimeError):
     pass
@@ -280,7 +303,10 @@ class Odoo20Adapter:
                 self.config.database, self._authenticate(), self.config.password,
                 "forgeflow.recovery_plan", method, args, call_kwargs)
         except xmlrpc.client.Fault as error:
-            raise Odoo20Error(f"{code}:{str(error)[:160]}") from None
+            message = str(error.faultString).strip().splitlines()
+            native_code = message[-1].rsplit(": ", 1)[-1] if message else ""
+            raise Odoo20Error(native_code if native_code in NATIVE_AUTHORIZATION_ERRORS
+                              else code) from None
         except Exception:
             raise Odoo20Unavailable("odoo_unavailable") from None
 
@@ -335,18 +361,36 @@ class Odoo20Adapter:
             result = self._models().execute_kw(
                 self.config.database, self._authenticate(), self.config.password,
                 "forgeflow.decision_record", "forgeflow_revoke",
-                [[int(decisions[0]["id"])], str(reason or "")[:500]])
+                [[int(decisions[0]["id"])], str(reason or "")[:500]],
+                self._company_kwargs())
         except xmlrpc.client.Fault as error:
             raise Odoo20Error(f"approval_revoke_rejected:{str(error)[:120]}") from None
-        self.write("forgeflow.recovery_plan", [int(plan_id)],
-                   {"state": "awaiting_approval"})
         return dict(result or {})
 
     def approve_plan(self, plan_id: int, approver_id: int, execution_identity: str, *,
-                     expires_in_hours: int = 24, comment: str = "") -> int:
+                     expires_in_hours: int = 24, comment: str = "",
+                     expected_plan_version: int, expected_plan_digest: str,
+                     expected_action_digest: str) -> int:
+        caller = self._authenticate()
+        delegation_id = None
+        if caller != int(approver_id):
+            grants = self.search_read(
+                "forgeflow.approval_delegation",
+                [("plan_id", "=", int(plan_id)), ("approver_id", "=", int(approver_id)),
+                 ("service_user_id", "=", caller), ("plan_version", "=", expected_plan_version),
+                 ("plan_digest", "=", expected_plan_digest),
+                 ("action_digest", "=", expected_action_digest), ("revoked_at", "=", False)],
+                ["id"], limit=1, order="id desc")
+            if not grants:
+                raise Odoo20Error("approval_delegation_required")
+            delegation_id = int(grants[0]["id"])
         return int(self._plan_call("forgeflow_approve", [
             [int(plan_id)], int(approver_id), execution_identity],
-            kwargs={"expires_in_hours": int(expires_in_hours), "comment": comment},
+            kwargs={"expires_in_hours": int(expires_in_hours), "comment": comment,
+                    "expected_plan_version": expected_plan_version,
+                    "expected_plan_digest": expected_plan_digest,
+                    "expected_action_digest": expected_action_digest,
+                    "delegation_id": delegation_id or False},
             code="plan_approval_rejected"))
 
     def apply_plan_action(self, plan_id: int, action_id: str, idempotency_key: str,

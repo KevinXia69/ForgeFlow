@@ -6,4 +6,15 @@
         <field name="name">ForgeFlow Approver</field>
         <field name="user_ids" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
     </record>
+    <record id="group_forgeflow_planner" model="res.groups">
+        <field name="name">ForgeFlow Planner</field>
+        <field name="user_ids" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+    </record>
+    <record id="group_forgeflow_executor" model="res.groups">
+        <field name="name">ForgeFlow Executor</field>
+        <field name="user_ids" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+    </record>
+    <record id="group_forgeflow_service" model="res.groups">
+        <field name="name">ForgeFlow Service</field>
+    </record>
 </odoo>

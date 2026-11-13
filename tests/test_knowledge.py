@@ -147,7 +147,7 @@ def test_intro_does_not_replace_a_question_about_a_specific_subject(question):
     ("zh", "看到的订单还没付，要怎么核对实际支付？", "付款记录"),
     ("zh", "模拟演示里计划成本便宜五美元，意味着每一次处理都能省钱吗？", "尚未测量"),
     ("zh", "供应商不送货了，谁决定怎么办？", "生产计划员"),
-    ("en", "Can we schedule a whole factory with products that share parts?", "one finished product"),
+    ("en", "Can we schedule a whole factory with products that share parts?", "multi-level BOM"),
     ("zh", "一句话说说，谁会在什么情况下用到它？", "生产计划员"),
     ("en", "Who would use it and when?", "production planners"),
 ])

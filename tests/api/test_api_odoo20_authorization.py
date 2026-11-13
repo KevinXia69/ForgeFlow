@@ -74,6 +74,8 @@ def erp_access(monkeypatch):
             return SimpleNamespace(plan_id=plan_id, exception_id=5, plan_hash="plan",
                                    snapshot_hash="snapshot", facts={"order": {"id": 1}},
                                    actions=(), execution_identity=state.approval_identity,
+                                   plan_version=1, plan_digest="a" * 64, action_digest="b" * 64,
+                                   expires_at="",
                                    plan_state="approved" if state.approval_identity else "awaiting_approval")
 
         def approve(self, prepared, *, approver_uid, comment, expires_in_hours=24):
@@ -143,6 +145,9 @@ def _request(client, headers, endpoint, plan_id=42):
     if endpoint == "prepare":
         return client.post("/api/odoo20/plans", json={"purchase_order_id": 1, "reason": "synthetic"}, headers=headers)
     body = {"idempotency_key": "synthetic-test-key"} if endpoint == "apply" else {}
+    if endpoint == "approve":
+        body = {"expected_plan_version": 1, "expected_plan_digest": "a" * 64,
+                "expected_action_digest": "b" * 64}
     return client.post(f"/api/odoo20/plans/{plan_id}/{endpoint}", json=body, headers=headers)
 
 
@@ -266,3 +271,42 @@ def test_existing_approval_recovers_unanswered_attention_without_another_erp_wri
     assert response.json()["task"]["attention"] == "answered"
     assert erp_access.writes == []
     assert erp_access.answers == 1
+
+
+@pytest.mark.parametrize("field,value", [
+    ("expected_plan_version", 2), ("expected_plan_digest", "c" * 64),
+    ("expected_action_digest", "d" * 64)])
+def test_changed_review_identity_never_approves_or_enqueues(client, settings, erp_access, field, value):
+    body = {"expected_plan_version": 1, "expected_plan_digest": "a" * 64,
+            "expected_action_digest": "b" * 64}
+    body[field] = value
+    response = client.post("/api/odoo20/plans/42/approve", json=body,
+                           headers=_auth(client, settings))
+    assert response.status_code == 409
+    assert response.json()["detail"] == "plan_review_stale"
+    assert erp_access.writes == erp_access.events == []
+    assert erp_access.answers == 0
+
+
+def test_approval_without_review_identity_is_rejected(client, settings, erp_access):
+    response = client.post("/api/odoo20/plans/42/approve", json={},
+                           headers=_auth(client, settings))
+    assert response.status_code == 422
+    assert erp_access.writes == erp_access.loads == []
+
+
+@pytest.mark.parametrize("code,status", [
+    ("approval_permission_unavailable", 503), ("approver_permission_denied", 403),
+    ("approval_delegation_required", 403), ("plan_review_stale", 409)])
+def test_native_approval_rejections_keep_actionable_safe_reason(
+        client, settings, erp_access, monkeypatch, code, status):
+    from forgeflow.integrations.odoo20.adapter import Odoo20Error
+    from forgeflow.superagent import execution
+
+    def rejected(*args, **kwargs):
+        raise Odoo20Error(code)
+    monkeypatch.setattr(execution, "approve_plan", rejected)
+    response = _request(client, _auth(client, settings), "approve")
+    assert response.status_code == status
+    assert response.json()["detail"] == code
+    assert erp_access.writes == []

@@ -137,7 +137,10 @@ def test_http_plan_approve_apply_verify(tmp_path, monkeypatch) -> None:
             f"/api/tasks/attentions/{other_attention['attention_id']}/answer")
         assert answered.status_code == 200 and answered.json()["state"] == "answered"
         approved = client.post(f"/api/odoo20/plans/{plan_id}/approve", json={
-            "comment": "API live approval"})
+            "comment": "API live approval",
+            "expected_plan_version": prepared.json()["plan_version"],
+            "expected_plan_digest": prepared.json()["plan_digest"],
+            "expected_action_digest": prepared.json()["action_digest"]})
         assert approved.status_code == 200, approved.text
         assert approved.json()["task"]["attention"] == "answered"
         current = client.get(f"/api/odoo20/plans/{plan_id}")

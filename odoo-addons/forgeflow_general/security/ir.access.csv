@@ -1,8 +1,39 @@
 id,name,model_id,group_id/id,operation,domain
-access_forgeflow_exception_user,forgeflow.exception_event user,forgeflow.exception_event,base.group_user,crud,
-access_forgeflow_plan_user,forgeflow.recovery_plan user,forgeflow.recovery_plan,base.group_user,crud,
-access_forgeflow_rule_user,forgeflow.business_rule user,forgeflow.business_rule,base.group_user,crud,
-access_forgeflow_decision_user,forgeflow.decision_record user,forgeflow.decision_record,base.group_user,crud,
-access_forgeflow_operation_user,forgeflow.execution_operation user,forgeflow.execution_operation,base.group_user,crud,
-access_forgeflow_receipt_user,forgeflow.execution_receipt user,forgeflow.execution_receipt,base.group_user,crud,
-access_forgeflow_outbox_user,forgeflow.event_outbox user,forgeflow.event_outbox,base.group_user,crud,
+access_forgeflow_exception_user,forgeflow.exception_event user,forgeflow.exception_event,base.group_user,r,
+access_forgeflow_plan_user,forgeflow.recovery_plan user,forgeflow.recovery_plan,base.group_user,r,
+access_forgeflow_rule_user,forgeflow.business_rule user,forgeflow.business_rule,base.group_user,r,
+access_forgeflow_decision_user,forgeflow.decision_record user,forgeflow.decision_record,base.group_user,r,
+access_forgeflow_operation_user,forgeflow.execution_operation user,forgeflow.execution_operation,base.group_user,r,
+access_forgeflow_receipt_user,forgeflow.execution_receipt user,forgeflow.execution_receipt,base.group_user,r,
+access_forgeflow_outbox_user,forgeflow.event_outbox user,forgeflow.event_outbox,base.group_user,r,
+access_forgeflow_delegation_user,forgeflow.approval_delegation user,forgeflow.approval_delegation,base.group_user,r,
+restrict_forgeflow_exception_event_company,exception_event company,forgeflow.exception_event,,crud,"[('company_id', 'in', company_ids)]"
+restrict_forgeflow_recovery_plan_company,recovery_plan company,forgeflow.recovery_plan,,crud,"[('company_id', 'in', company_ids)]"
+restrict_forgeflow_business_rule_company,business_rule company,forgeflow.business_rule,,crud,"[('company_id', 'in', company_ids)]"
+restrict_forgeflow_decision_record_company,decision_record company,forgeflow.decision_record,,crud,"[('company_id', 'in', company_ids)]"
+restrict_forgeflow_execution_operation_company,execution_operation company,forgeflow.execution_operation,,crud,"[('company_id', 'in', company_ids)]"
+restrict_forgeflow_execution_receipt_company,execution_receipt company,forgeflow.execution_receipt,,crud,"[('company_id', 'in', company_ids)]"
+restrict_forgeflow_event_outbox_company,event_outbox company,forgeflow.event_outbox,,crud,"[('company_id', 'in', company_ids)]"
+restrict_forgeflow_approval_delegation_company,approval_delegation company,forgeflow.approval_delegation,,crud,"[('company_id', 'in', company_ids)]"
+access_forgeflow_exception_event_planner,exception_event planner,forgeflow.exception_event,forgeflow_general.group_forgeflow_planner,cru,
+access_forgeflow_recovery_plan_planner,recovery_plan planner,forgeflow.recovery_plan,forgeflow_general.group_forgeflow_planner,cru,
+access_forgeflow_business_rule_planner,business_rule planner,forgeflow.business_rule,forgeflow_general.group_forgeflow_planner,cru,
+access_forgeflow_event_outbox_planner,event_outbox planner,forgeflow.event_outbox,forgeflow_general.group_forgeflow_planner,cru,
+access_forgeflow_recovery_plan_approver,recovery_plan approver,forgeflow.recovery_plan,forgeflow_general.group_forgeflow_approver,ru,
+access_forgeflow_decision_record_approver,decision_record approver,forgeflow.decision_record,forgeflow_general.group_forgeflow_approver,cru,
+access_forgeflow_approval_delegation_approver,approval_delegation approver,forgeflow.approval_delegation,forgeflow_general.group_forgeflow_approver,cru,
+access_forgeflow_business_rule_approver,business_rule approver,forgeflow.business_rule,forgeflow_general.group_forgeflow_approver,ru,
+access_forgeflow_exception_event_approver,exception_event approver,forgeflow.exception_event,forgeflow_general.group_forgeflow_approver,ru,
+access_forgeflow_recovery_plan_executor,recovery_plan executor,forgeflow.recovery_plan,forgeflow_general.group_forgeflow_executor,ru,
+access_forgeflow_execution_operation_executor,execution_operation executor,forgeflow.execution_operation,forgeflow_general.group_forgeflow_executor,cru,
+access_forgeflow_execution_receipt_executor,execution_receipt executor,forgeflow.execution_receipt,forgeflow_general.group_forgeflow_executor,cru,
+access_forgeflow_event_outbox_executor,event_outbox executor,forgeflow.event_outbox,forgeflow_general.group_forgeflow_executor,cru,
+access_forgeflow_exception_event_executor,exception_event executor,forgeflow.exception_event,forgeflow_general.group_forgeflow_executor,ru,
+access_forgeflow_exception_event_service,exception_event service,forgeflow.exception_event,forgeflow_general.group_forgeflow_service,cru,
+access_forgeflow_recovery_plan_service,recovery_plan service,forgeflow.recovery_plan,forgeflow_general.group_forgeflow_service,cru,
+access_forgeflow_business_rule_service,business_rule service,forgeflow.business_rule,forgeflow_general.group_forgeflow_service,cru,
+access_forgeflow_decision_record_service,decision_record service,forgeflow.decision_record,forgeflow_general.group_forgeflow_service,cru,
+access_forgeflow_execution_operation_service,execution_operation service,forgeflow.execution_operation,forgeflow_general.group_forgeflow_service,cru,
+access_forgeflow_execution_receipt_service,execution_receipt service,forgeflow.execution_receipt,forgeflow_general.group_forgeflow_service,cru,
+access_forgeflow_event_outbox_service,event_outbox service,forgeflow.event_outbox,forgeflow_general.group_forgeflow_service,cru,
+access_forgeflow_approval_delegation_service,approval_delegation service,forgeflow.approval_delegation,forgeflow_general.group_forgeflow_service,cru,

@@ -58,6 +58,24 @@ def test_production_requires_a_release_manifest_and_artifact(tmp_path: Path) -> 
     assert evaluate("local", items, artifacts_present=False)["ok"] is True
 
 
+def test_safety_gap_cannot_be_waived_by_a_feature_exemption() -> None:
+    items = [{"id": "native_rpc", "title": "Native RPC authorization",
+              "status": "waived", "blocks_production": False, "safety_critical": True}]
+    assert evaluate("production", items)["blocking_gaps"] == ["native_rpc"]
+    assert evaluate("local", items)["ok"] is True
+
+
+def test_dirty_override_is_rejected_for_production():
+    import subprocess
+    import sys
+
+    script = Path(__file__).resolve().parents[1] / "scripts/release_preflight.py"
+    result = subprocess.run([sys.executable, str(script), "--environment", "production",
+                             "--allow-dirty"], capture_output=True, text=True)
+    assert result.returncode == 2
+    assert "allow_dirty_is_local_only" in result.stdout
+
+
 def test_a_manifest_without_its_artifact_is_rejected(tmp_path: Path) -> None:
     import subprocess
     import sys

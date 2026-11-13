@@ -59,3 +59,20 @@ def test_import_search_create_and_write_use_selected_company_context() -> None:
     for _, _, kwargs in calls:
         assert kwargs["context"] == {"allowed_company_ids": [8],
                                      "default_company_id": 8, "force_company": 8}
+
+
+def test_native_fault_keeps_safe_denial_reason_without_traceback():
+    import xmlrpc.client
+
+    import pytest
+
+    from forgeflow.integrations.odoo20.adapter import Odoo20Error
+
+    adapter, models = _adapter(8)
+    class Rejected:
+        def execute_kw(self, *args, **kwargs):
+            raise xmlrpc.client.Fault(1, "private traceback details\nodoo.exceptions.UserError: "
+                                     "approval_permission_unavailable\n")
+    adapter._models = lambda: Rejected()
+    with pytest.raises(Odoo20Error, match="^approval_permission_unavailable$"):
+        adapter.plan_checks(9)

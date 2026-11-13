@@ -1,6 +1,7 @@
 """Regression tests for the five static-review P2 findings."""
 from __future__ import annotations
 
+import json
 import os
 import uuid
 from datetime import date
@@ -15,6 +16,7 @@ from forgeflow.integrations.odoo20.business import (
 from forgeflow.integrations.odoo20.procurement import _open_commitments
 from forgeflow.superagent import ControlEngine, ControlStore, Role, TenantContext
 from forgeflow.superagent.tasks import link_plan_to_ticket
+from tests.support.fake_odoo20 import logic
 
 DATABASE_URL = os.environ.get("FORGEFLOW_CONTROL_DATABASE_URL", "")
 requires_db = pytest.mark.skipif(not DATABASE_URL,
@@ -29,15 +31,23 @@ class _ApprovalAdapter:
 
     def search_read(self, model, domain, fields, limit=100, order=None, extra=None):
         if model == "forgeflow.recovery_plan":
+            actions = [logic.canonical_action({"action_id": "cancel", "type": "cancel_purchase_order",
+                "target_model": "purchase.order", "target_id": 1})]
+            self.action_digest = logic.action_digest(actions)
+            self.plan_digest = logic.plan_digest(tenant="", environment_generation="", plan_id=7,
+                plan_version=1, fact_snapshot_hash=logic.digest({}), rule_version=1, actions=actions)
             return [{
                 "id": 7, "state": "awaiting_approval", "plan_hash": "a" * 64,
-                "fact_snapshot_hash": "b" * 64, "fact_snapshot_json": "{}",
-                "payload_json": '{"actions": []}', "exception_id": 3,
+                "fact_snapshot_hash": logic.digest({}), "fact_snapshot_json": "{}",
+                "payload_json": json.dumps({"actions": actions}), "exception_id": 3,
+                "action_count": 1, "action_digest": self.action_digest,
+                "plan_digest": self.plan_digest, "version": 1,
             }]
         if model == "forgeflow.decision_record":
             self.domains.append(list(domain))
             if ("revoked_at", "=", False) in domain:
-                return [row for row in self.decisions if not row.get("revoked_at")]
+                return [{**row, "plan_digest": self.plan_digest, "action_digest": self.action_digest}
+                        for row in self.decisions if not row.get("revoked_at")]
             return list(self.decisions)
         raise AssertionError(model)
 

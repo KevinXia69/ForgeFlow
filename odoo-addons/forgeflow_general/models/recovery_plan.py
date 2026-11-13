@@ -1,14 +1,16 @@
 import json
 
 from odoo import fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
 
 from . import recovery_logic
+from .authorization import controlled, permission
 from .recovery_logic import clean_for_rpc
 
 
 class ForgeFlowRecoveryPlan(models.Model):
     _name = "forgeflow.recovery_plan"
+    _inherit = "forgeflow.controlled"
     _description = "ForgeFlow recovery plan"
     _order = "id desc"
 
@@ -51,6 +53,17 @@ class ForgeFlowRecoveryPlan(models.Model):
     active = fields.Boolean(default=True)
 
     # ------------------------------------------------------------------ helpers
+    def _forgeflow_lock(self):
+        """Serialize approval, execution and revocation for one plan.
+
+        PostgreSQL also rejects a stale repeatable-read snapshot when a locked
+        row changed. Never reuse an ORM cache populated before obtaining it.
+        """
+        self.ensure_one()
+        self.env.cr.execute("SELECT id FROM forgeflow_recovery_plan WHERE id=%s FOR UPDATE",
+                            (self.id,))
+        self.invalidate_recordset()
+
     def _forgeflow_payload(self):
         self.ensure_one()
         try:
@@ -82,16 +95,21 @@ class ForgeFlowRecoveryPlan(models.Model):
             order="decided_at desc, id desc", limit=1)
         record = None
         if decision:
+            self.env.cr.execute("SELECT id FROM forgeflow_decision_record WHERE id=%s FOR SHARE",
+                                (decision.id,))
+            decision.invalidate_recordset()
             approver = decision.approver_id
             # Approval is a current fact, not a historical one: a disabled
             # account or a withdrawn approval stops the execution now.
-            permitted = True
-            if approver:
-                try:
-                    permitted = approver.has_group(
-                        "forgeflow_general.group_forgeflow_approver")
-                except Exception:  # noqa: BLE001 - group set is deployment-owned
-                    permitted = True
+            permitted = permission(approver, "approver", plan_id=self.id)
+            if not decision.caller_id or (decision.caller_id != approver
+                                           and not decision.delegation_id):
+                raise UserError("approval_caller_unverified")
+            if approver and self.company_id not in approver.company_ids:
+                raise UserError("approval_approver_company_denied")
+            if decision.delegation_id:
+                decision.delegation_id._forgeflow_validate(
+                    self, approver.id, decision.caller_id.id)
             record = {
                 "decision": decision.decision,
                 "plan_hash": decision.plan_hash,
@@ -184,6 +202,7 @@ class ForgeFlowRecoveryPlan(models.Model):
                 "expires_at": str(self.expires_at)}
 
     # ----------------------------------------------------------- preparation
+    @controlled("planner", "service")
     def forgeflow_prepare(self, exception_id, actions, fact_snapshot,
                           environment_generation, *, rule_version=1, tenant_ref="",
                           name="Recovery plan", expires_in_hours=72):
@@ -193,6 +212,10 @@ class ForgeFlowRecoveryPlan(models.Model):
             validated = recovery_logic.execution_order(actions)
         except recovery_logic.PlanError as error:
             raise UserError(error.code) from None
+        exception = self.env["forgeflow.exception_event"].browse(int(exception_id)).exists()
+        if not exception or exception.company_id != self.env.company:
+            raise AccessError("exception_company_mismatch")
+        exception.check_access("read")
         snapshot = fact_snapshot or {}
         snapshot_hash = recovery_logic.digest(snapshot)
         canonical = {
@@ -210,6 +233,7 @@ class ForgeFlowRecoveryPlan(models.Model):
         plan = self.create({
             "name": name,
             "exception_id": exception_id,
+            "company_id": self.env.company.id,
             "plan_hash": plan_hash,
             "rule_epoch": epoch,
             "rule_scope_json": json.dumps(rule_scope, sort_keys=True),
@@ -229,10 +253,33 @@ class ForgeFlowRecoveryPlan(models.Model):
         plan.write({"plan_digest": plan._forgeflow_digest()})
         return plan.id
 
+    @controlled("approver", "service")
     def forgeflow_approve(self, approver_id, execution_identity, *, expires_in_hours=24,
-                          comment=""):
+                          comment="", delegation_id=None, expected_plan_version=None,
+                          expected_plan_digest=None, expected_action_digest=None):
         """Record an approval bound to the current plan digest."""
         self.ensure_one()
+        # Lock before re-reading the review identity; concurrent edits/approvals
+        # cannot bind a decision to content the human did not see.
+        self._forgeflow_lock()
+        self._forgeflow_check_review(expected_plan_version, expected_plan_digest,
+                                     expected_action_digest)
+        approver = self.env["res.users"].browse(int(approver_id)).exists()
+        if (not permission(approver, "approver", plan_id=self.id)
+                or self.company_id not in approver.company_ids):
+            raise AccessError("approver_permission_denied")
+        delegation = self.env["forgeflow.approval_delegation"]
+        if self.env.uid != approver.id:
+            if not permission(self.env.user, "service", plan_id=self.id) or not delegation_id:
+                raise AccessError("approval_delegation_required")
+            delegation = delegation.browse(int(delegation_id)).exists()
+            if not delegation:
+                raise AccessError("approval_delegation_required")
+            delegation._forgeflow_validate(self, approver.id, self.env.uid)
+        if not execution_identity:
+            raise UserError("execution_identity_required")
+        if self._forgeflow_check_expiry():
+            raise UserError("plan_expired")
         if self.state not in ("awaiting_approval", "draft"):
             raise UserError("plan_not_awaiting_approval")
         digest = self._forgeflow_digest()
@@ -240,6 +287,8 @@ class ForgeFlowRecoveryPlan(models.Model):
             "plan_id": self.id,
             "decision": "approved",
             "approver_id": int(approver_id),
+            "caller_id": self.env.uid,
+            "delegation_id": delegation.id or False,
             "plan_hash": self.plan_hash,
             "plan_version": self.version,
             "plan_digest": digest,
@@ -253,6 +302,48 @@ class ForgeFlowRecoveryPlan(models.Model):
         self.write({"state": "approved", "plan_digest": digest})
         self.exception_id.write({"state": "awaiting_approval"})
         return decision.id
+
+    def _forgeflow_check_review(self, version, plan_digest, action_digest):
+        facts = self._forgeflow_loads(self.fact_snapshot_json) or {}
+        if not isinstance(facts, dict):
+            raise UserError("plan_review_stale")
+        completeness = facts.get("completeness")
+        if completeness is not None and (
+                not isinstance(completeness, dict)
+                or completeness.get("complete") is False
+                or completeness.get("truncated") is True
+                or completeness.get("lines_complete") is False
+                or completeness.get("query_failures")
+                or completeness.get("missing_relations")):
+            raise UserError("recovery_plan_snapshot_incomplete")
+        if (not version or not plan_digest or not action_digest
+                or version != self.version or plan_digest != self._forgeflow_digest()
+                or action_digest != self.action_digest
+                or action_digest != recovery_logic.action_digest(self._forgeflow_actions())
+                or self.fact_snapshot_hash != recovery_logic.digest(
+                    self._forgeflow_loads(self.fact_snapshot_json) or {})):
+            raise UserError("plan_review_stale")
+
+    @controlled("approver")
+    def forgeflow_delegate_approval(self, service_user_id, *, expected_plan_version,
+                                    expected_plan_digest, expected_action_digest,
+                                    expires_in_hours=1):
+        self.ensure_one()
+        self._forgeflow_check_review(expected_plan_version, expected_plan_digest,
+                                     expected_action_digest)
+        if not 0 < float(expires_in_hours) <= 24:
+            raise UserError("delegation_expiry_invalid")
+        service = self.env["res.users"].browse(int(service_user_id)).exists()
+        if (not permission(service, "service", plan_id=self.id)
+                or self.company_id not in service.company_ids):
+            raise AccessError("delegation_service_denied")
+        grant = self.env["forgeflow.approval_delegation"].create({
+            "plan_id": self.id, "approver_id": self.env.uid,
+            "service_user_id": service.id, "plan_version": self.version,
+            "plan_digest": self._forgeflow_digest(), "action_digest": self.action_digest,
+            "expires_at": fields.Datetime.now() + __import__("datetime").timedelta(
+                hours=float(expires_in_hours))})
+        return grant.id
 
     # ------------------------------------------------------------- execution
     def _forgeflow_action(self, action_id):
@@ -380,6 +471,7 @@ class ForgeFlowRecoveryPlan(models.Model):
         for action in self._forgeflow_actions():
             operation = self.env["forgeflow.execution_operation"].search([
                 ("plan_id", "=", self.id),
+                ("execution_key", "=", self.execution_key), ("plan_version", "=", self.version),
                 ("action_id", "=", action["action_id"]),
                 ("state", "in", ("succeeded", "verified"))],
                 order="id desc", limit=1)
@@ -387,6 +479,7 @@ class ForgeFlowRecoveryPlan(models.Model):
             resolved_actions.append(payload if isinstance(payload, dict) else action)
         return resolved_actions
 
+    @controlled("executor", "service")
     def forgeflow_apply_action(self, action_id, idempotency_key, execution_identity=None):
         """Apply the single action of a one-action plan through the legacy entry.
 
@@ -398,6 +491,7 @@ class ForgeFlowRecoveryPlan(models.Model):
         own identity is used); an explicit value must match the approval.
         """
         self.ensure_one()
+        self._forgeflow_lock()
         expired = self._forgeflow_check_expiry()
         if expired is not None:
             return clean_for_rpc(expired)
@@ -475,6 +569,7 @@ class ForgeFlowRecoveryPlan(models.Model):
                               "action_id": action["action_id"],
                               "readback": readback, "receipt_id": receipt.id})
 
+    @controlled("executor", "service")
     def forgeflow_apply(self, idempotency_key, operation_type, target_model, target_id,
                         payload=None):
         """Compatibility entry point: resolve the approved action, never trust params.
@@ -524,6 +619,7 @@ class ForgeFlowRecoveryPlan(models.Model):
         return {"plan_id": self.id, "state": "stale", "error": "rules_changed",
                 "rule_epoch": self.rule_epoch, "current_epoch": current}
 
+    @controlled("executor", "service")
     def forgeflow_apply_plan(self, idempotency_prefix, execution_identity):
         """Execute the whole approved plan inside one business savepoint.
 
@@ -536,6 +632,7 @@ class ForgeFlowRecoveryPlan(models.Model):
         promise a receipt from a dead transaction.
         """
         self.ensure_one()
+        self._forgeflow_lock()
         if not idempotency_prefix:
             raise UserError("idempotency_prefix_required")
         expired = self._forgeflow_check_expiry()
@@ -616,9 +713,17 @@ class ForgeFlowRecoveryPlan(models.Model):
         record = self.env[model].browse(int(record_id)).exists()
         if not record:
             raise UserError("target_not_found")
-        if "company_id" in record._fields and record.company_id != self.company_id:
-            raise UserError("target_not_found")
+        self._forgeflow_check_company(record)
         return record, {name: self._forgeflow_value(record, name) for name in fields_list}
+
+    def _forgeflow_check_company(self, record, *, allow_shared=False):
+        """A multi-company caller still acts only within this plan's company."""
+        record.check_access("read")
+        if "company_id" not in record._fields:
+            raise UserError("target_company_unavailable")
+        if record.company_id != self.company_id and not (
+                allow_shared and not record.company_id):
+            raise UserError("target_company_mismatch")
 
     @staticmethod
     def _forgeflow_value(record, name):
@@ -688,6 +793,7 @@ class ForgeFlowRecoveryPlan(models.Model):
         partner = self.env["res.partner"].browse(partner_id).exists()
         if not partner:
             raise UserError("partner_not_found")
+        self._forgeflow_check_company(partner, allow_shared=True)
         if not partner.active:
             raise UserError("partner_inactive")
         currency_name = str(action.get("currency") or "")
@@ -706,6 +812,7 @@ class ForgeFlowRecoveryPlan(models.Model):
                 int(line.get("product_id") or 0)).exists()
             if not product:
                 raise UserError("product_not_found")
+            self._forgeflow_check_company(product, allow_shared=True)
             if not product.active:
                 raise UserError("product_inactive")
             if float(line.get("product_qty") or 0) <= 0:
@@ -767,6 +874,7 @@ class ForgeFlowRecoveryPlan(models.Model):
         product = self.env["product.product"].browse(product_id).exists()
         if not product:
             raise UserError("product_not_found")
+        self._forgeflow_check_company(product, allow_shared=True)
         if not product.active:
             raise UserError("product_inactive")
         if float(action.get("quantity") or 0) <= 0:
@@ -776,6 +884,7 @@ class ForgeFlowRecoveryPlan(models.Model):
             bom = self.env["mrp.bom"].browse(int(params["bom_id"])).exists()
             if not bom:
                 raise UserError("bom_not_found")
+            self._forgeflow_check_company(bom, allow_shared=True)
             if "active" in bom._fields and not bom.active:
                 raise UserError("bom_inactive")
             if bom.product_tmpl_id and bom.product_tmpl_id != product.product_tmpl_id:
@@ -786,6 +895,7 @@ class ForgeFlowRecoveryPlan(models.Model):
                 int(params["workcenter_id"])).exists()
             if not workcenter:
                 raise UserError("workcenter_not_found")
+            self._forgeflow_check_company(workcenter, allow_shared=True)
         values = {
             "product_id": product_id,
             "company_id": self.company_id.id,
@@ -851,6 +961,24 @@ class ForgeFlowRecoveryPlan(models.Model):
             raise UserError("quantity_required")
         location_id = int(params.get("location_id") or 0)
         move_id = params.get("move_id")
+        product = self.env["product.product"].browse(product_id).exists()
+        if not product:
+            raise UserError("product_not_found")
+        self._forgeflow_check_company(product, allow_shared=True)
+        if not product.active:
+            raise UserError("product_inactive")
+        location = None
+        if location_id:
+            location = self.env["stock.location"].browse(location_id).exists()
+            if not location:
+                raise UserError("location_not_found")
+            self._forgeflow_check_company(location, allow_shared=True)
+        move = None
+        if move_id:
+            move = self.env["stock.move"].browse(int(move_id)).exists()
+            if not move:
+                raise UserError("target_not_found")
+            self._forgeflow_check_company(move)
 
         # Serialise competing reservations on the quant rows for this product.
         company_id = self.company_id.id or 0
@@ -872,18 +1000,20 @@ class ForgeFlowRecoveryPlan(models.Model):
         if available + 1e-9 < quantity:
             raise UserError("stock_unavailable")
 
-        move = self.env["stock.move"].browse(int(move_id)).exists() if move_id else None
         if move is None:
-            location = self.env["stock.location"].browse(
-                location_id or quants[0].location_id.id)
+            location = location or quants[0].location_id
+            self._forgeflow_check_company(location, allow_shared=True)
+            destination = self.env.ref("stock.stock_location_customers")
+            self._forgeflow_check_company(destination, allow_shared=True)
             move = self.env["stock.move"].create({
                 # Odoo 20 derives the move description from the product; `name` is
                 # no longer a writable field.
                 "origin": action.get("summary") or "ForgeFlow recovery reservation",
                 "product_id": product_id,
+                "company_id": self.company_id.id,
                 "product_uom_qty": quantity,
                 "location_id": location.id,
-                "location_dest_id": self.env.ref("stock.stock_location_customers").id,
+                "location_dest_id": destination.id,
                 "state": "confirmed",
             })
         move._action_assign()
@@ -903,6 +1033,7 @@ class ForgeFlowRecoveryPlan(models.Model):
         sale_line = self.env["sale.order.line"].browse(sale_line_id).exists()
         if not sale_line:
             raise UserError("target_not_found")
+        self._forgeflow_check_company(sale_line)
         model = action["target_model"]
         record, current = self._forgeflow_read(model, action["target_id"], ["id"])
         values = {"sale_line_id": sale_line.id}
@@ -913,6 +1044,7 @@ class ForgeFlowRecoveryPlan(models.Model):
                 "sale_order": sale_line.order_id.name if sale_line.order_id else None}
 
     # ------------------------------------------------------- readback / verify
+    @controlled("executor", "service")
     def forgeflow_readback(self):
         """Read every affected document back from the database, independently."""
         self.ensure_one()
@@ -922,7 +1054,8 @@ class ForgeFlowRecoveryPlan(models.Model):
             if target["kind"] == "created":
                 operations = self.env["forgeflow.execution_operation"].search([
                     ("plan_id", "=", self.id), ("action_id", "=", target["action_id"]),
-                    ("state", "=", "succeeded")], limit=1)
+                    ("execution_key", "=", self.execution_key), ("plan_version", "=", self.version),
+                    ("state", "in", ("succeeded", "verified"))], limit=1)
                 if not operations:
                     continue
                 created_id = self._forgeflow_loads(operations.response_json or "{}").get("id")
@@ -939,12 +1072,18 @@ class ForgeFlowRecoveryPlan(models.Model):
                 {name: self._forgeflow_value(record, name)
                  for name in target["fields"] if name in record._fields}
                 | {"id": record.id} if record else {"id": None, "missing": True})
-        self.write({"state": "verifying"})
         return clean_for_rpc(result)
 
+    @controlled("executor", "service")
     def forgeflow_verify(self):
         """Layer three: does the executed business state meet the recovery goal?"""
         self.ensure_one()
+        self._forgeflow_lock()
+        if not self._forgeflow_execution_evidence_complete():
+            return {"plan_id": self.id, "status": "unknown", "checks": [{
+                "code": "execution_evidence_complete", "status": "unknown",
+                "detail": "execution evidence incomplete; reconcile required"}]}
+        self.write({"state": "verifying"})
         actions = self._forgeflow_executed_actions()
         readback = self.forgeflow_readback()
         checks = recovery_logic.business_acceptance(actions, readback)
@@ -965,8 +1104,36 @@ class ForgeFlowRecoveryPlan(models.Model):
             self.exception_id.write({"state": "needs_action"})
         return clean_for_rpc({"plan_id": self.id, "status": status, "checks": checks})
 
+    def _forgeflow_execution_evidence_complete(self):
+        operations = self.env["forgeflow.execution_operation"].search([
+            ("plan_id", "=", self.id), ("execution_key", "=", self.execution_key)],
+            order="id asc", limit=10_001)
+        if operations:
+            # A previous transaction may have changed only the operation while
+            # this transaction waited for the plan lock. Under repeatable read,
+            # lock the evidence rows too, so a stale snapshot aborts instead of
+            # certifying the cached successful state.
+            self.env.cr.execute(
+                "SELECT id FROM forgeflow_execution_operation WHERE id IN %s ORDER BY id FOR SHARE",
+                (tuple(operations.ids),))
+            operations.invalidate_recordset()
+        receipts = self.env["forgeflow.execution_receipt"].search([
+            ("operation_id", "in", operations.ids)], order="id asc", limit=10_001)
+        return recovery_logic.execution_evidence_complete(
+            plan={"id": self.id, "version": self.version, "company_id": self.company_id.id,
+                  "plan_digest": self._forgeflow_digest(), "execution_key": self.execution_key,
+                  "environment_generation": self.environment_generation},
+            actions=self._forgeflow_actions(),
+            operations=operations.read([
+                "id", "plan_id", "company_id", "plan_version", "plan_digest", "action_id",
+                "execution_key", "execution_identity", "environment_generation", "operation_type",
+                "state", "target_model", "target_id", "fingerprint", "request_hash", "response_json"]),
+            receipts=receipts.read([
+                "id", "operation_id", "company_id", "state", "verified", "readback_json"]))
+
     def forgeflow_plan_checks(self):
         self.ensure_one()
+        self.check_access("read")
         facts = self._forgeflow_loads(self.fact_snapshot_json) or {}
         checks = recovery_logic.plan_checks(actions=self._forgeflow_actions(),
                                             facts=facts)
@@ -977,6 +1144,7 @@ class ForgeFlowRecoveryPlan(models.Model):
     def forgeflow_reconcile(self, idempotency_key):
         """Read the original operation; never dispatch another native write."""
         self.ensure_one()
+        self.check_access("read")
         operation = self.env["forgeflow.execution_operation"].search(
             [("idempotency_key", "=", idempotency_key), ("plan_id", "=", self.id)], limit=1)
         if not operation:
@@ -990,23 +1158,33 @@ class ForgeFlowRecoveryPlan(models.Model):
             "readback": self._forgeflow_loads(receipt.readback_json)
             if receipt else None})
 
+    @controlled("executor", "service")
     def forgeflow_mark_unknown(self, idempotency_key, reason=""):
         """Record that a dispatched operation's outcome is not known."""
         self.ensure_one()
+        self._forgeflow_lock()
         operation = self.env["forgeflow.execution_operation"].search(
             [("idempotency_key", "=", idempotency_key), ("plan_id", "=", self.id)], limit=1)
         if not operation:
             raise UserError("operation_not_found")
+        self.env.cr.execute("SELECT id FROM forgeflow_execution_operation WHERE id=%s FOR UPDATE",
+                            (operation.id,))
+        operation.invalidate_recordset()
         operation.write({"state": "unknown", "reconcile_state": "unknown",
                          "response_json": json.dumps({"reason": reason})})
         return {"operation_id": operation.id, "state": "unknown"}
 
+    @controlled("executor", "service")
     def forgeflow_resolve_unknown(self, idempotency_key, confirmed_applied):
         self.ensure_one()
+        self._forgeflow_lock()
         operation = self.env["forgeflow.execution_operation"].search(
             [("idempotency_key", "=", idempotency_key), ("plan_id", "=", self.id)], limit=1)
         if not operation:
             raise UserError("operation_not_found")
+        self.env.cr.execute("SELECT id FROM forgeflow_execution_operation WHERE id=%s FOR UPDATE",
+                            (operation.id,))
+        operation.invalidate_recordset()
         operation.write({
             "state": "succeeded" if confirmed_applied else "failed",
             "reconcile_state": "confirmed_applied" if confirmed_applied

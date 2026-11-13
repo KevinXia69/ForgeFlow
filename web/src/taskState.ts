@@ -44,6 +44,7 @@ const NEED_KEY = {
   rule: "task.need.rule",
   budget: "task.need.budget",
   result_unknown: "task.need.resultUnknown",
+  system: "task.need.system",
 } as const satisfies Record<string, MessageKey>;
 
 const ATTENTION_KEY = {

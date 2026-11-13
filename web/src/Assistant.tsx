@@ -131,8 +131,8 @@ function cleanAnswerText(text: string): string {
   let cleaned = text.replace(/<details\b[^>]*>[\s\S]*?(?:<\/details>|$)/gi, "");
   cleaned = cleaned.replace(/<view\s+evidence\b[^>]*>[\s\S]*?(?:<\/view>|$)/gi, "");
   cleaned = cleaned.replace(/<\/?(?:details|summary|view)\b[^>]*>/gi, "");
-  const heading = /^[ \t]*(?:\*\*)?(?:#{1,6}[ \t]*)?(?:\u8bc1\u636e|\u53c2\u8003\u8d44\u6599|\u53c2\u8003|\u5f15\u7528|\u6765\u6e90|Evidence|References?|Sources?)[ \t]*[:\uff1a][^\n]*/gim;
-  const substantive = /\u7ed3\u8bba|\u98ce\u9669|\u6ce8\u610f|\u9650\u5236|\u4f46|\u7136\u800c|\u4e0d\u8fc7|\u5c1a\u672a|\u672a\u6279\u51c6|\u672a\u6267\u884c|\u4e0d\u80fd|\u65e0\u6cd5|\u4e0d\u662f|\u5b9e\u9645|\u91d1\u989d|conclusion|risk|caveat|but\b|however|not\b|pending|unapproved|unexecuted|actual/i;
+  const heading = /^[ \t]*(?:\*\*)?(?:#{1,6}[ \t]*)?(?:证据|参考资料|参考|引用|来源|Evidence|References?|Sources?)[ \t]*[:：][^\n]*/gim;
+  const substantive = /结论|风险|注意|限制|但|然而|不过|尚未|未批准|未执行|不能|无法|不是|实际|金额|conclusion|risk|caveat|but\b|however|not\b|pending|unapproved|unexecuted|actual/i;
   const matches = [...cleaned.matchAll(heading)];
   for (let index = matches.length - 1; index >= 0; index -= 1) {
     const match = matches[index];
@@ -487,7 +487,7 @@ export function ChatSurface({
   // A thread row is a label, not the question. Long preset prompts used to be
   // printed in full and read like a paragraph inside the sidebar.
   const shortTitle = (text: string) => {
-    const clean = (text || "").replace(/\s+/g, " ").trim().replace(/[\u3002\uff1f\uff01?!.]+$/, "");
+    const clean = (text || "").replace(/\s+/g, " ").trim().replace(/[。？！?!.]+$/, "");
     return clean.length > 16 ? `${clean.slice(0, 16)}…` : clean;
   };
   // A conversation started from a suggestion is labelled with the suggestion's
@@ -513,7 +513,7 @@ export function ChatSurface({
   const toolbar = (
     <div className="chat-history-toolbar" data-chat-history-toolbar="true">
       <button type="button" className="chat-new" aria-label={t("v9.newConversation")} disabled={busy} onClick={() => switchConversation()} data-chat-new="true">
-        <span className="chat-icon" aria-hidden="true">+</span>
+        <span className="chat-icon" aria-hidden="true">＋</span>
         <span>{t("v9.newConversation")}</span>
       </button>
       {listedThreads.length > 0 || messages.length > 0 ? (
@@ -667,7 +667,7 @@ export function ChatSurface({
           />
           <div className="composer-bar">
             {activeMode === "ask" ? <button type="button" className="attach" aria-label={t("assistant.attachFile")} disabled={busy}
-              onClick={() => imageInput.current?.click()}>+</button> : null}
+              onClick={() => imageInput.current?.click()}>＋</button> : null}
             {composerHint ? <span className="composer-hint">{composerHint}</span> : <span />}
             <div className="composer-actions">
               {modelControl}

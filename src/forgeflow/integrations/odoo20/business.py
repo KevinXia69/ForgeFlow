@@ -13,18 +13,35 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from datetime import UTC, datetime
 from typing import Any
 
 from .adapter import Odoo20Adapter
-from .contracts import ACTION_TYPES, CREATING_ACTIONS
+from .contracts import ACTION_TYPES, CREATING_ACTIONS, canonical_review_action
 from .executor import ExecutionResult, Odoo20BusinessExecutor, PlanExecutionResult
 from .verifier import Odoo20BusinessVerifier, VerificationResult
 
 
 class PlanPreparationError(ValueError):
     pass
+
+
+PURCHASE_LINE_REVIEW_LIMIT = 500
+
+
+def require_complete_review_snapshot(facts: dict[str, Any]) -> None:
+    """Explicitly partial evidence may be inspected, but cannot authorize writes."""
+    completeness = facts.get("completeness")
+    if completeness is None:
+        return  # Older snapshots retain their own validation and fact digest.
+    if (not isinstance(completeness, dict)
+            or completeness.get("complete") is False
+            or completeness.get("truncated") is True
+            or completeness.get("lines_complete") is False
+            or completeness.get("query_failures")
+            or completeness.get("missing_relations")):
+        raise PlanPreparationError("recovery_plan_snapshot_incomplete")
 
 
 def _environment_view(adapter) -> dict:
@@ -42,6 +59,16 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+def _expiry_iso(value: Any) -> str:
+    if not value:
+        return ""
+    try:
+        moment = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        raise PlanPreparationError("recovery_plan_expiry_invalid") from None
+    return moment.replace(tzinfo=moment.tzinfo or UTC).isoformat()
+
+
 @dataclass(frozen=True, slots=True)
 class PreparedCancellation:
     """A prepared plan.  The name is historical; the payload is now a full plan."""
@@ -56,6 +83,10 @@ class PreparedCancellation:
     rule_version: int = 1
     actions: tuple[dict[str, Any], ...] = ()
     plan_state: str = "awaiting_approval"
+    plan_version: int = 0
+    plan_digest: str = ""
+    action_digest: str = ""
+    expires_at: str = ""
     detail: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -77,19 +108,35 @@ class Odoo20BusinessService:
         self.verifier = Odoo20BusinessVerifier(adapter)
 
     # -- facts ---------------------------------------------------------------
+    def _purchase_order_lines(self, order_id: int) -> tuple[list[dict], dict[str, Any]]:
+        from .resolver import LINE_FIELDS
+
+        domain = [("order_id", "=", int(order_id))]
+        lines = self.adapter.search_read(
+            "purchase.order.line", domain, LINE_FIELDS,
+            limit=PURCHASE_LINE_REVIEW_LIMIT, order="id asc")
+        # The RPC adapter caps a single request at 500. Probe one extra row
+        # instead of asking for 501 and mistaking a capped page for a full list.
+        more = (self.adapter.search_read(
+            "purchase.order.line", domain, ["id"], limit=1,
+            offset=PURCHASE_LINE_REVIEW_LIMIT, order="id asc")
+            if len(lines) == PURCHASE_LINE_REVIEW_LIMIT else [])
+        truncated = bool(more) or len(lines) > PURCHASE_LINE_REVIEW_LIMIT
+        return lines[:PURCHASE_LINE_REVIEW_LIMIT], {
+            "complete": not truncated, "lines_complete": not truncated,
+            "truncated": truncated, "line_limit": PURCHASE_LINE_REVIEW_LIMIT,
+            "reason": "purchase_order_line_limit_exceeded" if truncated else "",
+        }
+
     def snapshot_purchase_order(self, order_id: int) -> dict[str, Any]:
+        from .resolver import ORDER_FIELDS
+
         rows = self.adapter.search_read(
-            "purchase.order", [("id", "=", int(order_id))],
-            ["id", "name", "state", "partner_id", "date_planned", "amount_total",
-             "company_id"], limit=1)
+            "purchase.order", [("id", "=", int(order_id))], ORDER_FIELDS, limit=1)
         if not rows:
             raise PlanPreparationError("purchase_order_not_found")
-        order = rows[0]
-        lines = self.adapter.search_read(
-            "purchase.order.line", [("order_id", "=", int(order_id))],
-            ["id", "product_id", "product_qty", "date_planned", "price_unit",
-             "qty_received"], limit=500)
-        return {"order": order, "lines": lines,
+        lines, completeness = self._purchase_order_lines(order_id)
+        return {"order": rows[0], "lines": lines, "completeness": completeness,
                 "captured_at": datetime.now(UTC).isoformat()}
 
     def recovery_snapshot(self, *, order_id: int,
@@ -123,9 +170,15 @@ class Odoo20BusinessService:
                 raise PlanPreparationError("purchase_order_not_found")
             facts = self.snapshot_purchase_order(order_id)
             order, lines = facts["order"], facts["lines"]
+            line_completeness = facts["completeness"]
         else:
-            lines = [item["record"] for item in snapshot.get("lines") or []
-                     if isinstance(item, dict) and item.get("record")]
+            lines, line_completeness = self._purchase_order_lines(order_id)
+        completeness = dict(snapshot.get("completeness") or {})
+        completeness.update({"lines_complete": line_completeness["lines_complete"],
+                             "line_limit": PURCHASE_LINE_REVIEW_LIMIT})
+        if line_completeness["truncated"]:
+            completeness.update({"complete": False, "truncated": True,
+                                 "reason": line_completeness["reason"]})
         relations = snapshot.get("relations") or {}
         return {
             "object_ref": snapshot.get("object_ref"),
@@ -138,7 +191,7 @@ class Odoo20BusinessService:
             # such and never promoted to direct.
             "sales_lines": relations.get("direct", []),
             "relations": relations,
-            "completeness": snapshot.get("completeness") or {},
+            "completeness": completeness,
             "source": snapshot.get("source") or {},
             "environment": _environment_view(self.adapter),
         }
@@ -157,19 +210,16 @@ class Odoo20BusinessService:
             environment_generation=environment.generation,
             rule_version=rule_version, tenant_ref=tenant_ref, name=name,
             expires_in_hours=expires_in_hours)
-        loaded = self._plan_row(plan_id)
-        return PreparedRecovery(
-            exception_id=exception_id, plan_id=int(plan_id),
-            plan_hash=str(loaded.get("plan_hash")),
-            snapshot_hash=str(loaded.get("fact_snapshot_hash")),
-            facts=facts, environment_generation=environment.generation,
-            execution_identity=self.new_execution_identity(tenant_ref, plan_id),
-            rule_version=rule_version,
-            actions=tuple(actions), plan_state=str(loaded.get("state")),
-            detail={"environment": {"generation": environment.generation,
-                                    "database": environment.database,
-                                    "version": environment.version,
-                                    "module_count": environment.module_count}})
+        # The addon canonicalizes and orders actions before persisting them.
+        # Return that exact readback, rather than mixing its digests with the
+        # caller's original action order or mutable fact dictionaries.
+        prepared = self.load_prepared(plan_id)
+        values = {item.name: getattr(prepared, item.name) for item in fields(prepared)}
+        values["execution_identity"] = self.new_execution_identity(tenant_ref, plan_id)
+        values["detail"] = {**prepared.detail, "environment": {
+            "generation": environment.generation, "database": environment.database,
+            "version": environment.version, "module_count": environment.module_count}}
+        return PreparedRecovery(**values)
 
     def prepare_cancel(self, order_id: int, *, actor_uid: int,
                        reason: str,
@@ -211,17 +261,46 @@ class Odoo20BusinessService:
         row = self._plan_row(plan_id)
         try:
             payload = json.loads(row.get("payload_json") or "{}")
-            actions = payload.get("actions") or []
+            if not isinstance(payload, dict):
+                raise ValueError("payload_not_object")
+            actions = payload.get("actions")
         except (TypeError, ValueError):
             raise PlanPreparationError("recovery_plan_payload_invalid") from None
-        # The fact snapshot is stored on its own field: it can be large and it is
-        # not part of the canonical plan identity.
+        # Facts live in their own field, but their digest is part of the approval.
+        # Never display an unverified snapshot beside an otherwise valid identity.
         try:
             facts = json.loads(row.get("fact_snapshot_json") or "{}")
         except (TypeError, ValueError):
-            facts = {}
+            raise PlanPreparationError("recovery_plan_snapshot_invalid") from None
         if not isinstance(facts, dict):
-            facts = {}
+            raise PlanPreparationError("recovery_plan_snapshot_invalid")
+        if (not isinstance(actions, list) or not actions
+                or any(not isinstance(action, dict) for action in actions)
+                or len(actions) != row.get("action_count")):
+            raise PlanPreparationError("recovery_plan_actions_incomplete")
+        try:
+            canonical_actions = [canonical_review_action(action) for action in actions]
+            identifiers = [action["action_id"] for action in canonical_actions]
+            version = int(row.get("version") or 0)
+            rule_version = int(row.get("rule_version") or 1)
+        except (TypeError, ValueError):
+            raise PlanPreparationError("recovery_plan_payload_invalid") from None
+        if (not all(identifiers) or len(set(identifiers)) != len(identifiers)
+                or any(action["type"] not in ACTION_TYPES for action in canonical_actions)):
+            raise PlanPreparationError("recovery_plan_actions_incomplete")
+        if _digest(canonical_actions) != row.get("action_digest"):
+            raise PlanPreparationError("recovery_plan_action_digest_mismatch")
+        if _digest(facts) != row.get("fact_snapshot_hash"):
+            raise PlanPreparationError("recovery_plan_snapshot_digest_mismatch")
+        expected_digest = _digest({
+            "tenant": row.get("tenant_ref") or "",
+            "environment_generation": row.get("environment_generation") or "",
+            "plan_id": int(row["id"]), "plan_version": version,
+            "fact_snapshot_hash": row.get("fact_snapshot_hash") or "",
+            "rule_version": rule_version, "actions": canonical_actions,
+        })
+        if version <= 0 or expected_digest != row.get("plan_digest"):
+            raise PlanPreparationError("recovery_plan_digest_mismatch")
         exception_id = row.get("exception_id")
         if isinstance(exception_id, list) and exception_id:
             exception_id = int(exception_id[0])
@@ -233,9 +312,12 @@ class Odoo20BusinessService:
             "forgeflow.decision_record",
             [("plan_id", "=", int(plan_id)), ("decision", "=", "approved"),
              ("revoked_at", "=", False)],
-            ["id", "execution_identity", "action_digest", "plan_digest"],
+            ["id", "execution_identity", "action_digest", "plan_digest", "expires_at"],
             limit=1, order="id desc")
         approval = decisions[0] if decisions else {}
+        if approval and (approval.get("action_digest") != row.get("action_digest")
+                         or approval.get("plan_digest") != row.get("plan_digest")):
+            raise PlanPreparationError("recovery_plan_approval_digest_mismatch")
         return PreparedCancellation(
             exception_id=exception_id, plan_id=int(row["id"]),
             plan_hash=str(row.get("plan_hash") or ""),
@@ -244,10 +326,15 @@ class Odoo20BusinessService:
                 row.get("environment_generation") or ""),
             execution_identity=str(approval.get("execution_identity") or ""),
             rule_version=int(row.get("rule_version") or 1),
-            actions=tuple(action for action in actions if isinstance(action, dict)),
+            actions=tuple(canonical_actions),
             plan_state=str(row.get("state") or ""),
+            plan_version=int(row.get("version") or 0),
+            plan_digest=str(row.get("plan_digest") or ""),
+            action_digest=str(row.get("action_digest") or ""),
+            expires_at=_expiry_iso(row.get("expires_at")),
             detail={"action_digest": row.get("action_digest"),
-                    "action_count": row.get("action_count")})
+                    "action_count": row.get("action_count"),
+                    "approval_expires_at": _expiry_iso(approval.get("expires_at"))})
 
     def _plan_row(self, plan_id: int) -> dict[str, Any]:
         rows = self.adapter.search_read(
@@ -255,7 +342,7 @@ class Odoo20BusinessService:
             ["id", "name", "state", "version", "plan_hash", "plan_digest",
              "action_digest", "action_count", "fact_snapshot_hash",
              "fact_snapshot_json", "environment_generation", "rule_version",
-             "payload_json", "exception_id"],
+             "payload_json", "exception_id", "expires_at", "tenant_ref"],
             limit=1)
         if not rows:
             raise PlanPreparationError("recovery_plan_not_found")
@@ -265,15 +352,15 @@ class Odoo20BusinessService:
     def approve(self, prepared: PreparedCancellation, *, approver_uid: int,
                 comment: str, expires_in_hours: int = 24) -> int:
         """Approve exactly this plan version and action set."""
+        require_complete_review_snapshot(prepared.facts)
         execution_identity = prepared.execution_identity or self.new_execution_identity(
             "", prepared.plan_id)
         decision = self.adapter.approve_plan(
             prepared.plan_id, int(approver_uid), execution_identity,
-            expires_in_hours=expires_in_hours, comment=comment)
-        self.adapter.write("forgeflow.recovery_plan", [prepared.plan_id],
-                           {"state": "approved"})
-        self.adapter.write("forgeflow.exception_event", [prepared.exception_id],
-                           {"state": "awaiting_approval"})
+            expires_in_hours=expires_in_hours, comment=comment,
+            expected_plan_version=prepared.plan_version,
+            expected_plan_digest=prepared.plan_digest,
+            expected_action_digest=prepared.action_digest)
         return decision
 
     def revoke(self, prepared: PreparedCancellation, *, reason: str = "") -> dict[str, Any]:

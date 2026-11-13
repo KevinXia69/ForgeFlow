@@ -5,6 +5,7 @@ class ForgeFlowExecutionOperation(models.Model):
     """One idempotent attempt to apply one approved action."""
 
     _name = "forgeflow.execution_operation"
+    _inherit = "forgeflow.controlled"
     _description = "ForgeFlow idempotent execution operation"
     _order = "id desc"
     _idempotency_key_unique = models.Constraint(
@@ -28,8 +29,7 @@ class ForgeFlowExecutionOperation(models.Model):
     fingerprint = fields.Char(required=True, index=True)
     environment_generation = fields.Char()
     execution_identity = fields.Char()
-    company_id = fields.Many2one("res.company", required=True,
-                                 default=lambda self: self.env.company)
+    company_id = fields.Many2one(related="plan_id.company_id", store=True, readonly=True)
     idempotency_key = fields.Char(required=True, index=True)
     state = fields.Selection(
         [("not_dispatched", "Not dispatched"), ("dispatched", "Dispatched"),

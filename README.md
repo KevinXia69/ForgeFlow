@@ -15,6 +15,11 @@ execution in one traceable workflow.
 
 The hosted workbench uses project-provided access credentials.
 
+Current Odoo 20 code includes multi-product procurement and multi-level BOM /
+multiple-MO recovery. Recorded acceptance uses isolated synthetic environments.
+Implementation, versioned evidence and permitted use remain distinct; customer
+production ERP writes remain blocked pending verified acceptance.
+
 ```text
 Investigate → Prepare a plan → Review and approve → Execute → Read back and verify
 ```
@@ -190,11 +195,13 @@ uv run --extra planning pytest tests -q
 
 The suite includes external-service and upstream-fixture integrations. Configure
 the relevant services for those checks and retain the passed, failed, and skipped
-counts in the test report.
+counts in the test report. Target-environment and customer acceptance remain
+separate requirements; publishing a source revision does not approve customer
+production writes.
 
 ## Public source and upstream projects
 
-This repository publishes the application source, Odoo add-on, migrations,
+This repository contains the application source, Odoo add-on, migrations,
 contracts, web client, and tests. Runtime data, upstream benchmark fixtures,
 reference solutions, model weights, and deployment credentials are supplied
 separately. The recorded benchmark links above resolve to the public history.

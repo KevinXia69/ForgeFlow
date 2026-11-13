@@ -122,9 +122,7 @@ export function shortId(value: string | null | undefined, length = 8): string {
 
 export function formatDateTime(
   value: string | null | undefined,
-  // The public bundle is English-only at the type level, so this takes a plain
-  // string and keeps the zh formatting branch reachable, like costMoney().
-  lang: string,
+  lang: Lang,
 ): string {
   if (!value) return "—";
   const date = new Date(value);
@@ -186,6 +184,7 @@ export function formatCheckValue(
   return value;
 }
 
+/** Count sales orders from the compact ``SO-1..5`` reference. */
 export { orderCount } from "./orderCount";
 
 export function severityOf(caseFile: CaseFile): Severity {
@@ -622,6 +621,8 @@ export type ApprovalBlock = {
   kind: "deployment" | "environment" | "scenario" | "blocked" | "missing" | "state" | "legacy" | "unknown";
   reason: string;
   recovery: string | null;
+  /** A second, independent reason that also has to be fixed. */
+  also?: string | null;
 };
 
 export type ApprovalGate = { canApprove: boolean; block: ApprovalBlock | null };
@@ -662,9 +663,17 @@ export function approvalGate(input: {
   const names = (codes: string[]) => codes.map((code) => checkDisplayName(code, t)).join(t("v13.checkNameSeparator"));
   if (canApprove) return { canApprove: true, block: null };
   if (!approvalCapable || reason === "product_execution_unavailable") {
-    return { canApprove: false, block: { kind: "deployment",
-      reason: t(input.capabilities?.deployment === "hosted" ? "environment.unavailable" : "v13.blockDeployment"),
-      recovery: t(input.capabilities?.deployment === "hosted" ? "environment.unavailableRecovery" : "v13.recoveryDeployment") } };
+    // Connecting an executor is not enough when a required check was never
+    // recorded, so say that here instead of letting the reader find out later.
+    const also = missing.length > 0 || reason === "required_checks_unknown"
+      ? t("v14.blockAlsoMissing", { names: names(missing) })
+      : null;
+    return {
+      canApprove: false,
+      block: { kind: "deployment",
+        reason: t(input.capabilities?.deployment === "hosted" ? "environment.unavailable" : "v13.blockDeployment"),
+        recovery: t(input.capabilities?.deployment === "hosted" ? "environment.unavailableRecovery" : "v13.recoveryDeployment"), also },
+    };
   }
   if (reason === "product_scenario_unavailable") {
     return { canApprove: false, block: { kind: "scenario", reason: t("v13.blockScenario"), recovery: t("v13.recoveryScenario") } };
@@ -686,6 +695,9 @@ export function approvalGate(input: {
   }
   if (reason === "approval_expired") {
     return { canApprove: false, block: { kind: "state", reason: t("v13.blockExpired"), recovery: t("v13.recoveryReprepare") } };
+  }
+  if (reason === "product_binding_missing") {
+    return { canApprove: false, block: { kind: "missing", reason: t("v14.bindingMissing"), recovery: t("v13.recoveryReprepare") } };
   }
   if (reason === "product_version_required") {
     // The existing copy already tells the reader how to recover.
@@ -778,6 +790,25 @@ export function caseConclusion(caseFile: CaseFile, t: Translate): string | null 
     score: summary.score === null ? "" : `${summary.score.toFixed(2)}/100`,
   };
   return t(summary.score === null ? "v13.conclusionNoScore" : "v13.conclusion", vars);
+}
+
+const READBACK_STATES: Record<string, MessageKey> = {
+  cancel: "v14.readbackCancel",
+  purchase: "v14.readbackPurchase",
+  confirmed: "v14.readbackConfirmed",
+  reflected: "v14.readbackReflected",
+  draft: "v14.readbackDraft",
+};
+
+/**
+ * Readback states arrive as server tokens. Known ones get plain words; an
+ * unknown one is shown as-is and marked, exactly like an unknown check code.
+ */
+export function readbackState(state: string | null | undefined, t: Translate): { label: string; unknown: boolean } {
+  const token = (state ?? "").trim();
+  if (!token) return { label: t("v9.unknown"), unknown: false };
+  const key = READBACK_STATES[token];
+  return key ? { label: t(key), unknown: false } : { label: token, unknown: true };
 }
 
 /** Rules-only verifier line: the score is stated once, in the conclusion. */
@@ -1227,15 +1258,15 @@ export function localCaseAnswer(
   const checksLine = [checksSummary, budgetAggregateNote(checks.checks, t), budgetLine].filter(Boolean).join(" ");
 
   const executionIntent =
-    /execut|odoo|verif|score|write|readback|receipt|approv/.test(
+    /execut|odoo|verif|score|write|readback|receipt|approv|执行|验收|写入|回读|批准|改了/.test(
       q,
     );
   const planIntent =
-    /plan|proposal|changes|cancel|create|new|buy|margin|budget|policy|spend|purchase|cost/.test(
+    /plan|proposal|changes|cancel|create|new|buy|margin|budget|policy|spend|purchase|cost|方案|计划|变更|为什么取消|新建|毛利|预算|政策|采购|支出|成本/.test(
       q,
     );
   const riskIntent =
-    /risk|impact|due|late|order|unit|why|delivery/.test(
+    /risk|impact|due|late|order|unit|why|delivery|交付|风险|影响|订单|台|断供|延期/.test(
       q,
     );
 
@@ -1249,15 +1280,15 @@ export function localCaseAnswer(
   }
 
   const chainIntent = impactIntent(question);
-  const readinessIntent = /order readiness|ready date|date buffer|per-order/.test(q);
-  const comparisonIntent = /compar|candidate|alternative|option|selection|cheaper/.test(q);
-  const headroomIntent = /headroom|slack|risk/.test(q);
-  const choiceIntent = /selection reason|approval comment/.test(q)
-    || (/why|reason/.test(q) && /choose|chosen|selected|candidate|selection/.test(q));
-  const budgetIntent = /budget/.test(q);
-  const actionIntent = /changes|changed|cancel|create/.test(q);
+  const readinessIntent = /order readiness|ready date|date buffer|per-order|逐单|每单|齐货|交期余量|每张订单/.test(q);
+  const comparisonIntent = /compar|candidate|alternative|option|selection|cheaper|比较|候选|取舍|选择|对比|更便宜/.test(q);
+  const headroomIntent = /headroom|slack|risk|余量|缓冲|风险/.test(q);
+  const choiceIntent = /selection reason|approval comment|选择理由|批准备注|备注/.test(q)
+    || (/why|reason|为什么|为何|理由/.test(q) && /choose|chosen|selected|candidate|selection|选择|候选|取舍/.test(q));
+  const budgetIntent = /budget|预算/.test(q);
+  const actionIntent = /changes|changed|cancel|create|变更|取消|新建|改了/.test(q);
   const budgetOnly = budgetIntent && !comparisonIntent && !choiceIntent && !actionIntent && !executionIntent
-    && !/plan|proposal|policy|spend|cost|margin|price|purchase|date|ready|delivery|capacity|risk/.test(q);
+    && !/plan|proposal|policy|spend|cost|margin|price|purchase|date|ready|delivery|capacity|risk|计划|方案|政策|支出|成本|毛利|采购|金额|齐货|交期|交付|产能|风险/.test(q);
   if (compose && (chainIntent || headroomIntent || choiceIntent || actionIntent || budgetIntent || [comparisonIntent, readinessIntent, planIntent, executionIntent].filter(Boolean).length > 1)) {
     const parts: CaseAnswer[] = [];
     const add = (query: string) => parts.push(localCaseAnswer(caseFile, query, t, false, false));

@@ -15,9 +15,10 @@ requesting execution twice returns the same queued effect.
 from __future__ import annotations
 
 import hashlib
+from datetime import UTC, datetime
 from typing import Any
 
-from ..integrations.odoo20.business import Odoo20BusinessService
+from ..integrations.odoo20.business import Odoo20BusinessService, require_complete_review_snapshot
 from .bindings import odoo_user_id_for
 from .contracts import AttentionNeed, EffectKind, TicketState, normalize_ticket_state
 from .engine import ControlEngine, ControlNotFound, StateTransitionRejected
@@ -30,16 +31,39 @@ def _linked(store: ControlStore, tenant_id: str, plan_id: int):
     return plan_task(store, tenant_id=tenant_id, plan_id=int(plan_id))
 
 
+def _require_current_approval(prepared) -> None:
+    detail = getattr(prepared, "detail", {}) or {}
+    # The real ERP loader always supplies this field. Older in-process business
+    # implementations have no expiry metadata and still use the native gate.
+    if "approval_expires_at" not in detail:
+        return
+    raw = detail["approval_expires_at"]
+    try:
+        expires = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        expires = expires.replace(tzinfo=expires.tzinfo or UTC)
+    except (ValueError, TypeError):
+        raise ValueError("approval_expiry_unverified") from None
+    if expires <= datetime.now(UTC):
+        raise ValueError("approval_expired")
+
+
 def approve_plan(store: ControlStore, ctx: TenantContext,
                  business: Odoo20BusinessService, *, plan_id: int,
-                 comment: str = "", expires_in_hours: int = 24) -> dict[str, Any]:
+                 comment: str = "", expires_in_hours: int = 24,
+                 expected_review: dict[str, Any] | None = None) -> dict[str, Any]:
     """Record an approval by an authorised approver bound to an Odoo user."""
     ctx.require(Role.APPROVER, Role.ADMIN)
     linked = _linked(store, ctx.tenant_id, plan_id)
     if linked is None:
         raise LookupError("plan_task_missing")
     prepared = business.load_prepared(int(plan_id))
+    require_complete_review_snapshot(prepared.facts)
+    if expected_review is not None and any(
+            not value or getattr(prepared, key, None) != value
+            for key, value in expected_review.items()):
+        raise ValueError("plan_review_stale")
     if prepared.execution_identity:
+        _require_current_approval(prepared)
         # The plan already carries an approval.  Repeating the command must not
         # create a second decision or a second execution identity. Finish the
         # attention step if the original request stopped after the ERP approval.
@@ -90,8 +114,10 @@ def request_execution(store: ControlStore, ctx: TenantContext,
     if linked is None:
         raise LookupError("plan_task_missing")
     prepared = business.load_prepared(int(plan_id))
+    require_complete_review_snapshot(prepared.facts)
     if not prepared.execution_identity:
         raise PermissionError("approval_required")
+    _require_current_approval(prepared)
     approval_hash = hashlib.sha256(prepared.execution_identity.encode()).hexdigest()
     key = f"apply:{int(plan_id)}:{prepared.plan_hash}:{approval_hash}"
     legacy_key = f"apply:{int(plan_id)}:{str(prepared.plan_hash)[:12]}"

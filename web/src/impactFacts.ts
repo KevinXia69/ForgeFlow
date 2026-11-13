@@ -123,8 +123,8 @@ export function impactSourceFields(chain: ProductImpactChain, ref: ImpactSourceR
 
 export function impactIntent(question: string): boolean {
   const q = question.toLowerCase();
-  return /impact chain|supply (?:chain|path|allocation)|document (?:link|relationship)|origin link|why.{0,50}affected|affected.{0,50}why/.test(q)
-    || /(?:which|what).{0,45}(?:suppl(?:y|ies)|feeds?).{0,45}(?:order|so\b)|(?:purchase|manufacturing) (?:order|document).{0,30}(?:feeds?|supplies|linked|affect)/.test(q);
+  return /impact chain|supply (?:chain|path|allocation)|document (?:link|relationship)|origin link|why.{0,50}affected|affected.{0,50}why|影响链|供应(?:路径|关系|分配)|单据(?:关系|关联)|(?:为何|为什么).{0,30}受影响/.test(q)
+    || /(?:which|what).{0,45}(?:suppl(?:y|ies)|feeds?).{0,45}(?:order|so\b)|(?:purchase|manufacturing) (?:order|document).{0,30}(?:feeds?|supplies|linked|affect)|(?:哪个|哪些).{0,20}(?:采购单|制造单)|(?:采购单|制造单).{0,20}(?:供应|关联|影响)/.test(q);
 }
 
 export function impactAnswer(plan: ProductPlan | null | undefined, question: string, t: Translate): string {

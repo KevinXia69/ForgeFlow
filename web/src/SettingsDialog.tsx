@@ -1,10 +1,17 @@
 import { useEffect, useState } from "react";
-import { Button, Input, Modal, Switch } from "@forgeflow/dsh-primitives";
-import { api, getModelSettings, testModelConnection } from "./api";
+import {
+  Button,
+  Input,
+  Modal,
+  SegmentedTabs,
+  Switch,
+  type SegmentedTab,
+} from "@forgeflow/dsh-primitives";
 import { useWorkspace } from "./workspace";
+import { api, getModelSettings, testModelConnection } from "./api";
 import { SelectMenu } from "./SelectMenu";
 import { KnowledgeLibrary } from "./KnowledgeLibrary";
-import { useI18n, type MessageKey } from "./i18n";
+import { useI18n, type Lang, type MessageKey } from "./i18n";
 import {
   MODEL_PROFILES,
   PROFILE_ORDER,
@@ -20,8 +27,11 @@ import type { ModelSettingsInfo } from "./types";
 
 type Props = {
   onClose: () => void;
+  initialTab?: SettingsTab;
   initialProfile?: ModelProfile;
 };
+
+type SettingsTab = "general" | "model";
 
 type BusyState = "save" | "test" | null;
 
@@ -54,8 +64,8 @@ function platformProfileLabel(profile: string | null | undefined): string {
   return isModelProfile(profile) ? MODEL_PROFILES[profile].label : profile;
 }
 
-export function SettingsDialog({ onClose, initialProfile }: Props) {
-  const { t } = useI18n();
+export function SettingsDialog({ onClose, initialTab = "general", initialProfile }: Props) {
+  const { lang, setLang, t } = useI18n();
   const { scope_id, deployment } = useWorkspace();
   const [initialSaved] = useState<ModelConfig | null>(() => loadModelConfig(scope_id, deployment));
   const [config, setConfig] = useState<ModelConfig>(() => (
@@ -70,6 +80,7 @@ export function SettingsDialog({ onClose, initialProfile }: Props) {
   const [showKey, setShowKey] = useState(false);
   const [busy, setBusy] = useState<BusyState>(null);
   const [status, setStatus] = useState<Status | null>(null);
+  const [tab, setTab] = useState<SettingsTab>(initialTab);
   const [binding, setBinding] = useState<{ bound: boolean; role: string | null } | null>(null);
   const [odooUserId, setOdooUserId] = useState("");
   const [adminToken, setAdminToken] = useState("");
@@ -352,6 +363,20 @@ export function SettingsDialog({ onClose, initialProfile }: Props) {
   // field is therefore user-supplied (BYOK), including a user-owned Nemotron
   // key, so it may use the normal reveal control.
 
+  const tabs: [SegmentedTab<SettingsTab>, SegmentedTab<SettingsTab>] = [
+    {
+      value: "general",
+      label: t("settings.languageSection"),
+      id: "settings-tab-general",
+      panelId: "settings-panel-general",
+    },
+    {
+      value: "model",
+      label: t("settings.modelSection"),
+      id: "settings-tab-model",
+      panelId: "settings-panel-model",
+    },
+  ];
 
   // DSH Modal is used headless so ForgeFlow keeps its serif header and wide
   // surface. The primitive still owns the body portal, mask click, Escape,
@@ -378,26 +403,37 @@ export function SettingsDialog({ onClose, initialProfile }: Props) {
         </button>
       </div>
 
-      <div className="settings-shell settings-shell-single">
+      <div className="settings-shell">
+        <div className="settings-nav">
+          <SegmentedTabs
+            items={tabs}
+            value={tab}
+            onChange={(next) => setTab(next)}
+            label={t("settings.sections")}
+            className="settings-tabs"
+          />
+        </div>
+
         <div className="settings-content">
-          <div id="settings-panel-model">
-            <section className="settings-section" aria-labelledby="settings-model-heading">
-              <h3 id="settings-model-heading">{t("settings.modelSection")}</h3>
-              {canOverride ? (
-                <div className="settings-field settings-model-choice">
-                  <label htmlFor="settings-model-choice">{t("settings.model")}</label>
-                  <SelectMenu
-                    id="settings-model-choice"
-                    value={config.profile}
-                    ariaLabel={t("settings.model")}
-                    options={PROFILE_ORDER.map((profile) => ({
-                      value: profile,
-                      label: MODEL_PROFILES[profile].label,
-                    }))}
-                    onChange={(value) => { selectProfile(value as ModelProfile); setOwnKey(true); }}
-                  />
-                </div>
-              ) : null}
+          <div
+            role="tabpanel"
+            id="settings-panel-general"
+            aria-labelledby="settings-tab-general"
+            hidden={tab !== "general"}
+          >
+            <section className="settings-section">
+              <div className="settings-field settings-field-bare">
+                <SelectMenu
+                  id="settings-language"
+                  value={lang}
+                  ariaLabel={t("settings.language")}
+                  options={[
+                    { value: "zh", label: t("login.languageZh") },
+                    { value: "en", label: t("login.languageEn") },
+                  ]}
+                  onChange={(value) => setLang(value as Lang)}
+                />
+              </div>
               {deployment === "local" && <section className="settings-section" aria-labelledby="settings-odoo20-heading">
                 <h3 id="settings-odoo20-heading">{t("settings.odoo20Access")}</h3>
                 {binding?.bound ? <p className="settings-note">{t("settings.boundAs", { role: binding.role ?? "" })}</p> : <>
@@ -422,7 +458,7 @@ export function SettingsDialog({ onClose, initialProfile }: Props) {
                 <div className="settings-field">
                   <label htmlFor="settings-document-scope">{t("settings.documentAcl")}</label>
                   <SelectMenu id="settings-document-scope" value={documentScope} ariaLabel={t("settings.documentAcl")}
-                    options={[{ value: "project", label: "project" }, { value: "engineering", label: "engineering" }]}
+                    options={[{ value: "project", label: t("settings.aclProject") }, { value: "engineering", label: t("settings.aclEngineering") }]}
                     onChange={setDocumentScope} />
                 </div>
                 <button type="button" className="secondary" disabled={documentBusy || !documentFile} onClick={() => void uploadDocument()}>{t("settings.documentUpload")}</button>
@@ -451,11 +487,35 @@ export function SettingsDialog({ onClose, initialProfile }: Props) {
                 {sourceStatus && <p className="settings-note">{sourceStatus}</p>}
               </section>}
               <button type="button" className="secondary" onClick={() => { void api("/api/auth/session", { method: "DELETE" }).then(() => location.reload()).catch(() => setStatus({ kind: "error", key: "login.errorFailed" })); }}>{t("v9.exit")}</button>
+            </section>
+          </div>
+
+          <div
+            role="tabpanel"
+            id="settings-panel-model"
+            aria-labelledby="settings-tab-model"
+            hidden={tab !== "model"}
+          >
+            <section className="settings-section">
+              {canOverride ? (
+                <div className="settings-field settings-model-choice">
+                  <label htmlFor="settings-model-choice">{t("settings.model")}</label>
+                  <SelectMenu
+                    id="settings-model-choice"
+                    value={config.profile}
+                    ariaLabel={t("settings.model")}
+                    options={PROFILE_ORDER.map((profile) => ({
+                      value: profile,
+                      label: MODEL_PROFILES[profile].label,
+                    }))}
+                    onChange={(value) => { selectProfile(value as ModelProfile); setOwnKey(true); }}
+                  />
+                </div>
+              ) : null}
 
               <div className="settings-platform">
                 <div className="settings-platform-head">
                   <strong>{t("settings.platformTitle")}</strong>
-                  <span className="settings-platform-tag">{t("settings.platformTag")}</span>
                 </div>
                 {platformLoading ? (
                   <p className="settings-platform-empty">{t("settings.platformLoading")}</p>

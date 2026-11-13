@@ -3,11 +3,12 @@ from odoo import fields, models
 
 class ForgeFlowExecutionReceipt(models.Model):
     _name = "forgeflow.execution_receipt"
+    _inherit = "forgeflow.controlled"
     _description = "ForgeFlow execution readback receipt"
     _order = "id desc"
 
     operation_id = fields.Many2one("forgeflow.execution_operation", required=True, index=True)
-    company_id = fields.Many2one("res.company", required=True, default=lambda self: self.env.company)
+    company_id = fields.Many2one(related="operation_id.company_id", store=True, readonly=True)
     state = fields.Selection(
         [("pending", "Pending"), ("succeeded", "Succeeded"), ("failed", "Failed"),
          ("verified", "Verified"), ("unknown", "Unknown")],

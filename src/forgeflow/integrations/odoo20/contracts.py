@@ -63,6 +63,9 @@ REQUIRED_MODELS: dict[str, tuple[str, ...]] = {
                                   "plan_version", "plan_digest", "action_digest",
                                   "environment_generation", "execution_identity",
                                   "expires_at"),
+    "forgeflow.approval_delegation": ("plan_id", "company_id", "approver_id",
+                                      "service_user_id", "plan_version", "plan_digest",
+                                      "action_digest", "expires_at", "revoked_at"),
     "forgeflow.execution_operation": ("plan_id", "idempotency_key", "state",
                                       "action_id", "fingerprint", "plan_version"),
     "forgeflow.execution_receipt": ("operation_id", "state", "readback_json", "verified"),
@@ -112,3 +115,33 @@ class EnvironmentGeneration:
     database: str
     version: str
     module_count: int
+
+
+def canonical_review_action(action: dict) -> dict:
+    """Mirror the addon's canonical action identity for readback validation.
+
+    The addon remains the execution authority. Parity regression tests compare
+    this transport-side representation with its pure canonical_action function.
+    """
+    if not isinstance(action, dict):
+        raise ValueError("action_invalid")
+    normalised = {
+        "action_id": str(action.get("action_id") or ""),
+        "type": str(action.get("type") or ""),
+        "target_model": str(action.get("target_model") or ""),
+        "target_id": int(action.get("target_id") or 0),
+        "params": action.get("params") or {},
+        "preconditions": list(action.get("preconditions") or []),
+    }
+    target_ref = action.get("target_ref")
+    if target_ref is not None:
+        if not isinstance(target_ref, dict):
+            raise ValueError("action_target_ref_invalid")
+        normalised["target_ref"] = {
+            "action_id": str(target_ref.get("action_id") or ""),
+            "field": str(target_ref.get("field") or ""),
+        }
+    for key in ("quantity", "currency", "unit", "summary"):
+        if action.get(key) is not None:
+            normalised[key] = action[key]
+    return normalised

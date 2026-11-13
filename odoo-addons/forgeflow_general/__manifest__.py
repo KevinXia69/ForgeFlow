@@ -1,6 +1,6 @@
 {
     "name": "ForgeFlow General",
-    "version": "20.0.2.0.0",
+    "version": "20.0.2.1.0",
     "summary": "ForgeFlow exception, recovery, decision, execution and event models",
     "author": "ForgeFlow",
     "license": "LGPL-3",

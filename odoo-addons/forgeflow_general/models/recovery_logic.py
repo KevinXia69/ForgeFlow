@@ -25,6 +25,21 @@ ACTION_TYPES = (
     "reserve_stock",
 )
 
+# The approved object's model must be the model the handler actually writes.
+# Several handlers intentionally use fixed native models; allowing a different
+# display model here would approve one object and mutate another with the same ID.
+ACTION_TARGET_MODELS = {
+    "preserve_supply": frozenset({"purchase.order", "mrp.production", "stock.move"}),
+    "cancel_purchase_order": frozenset({"purchase.order"}),
+    "adjust_purchase_line": frozenset({"purchase.order.line"}),
+    "create_purchase_order": frozenset({"purchase.order"}),
+    "cancel_manufacturing_order": frozenset({"mrp.production"}),
+    "adjust_manufacturing_order": frozenset({"mrp.production"}),
+    "create_manufacturing_order": frozenset({"mrp.production"}),
+    "link_supply_to_demand": frozenset({"purchase.order.line", "stock.move"}),
+    "reserve_stock": frozenset({"stock.move"}),
+}
+
 #: Actions that change an existing document must name it.
 MUTATING_ACTIONS = frozenset({
     "cancel_purchase_order", "adjust_purchase_line", "cancel_manufacturing_order",
@@ -207,6 +222,8 @@ def validate_action_set(actions) -> list[dict]:
             raise PlanError("action_type_unsupported", kind)
         if not action["target_model"]:
             raise PlanError("action_target_model_required", identifier)
+        if action["target_model"] not in ACTION_TARGET_MODELS[kind]:
+            raise PlanError("action_target_model_mismatch", identifier)
         if kind in MUTATING_ACTIONS:
             if "target_ref" in action:
                 if action["target_id"] != 0:
@@ -463,6 +480,86 @@ def plan_execution_key(*, plan_id: int, plan_version: int, plan_digest: str,
     })
 
 
+def execution_evidence_complete(*, plan: dict, actions, operations, receipts) -> bool:
+    """Conservative native terminal-state gate, separate from business readback.
+
+    Aggregate verification receipts never replace per-operation execution
+    evidence. Keep history and use the latest execution receipt for each action.
+    The independent Python verifier still performs its own native readback.
+    """
+    def record_id(value):
+        if isinstance(value, (list, tuple)):
+            value = value[0] if value else 0
+        return int(value or 0)
+
+    try:
+        expected = execution_order(actions)
+        if (not plan.get("execution_key") or not plan.get("plan_digest")
+                or len(operations) != len(expected) or len(operations) > 10_000
+                or len(receipts) > 10_000):
+            return False
+        by_action = {str(row.get("action_id")): row for row in operations}
+        if len(by_action) != len(expected):
+            return False
+        grouped = {}
+        for receipt in receipts:
+            grouped.setdefault(record_id(receipt.get("operation_id")), []).append(receipt)
+        created = {}
+        for action in expected:
+            operation = by_action.get(action["action_id"])
+            if not operation:
+                return False
+            identity = operation.get("execution_identity")
+            key = plan_execution_key(
+                plan_id=record_id(plan.get("id")), plan_version=record_id(plan.get("version")),
+                plan_digest=plan["plan_digest"], execution_identity=identity,
+                environment_generation=plan.get("environment_generation") or "")
+            fingerprint = idempotency_fingerprint(
+                company_id=record_id(plan.get("company_id")),
+                environment_generation=plan.get("environment_generation") or "",
+                plan_id=record_id(plan.get("id")), plan_version=record_id(plan.get("version")),
+                action_id=action["action_id"], params=action.get("params") or {},
+                execution_identity=identity)
+            resolved = resolve_action_references(action, created)
+            if (not identity or operation.get("state") not in {"succeeded", "verified"}
+                    or record_id(operation.get("plan_id")) != record_id(plan.get("id"))
+                    or record_id(operation.get("company_id")) != record_id(plan.get("company_id"))
+                    or operation.get("plan_version") != plan.get("version")
+                    or operation.get("plan_digest") != plan["plan_digest"]
+                    or operation.get("environment_generation") != plan.get("environment_generation")
+                    or operation.get("execution_key") != key or key != plan["execution_key"]
+                    or operation.get("fingerprint") != fingerprint
+                    or operation.get("request_hash") != digest(action)
+                    or operation.get("operation_type") != action["type"]
+                    or operation.get("target_model") != action["target_model"]
+                    or record_id(operation.get("target_id")) != resolved["target_id"]):
+                return False
+            response = json.loads(operation.get("response_json") or "{}")
+            if not isinstance(response, dict):
+                return False
+            created[action["action_id"]] = {"model": action["target_model"], **response}
+            candidates = []
+            for receipt in grouped.get(record_id(operation.get("id")), []):
+                payload = json.loads(receipt.get("readback_json") or "{}")
+                if isinstance(payload, dict) and "checks" in payload and "readback" in payload:
+                    continue
+                candidates.append((receipt, payload))
+            if not candidates:
+                return False
+            receipt, payload = max(candidates, key=lambda item: record_id(item[0].get("id")))
+            target = record_id(response.get("id")) or resolved["target_id"]
+            if (not isinstance(payload, dict) or target <= 0
+                    or record_id(receipt.get("company_id")) != record_id(plan.get("company_id"))
+                    or not (receipt.get("state") == "succeeded" or (
+                        receipt.get("state") == "verified" and receipt.get("verified") is True))
+                    or record_id(payload.get("id")) != target
+                    or payload.get("model") != action["target_model"]):
+                return False
+        return True
+    except (PlanError, KeyError, TypeError, ValueError):
+        return False
+
+
 _SAFE_CODE = re.compile(r"^[a-z][a-z0-9_.:-]{0,80}$")
 
 #: Database failures that mean the current transaction's work is gone, not that
@@ -517,7 +614,7 @@ def _readback_fields(kind: str) -> list[str]:
                 "create_manufacturing_order"}:
         return ["id", "name", "state", "product_qty", "date_start", "date_finished"]
     if kind == "reserve_stock":
-        return ["id", "product_id", "location_id", "quantity", "reserved_quantity"]
+        return ["id", "state", "product_id", "location_id", "quantity", "reserved_quantity"]
     if kind == "link_supply_to_demand":
         return ["id", "sale_line_id", "product_uom_qty"]
     return ["id", "state"]
