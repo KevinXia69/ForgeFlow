@@ -29,6 +29,12 @@ ForgeFlow 有两种运行形态，核心产品流程相同：
 
 公网和本地实例不共享数据。两边都使用同一套案例、调查、规划、审批、执行和独立回读流程。
 
+## 产品一览
+
+![供应商恢复案例：3 件失效供给、13 件直接关联需求，以及 5 张销售订单共 50 件的规划范围。计划覆盖由 7 件库存、40 件保留制造和 3 件替代采购组成。](assets/readme/forgeflow-recovery-case-en.png)
+
+![ForgeFlow 恢复架构：业务输入进入 Router、调查 Worker、CP-SAT 规划器、人工批准、Executor、Verifier 和受跟踪的结果；共享 Control Engine 保存上下文、任务、持久动作和授权。](assets/readme/forgeflow-architecture-en.png)
+
 ## ForgeFlow 交付什么
 
 | 能力 | 业务结果 |
@@ -63,8 +69,6 @@ ForgeFlow 有两种运行形态，核心产品流程相同：
 
 ForgeFlow 替换失效采购，同时保留仍然有效的供给安排：
 
-![供应商恢复案例：3 件失效供给、13 件直接关联需求，以及 5 张销售订单共 50 件的规划范围。计划覆盖由 7 件库存、40 件保留制造和 3 件替代采购组成。](assets/readme/forgeflow-recovery-case-en.png)
-
 **计划供给：** 成品库存 **7 件** + 保留制造 **40 件** + 替代采购 **3 件** = **50 件**。
 
 对于直接关联的订单，方案用组合后的成品库存、保留制造和替代供给覆盖全部 **13 件**。
@@ -76,8 +80,6 @@ ForgeFlow 替换失效采购，同时保留仍然有效的供给安排：
 ## 架构
 
 ForgeFlow 把模型驱动的调查、数值规划和业务执行分开。控制层持久化任务进度，并校验从一个阶段进入下一个阶段的权限。
-
-![ForgeFlow 恢复架构：业务输入进入 Router、调查 Worker、CP-SAT 规划器、人工批准、Executor、Verifier 和受跟踪的结果；共享 Control Engine 保存上下文、任务、持久动作和授权。](assets/readme/forgeflow-architecture-en.png)
 
 工作台助手通过只读工具解释受业务范围约束的证据。调查运行时可以生成结构化的方案请求。CP-SAT 求解数值约束，受控执行路径应用已批准的动作。
 
