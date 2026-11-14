@@ -1,4 +1,8 @@
 import type { ModelConfig } from "./modelConfig";
+import {
+  announceBrowserLogin, bindBrowserWorkspace, browserSessionAllows, browserSessionRetired,
+  retireBrowserSession, SESSION_CHANGE,
+} from "./browserSession";
 import type {
   Answer,
   ConversationAttachment,
@@ -29,27 +33,52 @@ export class ApiError extends Error {
 }
 
 let activeScope = "";
-export function bindWorkspace(scope: string) { activeScope = scope; }
-export const SESSION_CHANGE = "forgeflow.session-change";
+export function bindWorkspace(scope: string) { activeScope = bindBrowserWorkspace(scope) ? scope : ""; }
+export { SESSION_CHANGE } from "./browserSession";
+const SESSION_ENDPOINTS = new Set([
+  "/api/auth/session", "/api/accounts/session", "/api/accounts/login", "/api/accounts/mfa",
+  "/api/auth/me", "/api/config",
+]);
+function checkResponseWorkspace(scope: string): void {
+  if (scope && !browserSessionAllows(scope)) {
+    window.dispatchEvent(new Event(SESSION_CHANGE));
+    throw new ApiError("session_changed", 401);
+  }
+}
 
 async function workspaceFetch(path: string, init: RequestInit): Promise<Response> {
   const login = (path === "/api/auth/session" || path === "/api/accounts/login"
     || path === "/api/accounts/mfa") && init.method === "POST";
-  const scoped = activeScope && !login && path !== "/api/auth/me" && path !== "/api/config";
+  const logout = (path === "/api/auth/session" || path === "/api/accounts/session") && init.method === "DELETE";
+  const publicRequest = path === "/api/auth/me" || path === "/api/config";
+  if (!login && !publicRequest && (browserSessionRetired()
+      || (activeScope && !browserSessionAllows(activeScope)))) {
+    throw new ApiError("session_changed", 401);
+  }
+  const requestScope = activeScope;
+  const scoped = requestScope && !login && !publicRequest;
   const headers = new Headers(init.headers);
-  if (scoped) headers.set("X-ForgeFlow-Workspace", activeScope);
+  if (scoped) headers.set("X-ForgeFlow-Workspace", requestScope);
   const response = await fetch(path, { ...init, credentials: "same-origin", headers });
+  if (scoped) checkResponseWorkspace(requestScope);
   if (scoped && (response.status === 401 || response.headers.get("X-ForgeFlow-Workspace-Changed") === "1")) {
+    // A stale workspace retires locally; the replacement identity in other tabs
+    // remains valid. A revoked cookie (401) invalidates the shared session.
+    retireBrowserSession(response.status === 401);
     window.dispatchEvent(new Event(SESSION_CHANGE));
   }
-  if (response.ok && (path === "/api/auth/session" || path === "/api/accounts/login"
-    || path === "/api/accounts/mfa")) {
-    try { localStorage.setItem(SESSION_CHANGE, crypto.randomUUID()); } catch { /* Focus also rechecks identity. */ }
+  if (response.ok && logout) {
+    retireBrowserSession();
+    window.dispatchEvent(new Event(SESSION_CHANGE));
+  } else if (response.ok && login) {
+    const body = await response.clone().json().catch(() => null);
+    if (body?.mfa_required !== true) announceBrowserLogin();
   }
   return response;
 }
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const responseScope = SESSION_ENDPOINTS.has(path) ? "" : activeScope;
   const isForm = typeof FormData !== "undefined" && init.body instanceof FormData;
   const headers: Record<string, string> = {
     ...(init.body && !isForm ? { "Content-Type": "application/json" } : {}),
@@ -62,6 +91,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   } catch {
     body = null;
   }
+  checkResponseWorkspace(responseScope);
   if (!response.ok) {
     const detail = (body as { detail?: unknown } | null)?.detail;
     throw new ApiError(typeof detail === "string" ? detail : response.statusText, response.status);
@@ -70,6 +100,8 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const getConfig = () => api<Config>("/api/config");
+/** Revoke the current account or invite session. */
+export const logout = () => api<void>("/api/auth/session", { method: "DELETE" });
 export const getCapabilities = () => api<Capabilities>("/api/capabilities");
 export const getRuns = () => api<RunSummary[]>("/api/runs");
 export const getRun = (runId: string) => api<RunDetail>(`/api/runs/${encodeURIComponent(runId)}`);
@@ -207,23 +239,29 @@ export const askAssistant = (
 };
 
 export async function uploadAttachment(file: File): Promise<ConversationAttachment> {
+  const responseScope = activeScope;
   const form = new FormData();
   form.append("file", file);
   const response = await workspaceFetch("/api/attachments", {
     method: "POST", body: form, credentials: "same-origin",
   });
   if (!response.ok) throw new ApiError("attachment_upload_failed", response.status);
-  return response.json() as Promise<ConversationAttachment>;
+  const result = await response.json() as ConversationAttachment;
+  checkResponseWorkspace(responseScope);
+  return result;
 }
 
 export async function extractDocumentText(file: File): Promise<{ text: string; truncated: boolean }> {
+  const responseScope = activeScope;
   const form = new FormData();
   form.append("file", file);
   const response = await workspaceFetch("/api/knowledge/extract-text", {
     method: "POST", body: form, credentials: "same-origin",
   });
   if (!response.ok) throw new ApiError("extract_failed", response.status);
-  return response.json() as Promise<{ text: string; truncated: boolean }>;
+  const result = await response.json() as { text: string; truncated: boolean };
+  checkResponseWorkspace(responseScope);
+  return result;
 }
 
 /** Read the server-side platform default; the response never contains a key. */
@@ -276,6 +314,7 @@ async function streamReply<T>(path: string, body: Record<string, unknown>, onTra
 }
 
 async function readStream<T>(path: string, body: Record<string, unknown>, onTrace: (activity: ActivityState) => void, signal: AbortSignal | undefined, cursor: { lastEventId: string }, turn: StreamTurn | undefined, resume: boolean): Promise<T> {
+  const responseScope = activeScope;
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (cursor.lastEventId) headers["Last-Event-ID"] = cursor.lastEventId;
   const response = await workspaceFetch(path, { method: "POST", signal, headers,
@@ -292,6 +331,7 @@ async function readStream<T>(path: string, body: Record<string, unknown>, onTrac
   try {
     while (true) {
       const { done, value } = await reader.read();
+      checkResponseWorkspace(responseScope);
       if (done) break;
       buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
       const parts = buffer.split("\n\n");

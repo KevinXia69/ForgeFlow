@@ -1,4 +1,4 @@
-"""Stateless invite-code sessions backed by HMAC-signed cookies."""
+"""Signed invite sessions with durable logout revocation."""
 
 from __future__ import annotations
 
@@ -7,11 +7,15 @@ import hashlib
 import hmac
 import json
 import re
+import secrets
+import sqlite3
 import time
+from contextlib import contextmanager
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, Response
 
 from .settings import Settings
 
@@ -24,6 +28,91 @@ Now = datetime | float | int | None
 
 class InvalidInviteCode(ValueError):
     """The supplied invite code matches no configured code."""
+
+
+def _session_token_hash(value: str) -> str:
+    # The signature's equivalent base64 padding must not create a second token
+    # identity that evades revocation. The signed payload is exact HMAC input.
+    return hashlib.sha256(value.partition(".")[0].encode()).hexdigest()
+
+
+class InviteSessionRevocations:
+    """Store only revoked token hashes until their signed expiry.
+
+    Connections are per operation so HTTP threads and API workers share the
+    same SQLite transaction boundary. Removing an expired row never revives a
+    session: signature verification rejects its expiry first.
+    """
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        with self._connection() as connection:
+            connection.execute("CREATE TABLE IF NOT EXISTS revoked_sessions ("
+                               "token_hash TEXT PRIMARY KEY, expires_at INTEGER NOT NULL)")
+            connection.execute("CREATE INDEX IF NOT EXISTS revoked_expiry "
+                               "ON revoked_sessions(expires_at)")
+            connection.execute("DELETE FROM revoked_sessions WHERE expires_at <= ?", (_epoch(None),))
+        path.chmod(0o600)
+
+    @contextmanager
+    def _connection(self):
+        connection = sqlite3.connect(self.path, timeout=10)
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
+
+    def revoked(self, value: str) -> bool:
+        with self._connection() as connection:
+            row = connection.execute("SELECT 1 FROM revoked_sessions WHERE token_hash=?",
+                                     (_session_token_hash(value),)).fetchone()
+        return row is not None
+
+    def revoke(self, settings: Settings, value: str | None, *, audience: str) -> None:
+        if verify_cookie(settings, value, audience=audience) is None:
+            return
+        payload = json.loads(_decode(value.split(".", 1)[0]))
+        with self._connection() as connection:
+            connection.execute("DELETE FROM revoked_sessions WHERE expires_at <= ?", (_epoch(None),))
+            connection.execute("INSERT OR IGNORE INTO revoked_sessions(token_hash, expires_at) "
+                               "VALUES (?, ?)",
+                               (_session_token_hash(value), payload["exp"]))
+
+
+def end_browser_session(request: Request, response: Response) -> Response:
+    """Revoke both supported cookies; repeated logout is harmless.
+
+    The response confirms logout only after durable revocation succeeds. A
+    storage failure leaves the browser able to retry instead of claiming that
+    deleting a cookie invalidated an otherwise reusable server session.
+    """
+    settings = request.app.state.settings
+    expected = request.headers.get("x-forgeflow-workspace")
+    if expected is not None:
+        principal = optional_principal(request)
+        if principal is not None and expected != workspace_scope(settings, principal):
+            # A stale tab must not revoke the replacement identity's cookie.
+            # Missing/expired identity still permits idempotent cookie cleanup.
+            raise HTTPException(status_code=409, detail="workspace_changed",
+                                headers={"X-ForgeFlow-Workspace-Changed": "1"})
+    accounts = getattr(request.app.state, "accounts", None)
+    if accounts is not None:
+        accounts.logout(request.cookies.get(ACCOUNT_COOKIE))
+    revocations = getattr(request.app.state, "invite_revocations", None)
+    if revocations is not None:
+        try:
+            revocations.revoke(settings, request.cookies.get(settings.cookie_name),
+                               audience=request.headers.get("host") or request.url.netloc)
+        except (sqlite3.Error, OSError):
+            raise HTTPException(status_code=503, detail="session_revocation_unavailable") from None
+    response.delete_cookie(settings.cookie_name, path="/", secure=settings.secure_cookie,
+                           httponly=True, samesite="lax")
+    response.delete_cookie(ACCOUNT_COOKIE, path="/", secure=settings.secure_cookie,
+                           httponly=True, samesite="strict")
+    response.status_code = 204
+    return response
 
 
 def _epoch(now: Now) -> int:
@@ -85,6 +174,7 @@ def issue_cookie(
         "v": 1,
         "uid": _identity(settings, invite_code),
         "exp": session_expiry(settings, now=now),
+        "sid": secrets.token_hex(16),
     }
     if isinstance(audience, str) and audience:
         claims["aud"] = audience[:255]
@@ -159,7 +249,17 @@ def optional_principal(request: Request) -> str | None:
         return account.principal_id
     value = request.cookies.get(settings.cookie_name)
     host = request.headers.get("host") or request.url.netloc
-    return verify_cookie(settings, value, audience=host) if value else None
+    principal = verify_cookie(settings, value, audience=host) if value else None
+    if principal is None:
+        return None
+    revocations = getattr(request.app.state, "invite_revocations", None)
+    if revocations is not None:
+        try:
+            if revocations.revoked(value):
+                return None
+        except (sqlite3.Error, OSError):
+            return None  # An unavailable denylist must not restore revoked access.
+    return principal
 
 
 def workspace_scope(settings: Settings, uid: str) -> str:

@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createProductCase, createProductFromDraft, getCapabilities, getProductCase, getProductCases, previewProductDraft, type ProductDraft } from "./api";
 import { startCaseReadWatch } from "./caseReadWatch";
-import { CaseDetail } from "./CaseDetail";
-import { CaseChatView } from "./CaseChatView";
+import { lazyView } from "./LazyView";
 import { buildFixtureCase } from "./caseFixture";
 import { caseOutcomeLabel, dueWindow, errorDetail, formatDateTime, exceptionText, formatQuantity, isCaseVerified, matchesSavedView, severityLabel, severityOf, type SavedCaseView } from "./caseUi";
 import { Odoo20PlanPanel } from "./Odoo20PlanPanel";
 import { SelectMenu } from "./SelectMenu";
 import { useI18n, type MessageKey } from "./i18n";
-import { caseRoute, navigate, useWorkspace } from "./workspace";
+import { caseRoute, focusPageEntry, navigate, useWorkspace } from "./workspace";
 import type { Capabilities, CaseFile } from "./types";
+
+const CaseDetail = lazyView(() => import("./CaseDetail").then(module => ({ default: module.CaseDetail })));
+const CaseChatView = lazyView(() => import("./CaseChatView").then(module => ({ default: module.CaseChatView })));
 
 const VIEWS: { id: SavedCaseView; label: MessageKey }[] = [
   { id: "decision", label: "cases.viewDecision" }, { id: "risk", label: "cases.viewRisk" },
@@ -27,6 +29,15 @@ export function CasesView({ selectedId, chat, evidence, demo, initialView, planI
   const fixture = useMemo(() => buildFixtureCase(t), [t]);
   const isDemo = demo || selectedId === fixture.case_id;
   const refreshId = useRef(0);
+  const listHeading = useRef<HTMLHeadingElement>(null);
+  const listRoot = useRef<HTMLDivElement>(null);
+  const lastSelectedId = useRef<string | null>(null);
+  const listFocusPending = useRef(true);
+  const [readyRoute, setReadyRoute] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (selectedId) lastSelectedId.current = selectedId;
+    listFocusPending.current = selectedId === null;
+  }, [selectedId]);
   const caseUpdateVersion = useRef(0);
   const selectedIdRef = useRef(selectedId);
   selectedIdRef.current = selectedId;
@@ -69,7 +80,7 @@ export function CasesView({ selectedId, chat, evidence, demo, initialView, planI
         setSelected(detailResult.value); setSelectedConfirmedAt(new Date().toISOString()); setDetailError("");
       } else if (detailResult.status === "rejected") setDetailError(errorDetail(detailResult.reason));
     }
-    setLoading(false);
+    setLoading(false); setReadyRoute(selectedId);
   }, [selectedId, isDemo]);
   useEffect(() => {
     caseUpdateVersion.current++; setOperationPending(false);
@@ -79,6 +90,13 @@ export function CasesView({ selectedId, chat, evidence, demo, initialView, planI
   }, [refresh, isDemo, fixture]);
   const effective = isDemo ? [fixture] : cases;
   const visible = effective.filter(item => matches(item, view));
+  useEffect(() => {
+    if (selectedId || loading || readyRoute !== null || !listFocusPending.current) return;
+    const row = Array.from(listRoot.current?.querySelectorAll<HTMLButtonElement>("[data-case-row]") ?? [])
+      .find(button => button.dataset.caseId === lastSelectedId.current);
+    focusPageEntry(row ?? listHeading.current);
+    listFocusPending.current = false;
+  }, [selectedId, loading, readyRoute, visible]);
   const selectedIndex = visible.findIndex(item => item.case_id === selectedId);
   const next = selectedIndex < 0 ? null : visible[selectedIndex + 1];
   const availableScenarios = caps?.product_scenarios ?? [];
@@ -143,7 +161,7 @@ export function CasesView({ selectedId, chat, evidence, demo, initialView, planI
     </button>}
     {watchExpired && <p role="alert" data-case-watch-expired="true">{t("v10.autoReadStopped")}</p>}
     {detailError && <div role="alert"><p>{t(selected ? "v9.staleCase" : "v9.readError")} {detailError}</p>{!selected && <button className="secondary" onClick={() => onSelectCase(null)}>{t("case.back")}</button>}</div>}
-    {selected ? <>
+    {selected?.case_id === selectedId ? <>
       {!chat && <div>
         <CaseDetail key={selected.case_id} caseFile={selected} mode={isDemo ? "fixture" : "live"} capabilities={caps} caseReadBlocked={!isDemo && (loading || detailError !== "" || watchExpired)} onOperationPendingChange={setOperationPending} evidenceOpen={evidence}
           nextCaseId={next?.case_id ?? null}
@@ -155,8 +173,8 @@ export function CasesView({ selectedId, chat, evidence, demo, initialView, planI
     </> : !detailError ? <p>{t("cases.loading")}</p> : null}
   </div>;
   const openDemoButton = <button type="button" className="secondary" data-open-demo="true" onClick={() => navigate(caseRoute(fixture.case_id))}>{t("v11.welcomeDemo")}</button>;
-  return <div className="view cases-view cases-home" data-cases-view="true" data-cases-mode={isDemo ? "fixture" : "live"} data-cases-ready={!loading}>
-    <header className="cases-head"><div className="cases-heading"><h1>{t("v9.title")}</h1></div></header>
+  return <div ref={listRoot} className="view cases-view cases-home" data-cases-view="true" data-cases-mode={isDemo ? "fixture" : "live"} data-cases-ready={!loading}>
+    <header className="cases-head"><div className="cases-heading"><h1 ref={listHeading} tabIndex={-1} data-cases-heading="true">{t("v9.title")}</h1></div></header>
     {isDemo ? <div className="demo-banner" data-demo-banner="true">{t("cases.demoBanner")}</div> : null}
     <Odoo20PlanPanel initialPlanId={planId ?? null} />
     {!isDemo && caps?.case_create === true ? <details className="cases-draft" data-case-draft="true">

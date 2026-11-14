@@ -9,3 +9,8 @@ export function caseRoute(id: string, mode?: "chat" | "evidence") {
   if (mode) query.set(mode, "1");
   return `#${query}`;
 }
+
+/** A pending page read must not move focus out of a dialog the user opened. */
+export function focusPageEntry(element: HTMLElement | null) {
+  if (!document.querySelector('[role="dialog"][aria-modal="true"]')) element?.focus();
+}

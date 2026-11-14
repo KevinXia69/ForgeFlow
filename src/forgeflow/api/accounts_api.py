@@ -14,7 +14,7 @@ from fastapi import Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 from ..accounts import SESSION_TTL_SECONDS, AccountError, AccountStore
-from .auth import ACCOUNT_COOKIE, require_principal
+from .auth import ACCOUNT_COOKIE, end_browser_session, require_principal
 
 _STATUS = {
     "credentials_invalid": 401,
@@ -142,13 +142,7 @@ def install_account_routes(app, store: AccountStore, settings) -> None:
 
     @app.delete("/api/accounts/session", status_code=204)
     def logout(request: Request, response: Response) -> Response:
-        token = request.cookies.get(ACCOUNT_COOKIE)
-        store.logout(token)
-        response.delete_cookie(ACCOUNT_COOKIE, path="/",
-                               secure=settings.secure_cookie, httponly=True,
-                               samesite="strict")
-        response.status_code = 204
-        return response
+        return end_browser_session(request, response)
 
     @app.get("/api/accounts/me")
     def me(principal: str = Depends(require_principal)) -> dict[str, Any]:

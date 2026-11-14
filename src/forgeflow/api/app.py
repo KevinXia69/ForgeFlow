@@ -7,6 +7,7 @@ import base64
 import binascii
 import hashlib
 import hmac
+import importlib
 import json
 import logging
 import os
@@ -51,12 +52,15 @@ from .answer_text import clean_answer
 from .approvals import ApprovalService, ApprovalUnavailable
 from .auth import (
     InvalidInviteCode,
+    InviteSessionRevocations,
+    end_browser_session,
     issue_cookie,
     optional_principal,
     require_principal,
     session_expiry,
     verify_cookie,
 )
+from .browser_security import POLICY_HEADERS, REPORT_PATH, install_browser_report_route
 from .case_context import answer_context, case_context
 from .case_draft import draft_view
 from .case_qa import (
@@ -89,6 +93,7 @@ from .trust import is_trusted_api_request
 
 logger = logging.getLogger(__name__)
 SECURITY_HEADERS = {
+    **POLICY_HEADERS,
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
     "Cache-Control": "no-store",
@@ -821,6 +826,12 @@ def create_app(
     Reads remain available without an executor. Mutations require a local
     executor and owner-bound product state; recorded runs remain read-only.
     """
+    # Synchronous routes run in independent worker threads. The superagent
+    # package eagerly imports its submodules, so first-use imports from two
+    # requests can invert CPython's parent/submodule import locks.
+    # Complete this required dependency graph before the app accepts requests;
+    # importing it defines types/functions without starting workers or I/O.
+    importlib.import_module("forgeflow.superagent")
     app = FastAPI(
         title="ForgeFlow API",
         version="0.1.0",
@@ -838,6 +849,8 @@ def create_app(
             accounts = AccountStore(configured_accounts)
     app.state.settings = settings
     app.state.accounts = accounts
+    app.state.invite_revocations = InviteSessionRevocations(
+        settings.approvals_root / "invite-session-revocations.sqlite3")
     from .restore import RestoreGuard, default_restore_marker
 
     app.state.restore_guard = restore_guard or RestoreGuard(
@@ -847,6 +860,7 @@ def create_app(
 
         install_account_routes(app, accounts, settings)
     limiter = FixedWindowLimiter()
+    install_browser_report_route(app)
     approvals = ApprovalService(settings.approvals_root)
     runs = RunService(settings.data_root, settings.approvals_root / "runs.json",
                       spawn=spawn, enabled=settings.runner_enabled)
@@ -1121,6 +1135,9 @@ def create_app(
             if not settings.allows_host(request.headers.get("host", "")):
                 return JSONResponse({"detail": "untrusted host"}, status_code=400,
                                     headers=headers)
+            # Authority was checked above; do not reflect an untrusted Host
+            # into reporting destinations. report-uri remains a relative fallback.
+            headers["Reporting-Endpoints"] = f'forgeflow-csp="https://{request.headers["host"]}{REPORT_PATH}"'
         if request.url.path.startswith("/api") and not is_trusted_api_request(request, settings):
             return JSONResponse({"detail": "untrusted request"}, status_code=403,
                                 headers=headers)
@@ -1220,10 +1237,8 @@ def create_app(
         }
 
     @app.delete("/api/auth/session", status_code=204)
-    def delete_session(response: Response, uid: str = Depends(require_principal)) -> Response:
-        response.delete_cookie(settings.cookie_name, path="/", secure=settings.secure_cookie, httponly=True, samesite="Lax")
-        response.status_code = 204
-        return response
+    def delete_session(request: Request, response: Response) -> Response:
+        return end_browser_session(request, response)
 
     @app.get("/api/auth/me")
     def auth_me(uid: str = Depends(require_principal)) -> dict[str, str]:

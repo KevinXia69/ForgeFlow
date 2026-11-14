@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useId, useRef, useState } from "react";
 import { addWorkspaceSource, ApiError, applyWorkspaceImport, authorizeWorkspaceImport, confirmWorkspace, createWorkspace, getOnboardingCompanies, getOnboardingTargets, getWorkspaces, previewWorkspaceImport, readbackWorkspaceImport } from "./api";
 import { useI18n, type MessageKey } from "./i18n";
 import type { OnboardingTarget, Workspace, WorkspaceMapping } from "./types";
@@ -54,6 +54,7 @@ function errorCode(error: unknown): string {
  */
 export function SetupView() {
   const { t } = useI18n();
+  const mappingPrefix = useId();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [targets, setTargets] = useState<OnboardingTarget[]>([]);
   const [companies, setCompanies] = useState<{ id: number; name: string }[]>([]);
@@ -282,14 +283,18 @@ export function SetupView() {
                 </div>
                 {mappings.length === 0 ? null : (
                   <div className="setup-mapping-list">
-                    {mappings.map((row) => (
-                      <article className={`setup-mapping${row.ignored ? " is-ignored" : ""}`} key={row.id}>
-                        <div className="setup-mapping-source">
+                    {mappings.map((row) => {
+                      const sourceId = `${mappingPrefix}-${encodeURIComponent(row.id)}-source`;
+                      const sampleId = `${sourceId}-sample`;
+                      const sourceName = `${sourceLabel(row.source_id)} · ${row.source_field}`;
+                      return <article className={`setup-mapping${row.ignored ? " is-ignored" : ""}`} key={row.id}
+                        role="group" aria-labelledby={sourceId} data-mapping-id={row.id}>
+                        <div className="setup-mapping-source" id={sourceId}>
                           <strong>{row.source_field}</strong>
                           <span>{sourceLabel(row.source_id)}</span>
-                          <small>{row.sample || t("setup.noSample")}</small>
+                          <small id={sampleId}>{row.sample || t("setup.noSample")}</small>
                         </div>
-                        <select aria-label={t("setup.targetModel")} value={row.target_model}
+                        <select aria-label={`${t("setup.targetModel")} · ${sourceName}`} aria-describedby={sampleId} value={row.target_model}
                           disabled={row.ignored || selected.status !== "draft"}
                           onChange={(event) => {
                             const model = event.target.value;
@@ -298,19 +303,20 @@ export function SetupView() {
                           <option value="">{t("setup.chooseModel")}</option>
                           {targets.map((target) => <option value={target.model} key={target.model}>{target.label}</option>)}
                         </select>
-                        <select aria-label={t("setup.targetField")} value={row.target_field}
+                        <select aria-label={`${t("setup.targetField")} · ${sourceName}`} aria-describedby={sampleId} value={row.target_field}
                           disabled={row.ignored || !row.target_model || selected.status !== "draft"}
                           onChange={(event) => updateMapping(row.id, { target_field: event.target.value })}>
                           <option value="">{t("setup.chooseField")}</option>
                           {fieldsFor(row.target_model).map((field) => <option value={field} key={field}>{field}</option>)}
                         </select>
                         <label className="setup-ignore">
-                          <input type="checkbox" checked={row.ignored} disabled={selected.status !== "draft"}
+                          <input type="checkbox" aria-label={`${t("setup.ignore")} · ${sourceName}`} aria-describedby={sampleId}
+                            checked={row.ignored} disabled={selected.status !== "draft"}
                             onChange={(event) => updateMapping(row.id, { ignored: event.target.checked })} />
                           {t("setup.ignore")}
                         </label>
-                      </article>
-                    ))}
+                      </article>;
+                    })}
                   </div>
                 )}
                 {selected.status === "draft" ? (

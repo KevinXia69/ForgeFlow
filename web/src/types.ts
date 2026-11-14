@@ -81,7 +81,7 @@ export type Approval = {
 };
 
 export type Config = {
-  /** True when the server requires an independent account session instead of an invite code. */
+  /** Independent account sessions replace invite login when enabled. */
   accounts_enabled?: boolean;
   deployment: string;
   runner_enabled: boolean;
@@ -362,22 +362,8 @@ export type ProductAskAnswer = {
 };
 
 /** The server's public CaseFile projection; it never includes an owner uid. */
-export type RecoveryReview = {
-  operation_id: string; plan_id: string; version: number; order_id: number | null;
-  kind: "reason" | "unmodeled" | "deadline"; note: string; status: string;
-  error?: string; resolution?: string; supersedes?: string;
-  result_version?: number; preparation_status?: string; snapshot_sha256: string;
-  evidence?: { model: string; id: number; field: string; prepared_value: string;
-    current_value: string; current_write_date: string; changed: boolean };
-};
-
 export type CaseFile = {
   home_views?: ("decision" | "executing" | "verified")[];
-  handoff?: { review_profile?: string; sales_order_ids: number[]; currency: string };
-  reviews?: RecoveryReview[];
-  review_comparison?: { currency: string; preserve_minus_low_cost: string | null;
-    differences: { kind: string; document: string; product_code: string; baseline: string; unit: string | number;
-      preserve: { action: string; quantity: string }; low_cost: { action: string; quantity: string } }[] } | null;
   case_id: string;
   scenario: string;
   state: string;
@@ -392,7 +378,7 @@ export type CaseFile = {
   created_at: string;
   updated_at: string;
   reason: string | null;
-  decision?: { can_review?: boolean; can_approve: boolean; reason: string | null; blocked_checks: string[]; unknown_checks: string[]; warnings: string[]; can_reject: boolean; can_request_changes: boolean; revision_reason: string | null; can_reconcile?: boolean; can_resume_preparation?: boolean; preparation_pending?: boolean; can_cancel_unstarted?: boolean; authorization_pending?: boolean; can_resume_revision?: boolean; revision_pending?: boolean; can_reprepare?: boolean; repreparation_pending?: boolean; can_resume_repreparation?: boolean; can_select_candidate?: boolean; selection_pending?: boolean; can_resume_selection?: boolean };
+  decision?: { can_approve: boolean; reason: string | null; blocked_checks: string[]; unknown_checks: string[]; warnings: string[]; can_reject: boolean; can_request_changes: boolean; revision_reason: string | null; can_reconcile?: boolean; can_resume_preparation?: boolean; preparation_pending?: boolean; can_cancel_unstarted?: boolean; authorization_pending?: boolean; can_resume_revision?: boolean; revision_pending?: boolean; can_reprepare?: boolean; repreparation_pending?: boolean; can_resume_repreparation?: boolean; can_select_candidate?: boolean; selection_pending?: boolean; can_resume_selection?: boolean };
   result?: {
     simulation_passed?: boolean;
     verification_source?: string; execution_status: string | null; readback_status: string; verifier_status: string; strict_success: boolean | null; evaluation_valid: boolean | null; verified: boolean; outcome: string };
@@ -578,6 +564,12 @@ export type Workspace = {
   } | null;
 };
 
+export type OnboardingTarget = {
+  model: string;
+  label: string;
+  fields: string[];
+};
+
 export type AccountSession = {
   account: {
     id: string;
@@ -591,12 +583,6 @@ export type AccountSession = {
   expires_at?: number;
   mfa_required?: boolean;
   challenge?: string;
-};
-
-export type OnboardingTarget = {
-  model: string;
-  label: string;
-  fields: string[];
 };
 
 export type ConversationAttachment = {

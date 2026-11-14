@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CasesView } from "./CasesView";
-import { HomeView } from "./HomeView";
 import { Login } from "./Login";
-import { RunsView } from "./RunsView";
-import { SetupView } from "./SetupView";
-import { SettingsDialog } from "./SettingsDialog";
-import { Sidebar, type WorkbenchView } from "./Sidebar";
+import type { WorkbenchView } from "./Sidebar";
+import { lazyView } from "./LazyView";
+import { retireBrowserSession } from "./browserSession";
 import { api, ApiError, bindWorkspace, getConfig, getRuns, SESSION_CHANGE } from "./api";
 import { useI18n } from "./i18n";
 import { caseRoute, navigate, WorkspaceContext, type WorkspaceIdentity } from "./workspace";
 import type { Config, RunSummary } from "./types";
 import type { ModelProfile } from "./modelConfig";
+
+const Sidebar = lazyView(() => import("./Sidebar").then(module => ({ default: module.Sidebar })));
+const CasesView = lazyView(() => import("./CasesView").then(module => ({ default: module.CasesView })));
+const HomeView = lazyView(() => import("./HomeView").then(module => ({ default: module.HomeView })));
+const RunsView = lazyView(() => import("./RunsView").then(module => ({ default: module.RunsView })));
+const SetupView = lazyView(() => import("./SetupView").then(module => ({ default: module.SetupView })));
+const SettingsDialog = lazyView(() => import("./SettingsDialog").then(module => ({ default: module.SettingsDialog })));
 
 export default function App() {
   const { t } = useI18n();
@@ -21,7 +25,14 @@ export default function App() {
   const [runError, setRunError] = useState("");
   const [hash, setHash] = useState(location.hash);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<"general" | "model">("general");
+  const settingsReturnFocus = useRef<HTMLElement | null>(null);
+  const rememberSettingsFocus = () => {
+    settingsReturnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  };
+  const closeSettings = () => {
+    setSettingsOpen(false);
+    requestAnimationFrame(() => { if (settingsReturnFocus.current?.isConnected) settingsReturnFocus.current.focus(); });
+  };
   const [settingsProfile, setSettingsProfile] = useState<ModelProfile | undefined>(undefined);
   useEffect(() => {
     const update = () => setHash(location.hash);
@@ -32,8 +43,7 @@ export default function App() {
   const caseId = params.get("case");
   const runId = params.get("run");
   const planId = Number(params.get("plan") || 0);
-  // Start page by default: a bare entry point or #home/#knowledge shows the ask
-  // surface. Cases, a case and evidence keep their own explicit routes.
+  // Start page by default; the other views keep their explicit routes.
   const view: WorkbenchView = params.has("setup")
     ? "setup"
     : runId || params.has("runs")
@@ -41,6 +51,17 @@ export default function App() {
       : caseId || params.has("cases")
         ? "cases"
         : "knowledge";
+  const caseChat = params.has("chat");
+  const caseEvidence = params.has("evidence");
+  useEffect(() => {
+    const page = !identity ? t("navigation.signIn")
+      : caseId ? t(caseChat ? "navigation.caseChat" : caseEvidence ? "navigation.caseEvidence" : "navigation.caseDetail", {
+        id: caseId.replace(/[^a-zA-Z0-9_-]/g, "").slice(-12),
+      })
+      : t(view === "cases" ? "v9.title" : view === "setup" ? "app.topbarSetup"
+        : view === "runs" ? "app.topbarEvidence" : "home.title");
+    document.title = `${page} · ${t("app.title")}`;
+  }, [identity, view, caseId, caseChat, caseEvidence, t]);
   const loadRuns = useCallback(async () => {
     try { setRuns(await getRuns()); setRunError(""); }
     catch (error) { setRunError(error instanceof Error ? error.message : "unavailable"); }
@@ -52,7 +73,7 @@ export default function App() {
       const [me, cfg] = await Promise.all([api<WorkspaceIdentity>("/api/auth/me"), getConfig()]);
       if (generation !== authGeneration.current) return;
       bindWorkspace(me.scope_id); setIdentity(me); setConfig(cfg);
-    } catch { if (generation === authGeneration.current) setIdentity(null); }
+    } catch { if (generation === authGeneration.current) { bindWorkspace(""); setIdentity(null); } }
     finally { if (generation === authGeneration.current) setLoading(false); }
   }, []);
   useEffect(() => { void authenticate(); }, [authenticate]);
@@ -62,6 +83,7 @@ export default function App() {
     const leave = () => {
       if (!live) return;
       live = false;
+      retireBrowserSession(false);
       setLoading(true);
       window.history.replaceState(null, "", location.pathname + location.search);
       location.reload();
@@ -101,8 +123,12 @@ export default function App() {
     <div className="app">
       <Sidebar runs={runs} view={view} onView={switchView} workbenches={config.workbenches}
         onOpenRun={(id) => navigate(`#run=${encodeURIComponent(id)}`)}
-        onOpenSettings={() => { setSettingsProfile(undefined); setSettingsTab("general"); setSettingsOpen(true); }} />
+        onOpenSettings={() => { rememberSettingsFocus(); setSettingsProfile(undefined); setSettingsOpen(true); }} />
       <main className="workspace">
+        <header className="topbar">
+          <span className="topbar-title"><span className="topbar-brand">ForgeFlow</span><span className="chev" aria-hidden="true">/</span>
+            <span className="topbar-view">{t(view === "setup" ? "app.topbarSetup" : view === "cases" ? "app.topbarCases" : view === "runs" ? "app.topbarEvidence" : "app.topbarKnowledge")}</span></span>
+        </header>
         {config.deployment === "review" && <div className="review-banner">{t("app.reviewBanner")}</div>}
         <div className={`app-panel${view === "cases" ? " app-panel-workbench" : ""}`}>
           {view === "cases" ? <CasesView selectedId={caseId} chat={params.has("chat")} evidence={params.has("evidence")}
@@ -111,10 +137,10 @@ export default function App() {
             onAskCase={(item) => navigate(caseRoute(item.case_id, "chat"))} />
             : view === "setup" ? <SetupView />
               : view === "runs" ? <RunsView runs={runs} config={config} selected={runId} error={runError}
-              onSelect={(id) => navigate(`#run=${encodeURIComponent(id)}`)} onRefresh={() => void loadRuns()} /> : <HomeView onOpenModelSettings={(profile) => { setSettingsProfile(profile); setSettingsTab("model"); setSettingsOpen(true); }} />}
+              onSelect={(id) => navigate(`#run=${encodeURIComponent(id)}`)} onRefresh={() => void loadRuns()} /> : <HomeView onOpenModelSettings={(profile) => { rememberSettingsFocus(); setSettingsProfile(profile); setSettingsOpen(true); }} />}
         </div>
       </main>
-      {settingsOpen && <SettingsDialog initialTab={settingsTab} initialProfile={settingsProfile} onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && <SettingsDialog initialProfile={settingsProfile} onClose={closeSettings} />}
     </div>
   </WorkspaceContext.Provider>;
 }

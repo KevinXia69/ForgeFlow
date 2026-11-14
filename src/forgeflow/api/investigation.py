@@ -17,13 +17,13 @@ from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from starlette.responses import FileResponse
 
 from forgeflow.investigation.cases import CaseError, InvestigationCases
 from forgeflow.investigation.clarification import ClarificationError
 from forgeflow.investigation.intake import IntakeError
 
 from .auth import require_principal
+from .web import ContentFileResponse
 
 
 class Operation(BaseModel):
@@ -238,4 +238,4 @@ def install_investigation(app: FastAPI, adapter: InvestigationAdapter | None, se
 
     @app.get("/investigation", include_in_schema=False)
     def investigation_page():
-        return FileResponse(Path(__file__).with_name("static") / "investigation.html")
+        return ContentFileResponse(Path(__file__).with_name("static") / "investigation.html")

@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { useWorkspace } from "./workspace";
+import { useEffect, useMemo, useRef } from "react";
+import { focusPageEntry, useWorkspace } from "./workspace";
 import { ApiError, askProductCase, streamProductCase, cancelCaseTurn } from "./api";
 import {
   ChatSurface,
@@ -25,13 +25,15 @@ type Props = {
 export function CaseChatView({ caseFile, mode, onBack }: Props) {
   const { t, lang } = useI18n();
   const { scope_id } = useWorkspace();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { focusPageEntry(headingRef.current); }, [caseFile.case_id]);
   // Only shorten this known case's prose references. Stored replies, Markdown
   // links, literal URLs, and structured evidence targets retain their full IDs.
   const displayAnswerText = useMemo(() => {
     const fullId = caseFile.case_id;
     const protectedOrId = new RegExp(String.raw`\[[^\]]*\]\([^)]*\)|<[^>]*>|(?:https?:\/\/|\/|#)[^\s<>]*|${fullId}`, "g");
-    const withoutReference = /(?:^|\n)(?:Reference|参考|Case|案例)\s*[:：].*(?:\n|$)/gi;
-    const caseLabel = lang === "zh" ? "本案例" : "this case";
+    const withoutReference = /(?:^|\n)(?:Reference|Case)\s*[:].*(?:\n|$)/gi;
+    const caseLabel = "this case";
     return (text: string) => text.replace(withoutReference, "").replace(protectedOrId, match => match === fullId ? caseLabel : match);
   }, [caseFile.case_id]);
 
@@ -123,7 +125,7 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
           ← {t("caseChat.back")}
         </button>
         <div className="case-chat-page-title">
-          <h1>{t("caseChat.title")}</h1>
+          <h1 ref={headingRef} tabIndex={-1} data-case-chat-heading="true">{t("caseChat.title")}</h1>
           <div className="case-chat-page-context">
             <span>{caseFile.order.product}</span>
             <span>{caseFile.order.units} {t("cases.units")}</span>

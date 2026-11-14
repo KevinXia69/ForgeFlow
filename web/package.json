@@ -9,20 +9,9 @@
     "build": "tsc --noEmit && vite build",
     "smoke": "node e2e/smoke.mjs",
     "test:a11y": "node e2e/a11y.mjs",
-    "test:hermetic": "node e2e/hermetic.mjs",
-    "test:attachments": "node e2e/attachments.mjs",
-    "test:attachment-isolation": "node e2e/attachment-isolation.mjs",
-    "test:home-materials": "node e2e/home-materials.mjs",
-    "test:knowledge-library": "node e2e/knowledge-library.mjs",
-    "test:impact": "node e2e/impact-preview.mjs",
-    "test:impact:candidates": "node e2e/impact-candidates.mjs",
-    "test:impact:missing": "node e2e/impact-missing.mjs",
-    "test:receipt": "node --test e2e/receipt.test.mjs",
-    "test:conversation": "node --experimental-strip-types --test e2e/conversation.test.mjs",
-    "test:accounts": "node e2e/account-login.mjs",
-    "test:setup-ops": "node e2e/setup-ops.mjs",
-    "test:plan-operations": "node e2e/plan-operations.mjs",
-    "test:plan-review": "node e2e/plan-review.mjs"
+    "test:forms-tables": "FORGEFLOW_TEST_VARIANT=public node ../web/e2e/forms-and-tables.mjs",
+    "test:navigation-loading": "FORGEFLOW_TEST_VARIANT=public node ../web/e2e/navigation-loading.mjs",
+    "test:markdown-privacy": "FORGEFLOW_TEST_VARIANT=public node ../web/e2e/markdown-privacy.mjs"
   },
   "dependencies": {
     "@deepseek-ai/dsh-client-store": "^0.2.1-rc.2",

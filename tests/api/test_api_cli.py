@@ -2,6 +2,12 @@ from __future__ import annotations
 
 import json
 import os
+import socket
+import subprocess
+import sys
+import time
+import urllib.request
+from pathlib import Path
 
 from forgeflow import cli
 from forgeflow.api.runs import default_command
@@ -10,8 +16,8 @@ from forgeflow.api.runs import default_command
 def test_api_command_starts_uvicorn_with_settings(monkeypatch, tmp_path):
     captured = {}
 
-    def fake_run(app, host, port):
-        captured.update(host=host, port=port, app=app)
+    def fake_run(app, host, port, server_header):
+        captured.update(host=host, port=port, app=app, server_header=server_header)
 
     monkeypatch.setenv("FORGEFLOW_DATA_ROOT", str(tmp_path / "runs"))
     monkeypatch.setenv("FORGEFLOW_SESSION_SECRET", "test-session-secret-0123456789abcdef")
@@ -19,13 +25,14 @@ def test_api_command_starts_uvicorn_with_settings(monkeypatch, tmp_path):
     monkeypatch.setattr("uvicorn.run", fake_run)
     assert cli.main(["api", "--host", "0.0.0.0", "--port", "9000"]) == 0
     assert captured["host"] == "0.0.0.0" and captured["port"] == 9000
+    assert captured["server_header"] is False
 
 
 def test_api_uses_the_platform_port_when_no_flag(monkeypatch, tmp_path):
     captured = {}
 
-    def fake_run(app, host, port):
-        captured.update(host=host, port=port, app=app)
+    def fake_run(app, host, port, server_header):
+        captured.update(host=host, port=port, app=app, server_header=server_header)
 
     monkeypatch.setenv("FORGEFLOW_DATA_ROOT", str(tmp_path / "runs"))
     monkeypatch.setenv("FORGEFLOW_SESSION_SECRET", "test-session-secret-0123456789abcdef")
@@ -34,6 +41,7 @@ def test_api_uses_the_platform_port_when_no_flag(monkeypatch, tmp_path):
     monkeypatch.setattr("uvicorn.run", fake_run)
     assert cli.main(["api", "--host", "0.0.0.0"]) == 0
     assert captured["port"] == 9123
+    assert captured["server_header"] is False
 
 
 def test_api_runner_child_can_create_its_run_directory(monkeypatch, tmp_path):
@@ -73,3 +81,46 @@ def test_api_runner_child_can_create_its_run_directory(monkeypatch, tmp_path):
     log = tmp_path / "approvals/runner-logs" / f"{run_id}.log"
     assert "FileExistsError" not in log.read_text()
     assert log.stat().st_mode & 0o777 == 0o600
+
+
+def test_real_cli_http_omits_server_fingerprint_and_keeps_date(tmp_path):
+    with socket.socket() as listener:
+        listener.bind(("127.0.0.1", 0))
+        port = listener.getsockname()[1]
+    repo = Path(__file__).resolve().parents[2]
+    env = {
+        "PATH": os.environ.get("PATH", ""), "PYTHONPATH": str(repo / "src"),
+        "FORGEFLOW_DATA_ROOT": str(tmp_path / "runs"),
+        "FORGEFLOW_APPROVALS_ROOT": str(tmp_path / "approvals"),
+        "FORGEFLOW_SESSION_SECRET": "synthetic-header-test-secret-00000001",
+        "FORGEFLOW_INVITE_CODES": "synthetic-header-invite-00000001",
+    }
+    process = subprocess.Popen(
+        [sys.executable, "-c", "from forgeflow.cli import main; raise SystemExit(main())",
+         "api", "--host", "127.0.0.1", "--port", str(port)],
+        cwd=repo, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try:
+        for _ in range(150):
+            assert process.poll() is None, "synthetic CLI server exited before readiness"
+            try:
+                response = opener.open(f"http://127.0.0.1:{port}/api/health", timeout=1)
+                break
+            except OSError:
+                time.sleep(0.1)
+        else:
+            raise AssertionError("synthetic CLI server readiness timeout")
+        with response:
+            assert response.status == 200
+            assert json.load(response) == {"ok": True}
+            assert response.headers.get("Server") is None
+            assert response.headers.get("Date")
+            assert response.headers.get("X-Powered-By") is None
+    finally:
+        process.terminate()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=5)

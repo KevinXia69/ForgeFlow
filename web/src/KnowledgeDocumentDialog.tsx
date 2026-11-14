@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { MarkdownText, Modal } from "@forgeflow/dsh-primitives";
+import { Modal } from "@forgeflow/dsh-primitives";
+import { PrivateMarkdown } from "./PrivateMarkdown";
 import { api } from "./api";
 import { useI18n } from "./i18n";
 import type { DocumentTarget } from "./knowledgeCitation";
@@ -40,15 +41,15 @@ export function KnowledgeDocumentDialog({ target, onClose }: { target: DocumentT
     <div className="settings-content" data-knowledge-document="true">
       {target.excerpt && <section className="settings-section">
         <h3>{t("settings.documentExcerpt")}{target.locator ? ` · ${target.locator}` : ""}</h3>
-        <div className="assistant-markdown"><MarkdownText text={target.excerpt} streaming={false} labels={labels} /></div>
+        <div className="assistant-markdown"><PrivateMarkdown text={target.excerpt} labels={labels} /></div>
       </section>}
       {loading && <p role="status">{t("settings.documentsLoading")}</p>}
       {(failed || (!target.version && !target.excerpt)) && <p role="alert">{t("settings.documentVersionUnavailable")}</p>}
       {failed && <button className="secondary" type="button" onClick={() => setAttempt((value) => value + 1)}>{t("setupOps.retryLoad")}</button>}
       {content && <section className="settings-section">
         {target.excerpt ? <details><summary>{t("settings.documentOpen")} · v{content.version}</summary>
-          <div className="assistant-markdown"><MarkdownText text={content.blocks.map((block) => block.text).join("\n\n")} streaming={false} labels={labels} /></div>
-        </details> : <div className="assistant-markdown"><MarkdownText text={content.blocks.map((block) => block.text).join("\n\n")} streaming={false} labels={labels} /></div>}
+          <div className="assistant-markdown"><PrivateMarkdown text={content.blocks.map((block) => block.text).join("\n\n")} labels={labels} /></div>
+        </details> : <div className="assistant-markdown"><PrivateMarkdown text={content.blocks.map((block) => block.text).join("\n\n")} labels={labels} /></div>}
       </section>}
     </div>
   </Modal>;

@@ -71,12 +71,14 @@ for key in ('FORGEFLOW_DSH_HOME', 'FORGEFLOW_DSH_WORKSPACE', 'FORGEFLOW_ATTACHME
 import http.cookiejar
 import json
 import urllib.request
-opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+jar = http.cookiejar.CookieJar()
+opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
 origin = 'http://127.0.0.1:8000'
 login = urllib.request.Request(origin + '/api/auth/session',
     data=json.dumps({'invite_code': 'synthetic-container-startup-invite'}).encode(),
     headers={'Content-Type': 'application/json'})
 assert opener.open(login, timeout=5).status == 201
+old_cookie = next(cookie for cookie in jar if cookie.name == 'ff_session')
 payload = (b'--startup-boundary\r\nContent-Disposition: form-data; name="file"; filename="probe.txt"\r\n'
            b'Content-Type: text/plain\r\n\r\ncontainer-only-attachment-probe\r\n--startup-boundary--\r\n')
 upload = urllib.request.Request(origin + '/api/attachments', data=payload,
@@ -84,6 +86,18 @@ upload = urllib.request.Request(origin + '/api/attachments', data=payload,
 with opener.open(upload, timeout=5) as response:
     assert response.status == 200
     assert json.load(response)['size'] == len(b'container-only-attachment-probe')
+logout = urllib.request.Request(origin + '/api/auth/session', method='DELETE')
+assert opener.open(logout, timeout=5).status == 204
+replay = urllib.request.Request(origin + '/api/auth/me',
+    headers={'Cookie': old_cookie.name + '=' + old_cookie.value})
+try:
+    urllib.request.urlopen(replay, timeout=5)
+except urllib.error.HTTPError as error:
+    assert error.code == 401
+else:
+    raise AssertionError('logged-out image session remained usable')
+revocations = Path(os.environ['FORGEFLOW_APPROVALS_ROOT']) / 'invite-session-revocations.sqlite3'
+assert revocations.is_file() and revocations.stat().st_uid == 10001
 """
     if read_only:
         code += """

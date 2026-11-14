@@ -1,0 +1,4 @@
+.images { margin-block: .75rem; padding: .75rem; border: 1px solid var(--border, #ddd); border-radius: .5rem; }
+.notice { margin: 0 0 .5rem; font-size: .875rem; color: var(--text-secondary, #666); }
+.image { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; justify-content: space-between; margin-block: .5rem; }
+.label { min-width: 0; overflow-wrap: anywhere; }

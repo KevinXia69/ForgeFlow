@@ -144,6 +144,47 @@ def test_logout_revokes_the_session(app_client, accounts) -> None:
     assert app_client.get("/api/accounts/me").status_code == 401
 
 
+@pytest.mark.parametrize("path", ["/api/auth/session", "/api/accounts/session"])
+def test_both_logout_routes_revoke_account_cookie_replay(app_client, accounts, path) -> None:
+    _admin_session(app_client, accounts)
+    token = app_client.cookies.get("forgeflow_account")
+    assert accounts.verify_session(token) is not None
+    response = app_client.delete(path)
+    assert response.status_code == 204
+    assert accounts.verify_session(token) is None
+    assert app_client.get("/api/auth/me").status_code == 401
+    app_client.cookies.set("forgeflow_account", token)
+    assert app_client.get("/api/auth/me").status_code == 401
+    assert app_client.delete(path).status_code == 204
+    assert len(response.headers.get_list("set-cookie")) == 2
+
+
+@pytest.mark.parametrize("path", ["/api/auth/session", "/api/accounts/session"])
+def test_stale_workspace_cannot_revoke_replacement_account(app_client, accounts, path) -> None:
+    _admin_session(app_client, accounts)
+    old_cookie = app_client.cookies.get("forgeflow_account")
+    old_scope = app_client.get("/api/auth/me").json()["scope_id"]
+    code = accounts.invite(admin_principal_id=accounts.verify_session(old_cookie)[0].principal_id,
+                           email="replacement@example.test", role="planner")
+    accounts.activate(code=code, password="synthetic-replacement-123")
+    changed = app_client.post("/api/accounts/login", json={
+        "email": "replacement@example.test", "password": "synthetic-replacement-123"})
+    assert changed.status_code == 200
+    new_cookie = app_client.cookies.get("forgeflow_account")
+    new_scope = app_client.get("/api/auth/me").json()["scope_id"]
+    assert old_scope != new_scope
+    denied = app_client.delete(path, headers={"X-ForgeFlow-Workspace": old_scope})
+    assert denied.status_code == 409
+    assert denied.headers["X-ForgeFlow-Workspace-Changed"] == "1"
+    assert "set-cookie" not in denied.headers
+    assert accounts.verify_session(old_cookie) is not None
+    assert accounts.verify_session(new_cookie) is not None
+    assert app_client.get("/api/auth/me").json()["scope_id"] == new_scope
+    assert app_client.delete(path, headers={"X-ForgeFlow-Workspace": new_scope}).status_code == 204
+    assert accounts.verify_session(new_cookie) is None
+    assert app_client.delete(path, headers={"X-ForgeFlow-Workspace": old_scope}).status_code == 204
+
+
 def test_public_config_reports_whether_accounts_are_required(app_client) -> None:
     response = app_client.get("/api/config")
     assert response.status_code == 200

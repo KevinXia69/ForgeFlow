@@ -24,7 +24,7 @@ export function Sidebar({
   onOpenSettings,
   workbenches,
 }: Props) {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return window.localStorage.getItem("forgeflow.sidebarCollapsed") === "true";
@@ -114,14 +114,14 @@ export function Sidebar({
           <span className="nav-label">{t("sidebar.navCases")}</span>
         </button>
         {workbenches?.recovery_review && <a className="nav-item" href="/recovery-review"
-          aria-label={lang === "zh" ? "供应异常评审" : "Review supply disruption"} title={lang === "zh" ? "供应异常评审" : "Review supply disruption"}>
+          aria-label="Review supply disruption" title="Review supply disruption">
           <span className="nav-icon" aria-hidden="true">◇</span>
-          <span className="nav-label">{lang === "zh" ? "供应异常评审" : "Review supply disruption"}</span>
+          <span className="nav-label">Review supply disruption</span>
         </a>}
         {workbenches?.investigation && <a className="nav-item" href="/investigation"
-          aria-label={lang === "zh" ? "调查续接" : "Continue investigation"} title={lang === "zh" ? "调查续接" : "Continue investigation"}>
+          aria-label="Continue investigation" title="Continue investigation">
           <span className="nav-icon" aria-hidden="true">↳</span>
-          <span className="nav-label">{lang === "zh" ? "调查续接" : "Continue investigation"}</span>
+          <span className="nav-label">Continue investigation</span>
         </a>}
         <button
           className="nav-item settings-trigger"
@@ -135,7 +135,7 @@ export function Sidebar({
         </button>
       </nav>
 
-      {view === "runs" && runs.length > 0 ? (
+      {view === "runs" ? (
         <>
           <div className="side-section">
             <h2 className="side-title">{t("sidebar.recentTitle")}</h2>

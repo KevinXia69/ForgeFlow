@@ -34,7 +34,6 @@ import {
   actionSummary,
   buildCaseActivity,
   caseSteps,
-  readbackState,
   checkCounts,
   checkDisplayName,
   caseConclusion,
@@ -59,7 +58,7 @@ import {
   severityLabel,
   severityOf,
   shortId,
-  phaseLabel,
+  stateLabel,
   stateTone,
   stepStatusIcon,
   timelineEvents,
@@ -70,7 +69,6 @@ import {
   type Step,
   type TimelineEvent,
 } from "./caseUi";
-import { RecoveryReviewPanel } from "./RecoveryReview";
 import { useI18n, type Translate, type MessageKey } from "./i18n";
 import type {
   ActivityState,
@@ -80,7 +78,7 @@ import type {
   ProductPlan,
 } from "./types";
 
-import { useWorkspace } from "./workspace";
+import { focusPageEntry, useWorkspace } from "./workspace";
 
 type Props = {
   caseFile: CaseFile;
@@ -469,19 +467,7 @@ function VerificationSection({ caseFile }: { caseFile: CaseFile }) {
                   <li key={`${record.document ?? "record"}-${index}`}>
                     <span className="mono">{friendlyDocument(record.document, t, caseFile.plan?.actions)}</span>
                     <span>{actionKindLabel(record.kind, t)}</span>
-                    {(() => {
-                      const state = readbackState(record.state, t);
-                      return (
-                        <span
-                          className={`case-readback-state${state.unknown ? " is-untranslated" : ""}`}
-                          data-readback-state={record.state ?? "unknown"}
-                          data-readback-untranslated={state.unknown ? "true" : undefined}
-                          title={state.unknown ? t("v14.readbackUnknownTitle") : undefined}
-                        >
-                          {state.label}
-                        </span>
-                      );
-                    })()}
+                    <span className="case-readback-state">{record.state ?? "—"}</span>
                   </li>
                 ))}
               </ul>
@@ -740,7 +726,7 @@ function ExecutionReceipt({
             {caseOutcomeLabel(caseFile, t)}
           </h3>
           <p className="receipt-sub">
-            {phaseLabel(execution.status, t)} · {formatDateTime(caseFile.updated_at, lang)}
+            {stateLabel(execution.status, t)} · {formatDateTime(caseFile.updated_at, lang)}
           </p>
         </div>
         <span className={`case-verifier is-${summary.tone}`}>
@@ -1069,7 +1055,6 @@ function DecisionPanel({
         ) : !canApprove && block ? (
           <div className="decision-disabled" data-decision-disabled="true" data-block-kind={block.kind}>
             <p className="decision-disabled-reason">{block.reason}</p>
-            {block.also ? <p className="decision-disabled-also" data-decision-block-also="true">{block.also}</p> : null}
             {block.recovery ? <p className="decision-disabled-recovery" data-block-recovery="true">{block.recovery}</p> : null}
           </div>
         ) : null}
@@ -1239,6 +1224,9 @@ export function CaseDetail({
     || (mode === "live" && environmentAccessNotice(t, capabilities, caseFile) !== null);
   useEffect(() => { setCaseReadRequired(false); }, [caseFile]);
   const [comment, setComment] = useState("");
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  // Case identity changes are navigation; background reads are not.
+  useEffect(() => { focusPageEntry(headingRef.current); }, [caseFile.case_id]);
   const evidenceRef = useRef<HTMLDivElement | null>(null);
   const auditRef = useRef<HTMLDetailsElement | null>(null);
 
@@ -1523,7 +1511,7 @@ export function CaseDetail({
       <header className="case-detail-head">
         <div className="case-title-row">
           <div className="case-title-copy">
-            <h1>{heading}</h1>
+            <h1 ref={headingRef} tabIndex={-1} data-case-heading="true">{heading}</h1>
             <p className="case-detail-sub">
               {t("cases.productLine", {
                 product: caseFile.order.product,
@@ -1613,9 +1601,6 @@ export function CaseDetail({
               <PolicyChecks checks={effectiveChecks({ ...caseFile, plan: candidate }, t).checks}
                 derived={effectiveChecks({ ...caseFile, plan: candidate }, t).derived} /></>} />
 
-          {caseFile.handoff?.review_profile === "recovery-review-v1" && <RecoveryReviewPanel
-            key={caseFile.case_id} caseFile={caseFile} onUpdated={onUpdated}
-            disabled={writesBlocked || mode !== "live" || busy !== null || decisionBusy || capabilities?.case_approve !== true} />}
           <CaseFacts caseFile={caseFile} mode={mode} />
 
           <section className="case-section" data-case-changes="true">
@@ -1815,7 +1800,6 @@ export function CaseDetail({
             <strong>{t(stickyGate.canApprove ? "v11.stickyTitle" : "v13.stickyBlockedTitle")}</strong>
             <span>{t("v11.stickyScope", { documents: uniqueActionDocuments(caseFile), units: formatQuantity(caseFile.order.units) })}</span>
             {!stickyGate.canApprove && stickyGate.block ? <span className="sticky-block-reason" data-sticky-block-reason="true">{stickyGate.block.reason}</span> : null}
-            {!stickyGate.canApprove && stickyGate.block?.also ? <span className="sticky-block-also" data-sticky-block-also="true">{stickyGate.block.also}</span> : null}
             {!stickyGate.canApprove && stickyGate.block?.recovery ? <span className="sticky-block-recovery" data-sticky-block-recovery="true">{stickyGate.block.recovery}</span> : null}
           </div>
           <button type="button" className="primary" data-case-approve-sticky="true"

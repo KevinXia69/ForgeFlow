@@ -316,7 +316,7 @@ def main(argv: list[str] | None = None) -> int:
             port = args.port if args.port is not None else int(os.environ.get("PORT", "8000"))
             uvicorn.run(
                 create_app(settings, spawn=spawn, product_executor=product_executor),
-                host=args.host, port=port,
+                host=args.host, port=port, server_header=False,
             )
             return 0
         if args.command == "serve":

@@ -5,7 +5,7 @@ import { useI18n } from "./i18n";
 import { MODEL_PROFILES, isModelConfigComplete, isModelProfile, loadModelConfig, saveModelConfig, type ModelProfile } from "./modelConfig";
 import { SelectMenu } from "./SelectMenu";
 import type { ModelSettingsInfo, Workspace } from "./types";
-import { navigate, useWorkspace } from "./workspace";
+import { focusPageEntry, navigate, useWorkspace } from "./workspace";
 import { uploadProgress, type UploadedDocument } from "./knowledgeUpload";
 
 /**
@@ -16,6 +16,8 @@ import { uploadProgress, type UploadedDocument } from "./knowledgeUpload";
 export function HomeView({ onOpenModelSettings }: { onOpenModelSettings?: (profile?: ModelProfile) => void }) {
   const { t } = useI18n();
   const responder = useKnowledgeResponder();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { focusPageEntry(headingRef.current); }, []);
   const { scope_id, deployment } = useWorkspace();
   const savedModel = loadModelConfig(scope_id, deployment);
   const [platform, setPlatform] = useState<ModelSettingsInfo | null>(null);
@@ -177,7 +179,7 @@ export function HomeView({ onOpenModelSettings }: { onOpenModelSettings?: (profi
   return (
     <div className="view home-view" data-knowledge-view="true" data-home-view="true">
       <section className="home-hero">
-        <h1>{mode === "intake" ? t("home.intakeTitle") : t("home.title")}</h1>
+        <h1 ref={headingRef} tabIndex={-1} data-home-heading="true">{mode === "intake" ? t("home.intakeTitle") : t("home.title")}</h1>
         {mode === "intake" ? (
           <div className="composer-workspace">
             {workspaces.length > 1 ? (

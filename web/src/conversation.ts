@@ -1,6 +1,7 @@
 import type { AssistantHistoryTurn, ChatImage, ConversationAttachment } from "./types";
+import { browserSessionAllows, legacyConversation } from "./browserSession";
 
-/** Browser-local, owner/environment-scoped UI history. No credential is stored here. */
+/** Tab-session, owner/environment-scoped UI history; cleared when the session ends. */
 export type StoredChatMessage = {
   id: string;
   role: "user" | "assistant";
@@ -53,9 +54,11 @@ export function newConversationId(): string { return crypto.randomUUID(); }
 const key = (scope: string) => `forgeflow.chat.v2.${scope}`;
 
 function parseStored(scope: string): ConversationStore | null {
-  if (!scope) return null;
+  if (!browserSessionAllows(scope)) return null;
   try {
-    const parsed = JSON.parse(localStorage.getItem(key(scope)) || "null");
+    let raw: string | null = null;
+    try { raw = sessionStorage.getItem(key(scope)); } catch { /* Memory migration remains available. */ }
+    const parsed = JSON.parse(raw || legacyConversation(scope) || "null");
     if (parsed && typeof parsed.active === "string" && Array.isArray(parsed.sessions)) {
       const sessions = parsed.sessions.filter((item: SavedConversation) => item && /^[A-Za-z0-9-]{1,64}$/.test(item.id) && typeof item.title === "string" && Array.isArray(item.messages));
       if (sessions.some((item: SavedConversation) => item.id === parsed.active)) return { active: parsed.active, sessions };
@@ -132,11 +135,11 @@ export function readConversations(scope: string): ConversationStore {
 }
 
 export function writeConversations(scope: string, value: ConversationStore): boolean {
-  if (!scope) return false;
+  if (!browserSessionAllows(scope)) return false;
   try {
     const existing = parseStored(scope);
     const merged = existing ? mergeConversations(value, existing) : value;
-    localStorage.setItem(key(scope), JSON.stringify(merged));
+    sessionStorage.setItem(key(scope), JSON.stringify(merged));
     return true;
   } catch { return false; }
 }

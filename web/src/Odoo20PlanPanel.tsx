@@ -1,13 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api, ApiError } from "./api";
 import { useI18n } from "./i18n";
 import { useWorkspace } from "./workspace";
 import { attentionNeedKey, taskStateKey, taskStateTone } from "./taskState";
-import { planActionState } from "./odoo20PlanState";
 
-import { Odoo20PlanReview } from "./Odoo20PlanReview";
-import { completeReview, reviewCanApprove, reviewIdentity, type PreparedPlan as Prepared } from "./planReviewIdentity";
-
+type Prepared = {
+  plan_id: number;
+  order: { name: string; state: string; amount_total?: number; date_planned?: string };
+  task?: { attention: string; need: string };
+  action_count?: number;
+  actions?: Array<{ type?: string; quantity?: number; unit?: string; currency?: string;
+                    params?: Record<string, unknown> }>;
+  lines?: Array<{ product_id?: [number, string]; product_qty?: number;
+                  price_unit?: number; date_planned?: string }>;
+};
 type PlanTask = {
   plan_id: number; ticket_id?: string; goal: string; attention: string;
   attention_id?: string; need: string; blocking?: boolean; state: string;
@@ -24,29 +30,18 @@ export function Odoo20PlanPanel({ initialPlanId = null }: { initialPlanId?: numb
   const { deployment } = useWorkspace();
   const [orderId, setOrderId] = useState("");
   const [reason, setReason] = useState("");
-  const [loadedPlan, setPlan] = useState<Prepared | null>(null);
-  const context = `${deployment}:${initialPlanId ?? "new"}`;
-  const [loadedContext, setLoadedContext] = useState(context);
-  const plan = loadedContext === context ? loadedPlan : null;
-  const requestEpoch = useRef(0);
-  const contextRef = useRef(context);
-  contextRef.current = context;
-  const [reviewed, setReviewed] = useState(false);
-  const [reviewUnavailable, setReviewUnavailable] = useState(false);
+  const [plan, setPlan] = useState<Prepared | null>(null);
   const [approved, setApproved] = useState(false);
   const [busy, setBusy] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [tasks, setTasks] = useState<PlanTask[]>([]);
-  const [tasksLoaded, setTasksLoaded] = useState(false);
   const [failures, setFailures] = useState<FailureTask[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
   const [openTasks, setOpenTasks] = useState<TaskInfo[]>([]);
   const [attentions, setAttentions] = useState<AttentionInfo[]>([]);
   const [tasksUnavailable, setTasksUnavailable] = useState(false);
   const [attentionDrafts, setAttentionDrafts] = useState<Record<string, string>>({});
-  const selectedTask = tasks.find((task) => task.plan_id === plan?.plan_id);
-  const actionState = planActionState(plan?.task, selectedTask, approved, tasksLoaded);
   // One row per matter: a plan task and the same task in the queue are the same
   // thing, and showing both made the layout repeat itself.
   const matters = (() => {
@@ -69,7 +64,6 @@ export function Odoo20PlanPanel({ initialPlanId = null }: { initialPlanId?: numb
     return rows.slice(0, 10);
   })();
   const scanSources = async () => {
-    if (deployment !== "local") return;
     setBusy("prepare");
     setError("");
     try {
@@ -89,10 +83,8 @@ export function Odoo20PlanPanel({ initialPlanId = null }: { initialPlanId?: numb
   };
   const refreshTasks = () => {
     setTasksUnavailable(false);
-    void api<PlanTask[]>("/api/odoo20/tasks").then((rows) => {
-      setTasks(rows); setTasksLoaded(true);
-    }).catch(() => {
-      setTasks([]); setTasksLoaded(false); setTasksUnavailable(true);
+    void api<PlanTask[]>("/api/odoo20/tasks").then(setTasks).catch(() => {
+      setTasks([]); setTasksUnavailable(true);
     });
     void api<FailureTask[]>("/api/tasks/failures").then(setFailures).catch(() => {
       setFailures([]); setTasksUnavailable(true);
@@ -107,64 +99,24 @@ export function Odoo20PlanPanel({ initialPlanId = null }: { initialPlanId?: numb
       setAttentions([]); setTasksUnavailable(true);
     });
   };
-  useEffect(() => { refreshTasks(); }, [deployment]);
+  useEffect(() => { if (deployment !== "review") refreshTasks(); }, [deployment]);
   useEffect(() => {
-    const epoch = ++requestEpoch.current;
-    setPlan(null); setApproved(false); setReviewed(false); setReviewUnavailable(false);
-    setStatus(""); setError(""); setBusy(initialPlanId ? "load" : "");
-    if (initialPlanId) void api<Prepared>(`/api/odoo20/plans/${initialPlanId}`)
-      .then((value) => {
-        if (requestEpoch.current !== epoch || contextRef.current !== context) return;
-        if (value.plan_id !== initialPlanId) throw new Error("plan_identity_mismatch");
-        setLoadedContext(context); setPlan(value); setOrderId(String(value.order?.name ?? ""));
-      })
-      .catch(() => {
-        if (requestEpoch.current !== epoch || contextRef.current !== context) return;
-        setReviewUnavailable(true); setError(t("odoo20.failed"));
-      })
-      .finally(() => { if (requestEpoch.current === epoch) setBusy(""); });
-    return () => { requestEpoch.current += 1; };
-  }, [context, initialPlanId, t]);
-  const refreshReview = async () => {
-    const id = plan?.plan_id ?? initialPlanId;
-    if (!id) return;
-    const epoch = ++requestEpoch.current;
-    try {
-      const current = await api<Prepared>(`/api/odoo20/plans/${id}`);
-      if (requestEpoch.current !== epoch || contextRef.current !== context) return;
-      if (current.plan_id !== id) throw new Error("plan_identity_mismatch");
-      if (!plan || reviewIdentity(current) !== reviewIdentity(plan)) {
-        setReviewed(false); setApproved(false); setStatus(t("odoo20.reviewChanged"));
-      }
-      setPlan(current); setLoadedContext(context); setReviewUnavailable(false); setError("");
-    } catch {
-      if (requestEpoch.current !== epoch || contextRef.current !== context) return;
-      setReviewed(false); setReviewUnavailable(true); setError(t("odoo20.reviewUnavailable"));
-    }
-  };
-  useEffect(() => {
-    if (!plan || actionState !== "awaiting_approval") return;
-    const timer = setInterval(() => { if (!busy) void refreshReview(); }, 5000);
-    return () => clearInterval(timer);
-  }, [plan, actionState, busy, context]);
-  useEffect(() => {
-    if (!plan?.expires_at) return;
-    const delay = Date.parse(plan.expires_at) - Date.now();
-    if (!Number.isFinite(delay) || delay <= 0) return;
-    const timer = setTimeout(() => { setReviewed(false); setStatus(t("odoo20.reviewInactive")); }, Math.min(delay + 1, 2_147_483_647));
-    return () => clearTimeout(timer);
-  }, [plan, t]);
+    if (deployment === "review" || !initialPlanId) return;
+    void api<Prepared>(`/api/odoo20/plans/${initialPlanId}`)
+      .then((value) => { setPlan(value); setOrderId(String(value.order?.name ?? "")); })
+      .catch(() => setError(t("odoo20.failed")));
+  }, [deployment, initialPlanId, t]);
   // Approval queues a durable execution effect; the supervisor advances it.  The
   // page polls the same matter instead of asking the person to press "apply".
   useEffect(() => {
-    if (actionState !== "executing" || !plan) return;
+    if (deployment === "review" || !approved || !plan) return;
     const timer = setInterval(() => {
       void api<PlanTask[]>("/api/odoo20/tasks").then((rows) => {
-        setTasks(rows); setTasksLoaded(true);
         const row = rows.find((item) => item.plan_id === plan.plan_id);
         if (!row) return;
         if (row.state === "completed") {
           setStatus(t("odoo20.verified"));
+          setPlan(null);
           setApproved(false);
         } else if (row.state === "blocked" || row.state === "failed") {
           setStatus(t("odoo20.executionNeedsAction"));
@@ -172,62 +124,49 @@ export function Odoo20PlanPanel({ initialPlanId = null }: { initialPlanId?: numb
       }).catch(() => undefined);
     }, 2500);
     return () => clearInterval(timer);
-  }, [actionState, plan, t]);
+  }, [approved, plan, t, deployment]);
+  // The public review surface remains read-only even when an API exposes plans.
+  if (deployment === "review") return null;
   const prepare = async () => {
-    if (busy || reason.trim().length < 2) return;
-    const epoch = ++requestEpoch.current;
-    setBusy("prepare"); setError(""); setPlan(null); setApproved(false); setReviewed(false); setReviewUnavailable(false); setStatus("");
-    try {
-      let id = Number(orderId);
-      if (!Number.isInteger(id) || id <= 0) {
+    let id = Number(orderId);
+    if (!Number.isInteger(id) || id <= 0) {
+      try {
+        const needle = orderId.trim();
         const data = await api<{ records: Array<{ id: number; name: string }> }>(
-          `/api/odoo20/business-data?kind=purchase_order&limit=50&q=${encodeURIComponent(orderId.trim())}`);
-        if (requestEpoch.current !== epoch || contextRef.current !== context) return;
-        if (data.records.length !== 1) {
-          setError(t(data.records.length > 1 ? "odoo20.orderAmbiguous" : "odoo20.orderMissing"));
+          `/api/odoo20/business-data?kind=purchase_order&limit=50&q=${encodeURIComponent(needle)}`);
+        const matches = data.records;
+        if (matches.length !== 1) {
+          setError(t(matches.length > 1 ? "odoo20.orderAmbiguous" : "odoo20.orderMissing"));
           return;
         }
-        id = Number(data.records[0].id);
-      }
-      if (!Number.isInteger(id) || id <= 0) return;
-      const prepared = await api<Prepared>("/api/odoo20/plans", {
-        method: "POST", body: JSON.stringify({ purchase_order_id: id, reason: reason.trim() }),
-      });
-      if (requestEpoch.current !== epoch || contextRef.current !== context) return;
-      setLoadedContext(context); setPlan(prepared); refreshTasks();
+        id = Number(matches[0].id);
+      } catch { setError(t("odoo20.failed")); return; }
+    }
+    if (!Number.isInteger(id) || id <= 0 || reason.trim().length < 2) return;
+    setBusy("prepare"); setError(""); setPlan(null); setApproved(false); setStatus("");
+    try {
+      setPlan(await api<Prepared>("/api/odoo20/plans", {
+        method: "POST",
+        body: JSON.stringify({ purchase_order_id: id, reason: reason.trim() }),
+      }));
+      refreshTasks();
     } catch (failure) {
-      if (requestEpoch.current !== epoch || contextRef.current !== context) return;
       setError(failure instanceof ApiError ? failure.message : t("odoo20.failed"));
-    } finally { if (requestEpoch.current === epoch) setBusy(""); }
+    } finally { setBusy(""); }
   };
   const approve = async () => {
-    if (!plan || !reviewCanApprove(plan) || !reviewed || reviewUnavailable || busy
-      || actionState !== "awaiting_approval" || deployment === "review") return;
-    const epoch = ++requestEpoch.current;
+    if (!plan) return;
     setBusy("approve"); setError("");
     try {
-      const current = await api<Prepared>(`/api/odoo20/plans/${plan.plan_id}`);
-      if (requestEpoch.current !== epoch || contextRef.current !== context) return;
-      if (!reviewCanApprove(current) || reviewIdentity(current) !== reviewIdentity(plan)
-        || current.task?.attention !== "open" || current.task?.need !== "approval") {
-        setPlan(current.plan_id === plan.plan_id ? current : null);
-        setReviewed(false); setApproved(false); setError(t("odoo20.reviewChanged"));
-        return;
-      }
       await api(`/api/odoo20/plans/${plan.plan_id}/approve`, {
-        method: "POST", body: JSON.stringify({ comment: reason.trim(),
-          expected_plan_version: plan.plan_version, expected_action_digest: plan.action_digest,
-          expected_plan_digest: plan.plan_digest }),
+        method: "POST", body: JSON.stringify({ comment: reason.trim() }),
       });
-      if (requestEpoch.current !== epoch || contextRef.current !== context) return;
       setApproved(true);
       setStatus(t("odoo20.approved"));
       refreshTasks();
     } catch (failure) {
-      if (requestEpoch.current !== epoch || contextRef.current !== context) return;
-      setReviewed(false); setReviewUnavailable(true);
       setError(failure instanceof ApiError ? failure.message : t("odoo20.failed"));
-    } finally { if (requestEpoch.current === epoch) setBusy(""); }
+    } finally { setBusy(""); }
   };
   const revoke = async () => {
     if (!plan) return;
@@ -243,34 +182,36 @@ export function Odoo20PlanPanel({ initialPlanId = null }: { initialPlanId?: numb
       setError(failure instanceof ApiError ? failure.message : t("odoo20.failed"));
     } finally { setBusy(""); }
   };
+  const plannedLines = (plan?.actions ?? []).flatMap((action) => {
+    const lines = (action.params as { lines?: Array<{ product_qty?: number; price_unit?: number }> } | undefined)?.lines;
+    return Array.isArray(lines) ? lines : [];
+  });
+  const plannedTotal = plannedLines.reduce((total, line) =>
+    total + Number(line.product_qty ?? 0) * Number(line.price_unit ?? 0), 0);
+  const plannedCurrency = plan?.actions?.find((action) => action.currency)?.currency ?? "";
   return <section className="odoo20-panel" data-odoo20-plan>
     <div className="odoo20-fields">
       <input aria-label={t("odoo20.purchaseOrder")} placeholder={t("odoo20.purchaseOrder")} value={orderId} onChange={event => setOrderId(event.currentTarget.value)} />
       <input aria-label={t("odoo20.reason")} placeholder={t("odoo20.reason")} value={reason} maxLength={1000} onChange={event => setReason(event.currentTarget.value)} />
       <button type="button" className="secondary" disabled={busy !== "" || !orderId || reason.trim().length < 2} onClick={() => void prepare()}>{t("odoo20.prepare")}</button>
-      {deployment === "local" && <button type="button" className="secondary" disabled={busy !== ""} onClick={() => void scanSources()}>{t("odoo20.scanSources")}</button>}
+      <button type="button" className="secondary" disabled={busy !== ""} onClick={() => void scanSources()}>{t("odoo20.scanSources")}</button>
     </div>
     {plan && <div className="odoo20-summary" data-odoo20-summary>
-      <strong>{plan.order?.name ?? t("v9.unknown")} · {plan.order?.state ?? t("v9.unknown")}</strong>
-      <Odoo20PlanReview plan={plan} />
-      {!completeReview(plan) && <p role="alert">{t("odoo20.reviewIncomplete")}</p>}
-      {completeReview(plan) && actionState === "awaiting_approval" && !reviewCanApprove(plan) && <p role="alert">{t("odoo20.reviewInactive")}</p>}
-      {actionState === "awaiting_approval" && <label className="approval-acknowledgement">
-        <input type="checkbox" data-review-ack checked={reviewed} disabled={!reviewCanApprove(plan) || reviewUnavailable || !!busy}
-          onChange={event => setReviewed(event.currentTarget.checked)} />{t("odoo20.reviewAcknowledgement")}
-      </label>}
+      <strong>{plan.order.name} · {plan.order.state}</strong>
+      <span>{t("odoo20.changeSummary", { count: String(plan.action_count ?? 0) })}</span>
+      {plan.actions?.length ? <ul>{plan.actions.slice(0, 6).map((action, index) =>
+        <li key={`action-${index}`}>{String(action.type ?? "")} {action.quantity !== undefined ? `· ${action.quantity} ${action.unit ?? ""}` : ""}</li>)}</ul> : null}
+      {plan.lines?.length ? <ul>{plan.lines.slice(0, 4).map((line, index) =>
+        <li key={`line-${line.product_id?.[0] ?? index}`}>{Array.isArray(line.product_id) ? line.product_id[1] : t("odoo20.item")} · {line.product_qty ?? 0}{line.price_unit !== undefined ? ` · ${line.price_unit}` : ""}{line.date_planned ? ` · ${line.date_planned}` : ""}</li>)}</ul> : null}
+      {plannedLines.length ? <span>{t("odoo20.plannedAmount", { currency: plannedCurrency, amount: plannedTotal.toFixed(2) })}</span> : null}
+      {plan.order.amount_total !== undefined ? <span>{t("odoo20.originalAmount", { amount: String(plan.order.amount_total) })}</span> : null}
+      {plan.order.date_planned ? <span>{t("odoo20.orderDate", { date: plan.order.date_planned })}</span> : null}
     </div>}
-    {reviewUnavailable && <p role="alert">{t("odoo20.reviewUnavailable")} <button type="button" className="secondary" disabled={!!busy} onClick={() => void refreshReview()}>{t("odoo20.retry")}</button></p>}
-    {plan && <div className="odoo20-actions" data-plan-action-state={actionState}>
-      {actionState === "loading" && <span>{t("cases.loading")}</span>}
-      {actionState === "awaiting_approval" && <span>{t("odoo20.awaitingApproval")}</span>}
-      {actionState === "awaiting_approval" && deployment !== "review" && <button type="button" className="primary" data-plan-approve disabled={busy !== "" || !reviewed || reviewUnavailable || !reviewCanApprove(plan)} onClick={() => void approve()}>{t("odoo20.approveAndExecute")}</button>}
-      {actionState === "executing" && <span data-execution-pending="true">{t("odoo20.executing")}</span>}
-      {actionState === "executing" && deployment !== "review" && <button type="button" className="secondary" disabled={busy !== ""} onClick={() => void revoke()}>{t("odoo20.revokeApproval")}</button>}
-      {actionState === "completed" && <span>{t("odoo20.verified")}</span>}
-      {actionState === "closed" && <span>{t("task.state.completed")}</span>}
-      {actionState === "needs_action" && <span>{t("odoo20.executionNeedsAction")}</span>}
-      {actionState === "read_only" && <span>{t("odoo20.approvalHandled")}</span>}
+    {plan && <div className="odoo20-actions">
+      {!approved && <span>{t("odoo20.awaitingApproval")}</span>}
+      {!approved && <button type="button" className="primary" disabled={busy !== ""} onClick={() => void approve()}>{t("odoo20.approveAndExecute")}</button>}
+      {approved && <span data-execution-pending="true">{t("odoo20.executing")}</span>}
+      {approved && <button type="button" className="secondary" disabled={busy !== ""} onClick={() => void revoke()}>{t("odoo20.revokeApproval")}</button>}
     </div>}
     {tasksUnavailable && <p role="alert">{t("odoo20.tasksUnavailable")} <button type="button" className="secondary" onClick={refreshTasks}>{t("odoo20.retry")}</button></p>}
     {status && <p role="status">{status}</p>}
@@ -301,7 +242,7 @@ export function Odoo20PlanPanel({ initialPlanId = null }: { initialPlanId?: numb
         <span>{item.goal}</span>
         <span data-user-state={item.user_state ?? item.state} className={`task-state task-state-${taskStateTone(item.user_state ?? item.state)}`}>{t(taskStateKey(item.user_state ?? item.state))}</span>
         {item.attentionOpen && <span className="task-need">{t(attentionNeedKey(item.need))}</span>}
-        {item.user_state !== "completed" && !["completed", "cancelled", "closed"].includes(item.state) && <button type="button" className="secondary"
+        {item.user_state !== "completed" && <button type="button" className="secondary"
           title={t("odoo20.cancelInvestigationHint")}
           aria-label={t("odoo20.cancelInvestigation")}
           onClick={() => void api(`/api/tasks/${item.key}/cancel`, { method: "POST" }).then(refreshTasks).catch(() => setError(t("odoo20.failed")))}>{t("odoo20.cancelInvestigation")}</button>}

@@ -4,7 +4,6 @@ from pathlib import Path
 
 from fastapi import Depends, HTTPException
 from pydantic import Field
-from starlette.responses import FileResponse
 
 from forgeflow.investigation.cases import CaseError
 from forgeflow.product.service import ProductCaseError
@@ -12,6 +11,7 @@ from forgeflow.recovery.storage import StorageError
 
 from .auth import require_principal
 from .investigation import Operation
+from .web import ContentFileResponse
 
 
 class RegisteredTurn(Operation):
@@ -52,7 +52,7 @@ def install_review(app, session):
 
     @app.get("/recovery-review", include_in_schema=False)
     def page():
-        return FileResponse(Path(__file__).with_name("static") / "recovery-review.html")
+        return ContentFileResponse(Path(__file__).with_name("static") / "recovery-review.html")
 
     @app.get("/api/recovery-review/session")
     def current(uid: str = Depends(require_principal)):

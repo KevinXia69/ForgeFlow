@@ -1,9 +1,10 @@
 /**
  * Browser-local model API configuration.
  *
- * The key lives only in this browser's localStorage and is sent with each
- * assistant request. There is deliberately no server-side persistence here.
+ * The key lives only in this document's memory. Refresh and logout discard it.
+ * Hosted workspaces do not accept client model keys.
  */
+import { browserSessionAllows, onBrowserSessionClear } from "./browserSession";
 
 export type ModelProfile =
   | "deepseek_flash"
@@ -34,7 +35,7 @@ export const MODEL_PROFILES: Record<ModelProfile, ModelProfilePreset> = {
     model: "deepseek-flash",
   },
   openai: {
-    label: "OpenAI",
+    label: "OpenAI-compatible",
     base_url: "https://api.openai.com/v1",
     model: "gpt-4o-mini",
   },
@@ -44,7 +45,7 @@ export const MODEL_PROFILES: Record<ModelProfile, ModelProfilePreset> = {
     model: "openai/gpt-4o-mini",
   },
   gemini: {
-    label: "Google Gemini",
+    label: "Gemini-compatible",
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai/",
     model: "gemini-3-flash-preview",
   },
@@ -64,53 +65,23 @@ export const PROFILE_ORDER: ModelProfile[] = [
 ];
 
 const PROFILES = Object.keys(MODEL_PROFILES) as ModelProfile[];
+const configs = new Map<string, ModelConfig>();
+onBrowserSessionClear(() => configs.clear());
 
 export function isModelProfile(value: unknown): value is ModelProfile {
   return typeof value === "string" && (PROFILES as string[]).includes(value);
 }
 
-function modelStorage(): Storage | null {
-  try {
-    return typeof window === "undefined" ? null : window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
-function parseStoredConfig(value: unknown): ModelConfig | null {
-  if (typeof value !== "object" || value === null) return null;
-  const record = value as Record<string, unknown>;
-  if (
-    !isModelProfile(record.profile) ||
-    typeof record.base_url !== "string" ||
-    typeof record.model !== "string" ||
-    typeof record.api_key !== "string"
-  ) {
-    return null;
-  }
-  return {
-    profile: record.profile,
-    base_url: record.base_url,
-    model: record.model,
-    api_key: record.api_key,
-  };
-}
-
-/** Read the browser-local config; invalid or unavailable storage yields null. */
+/** Return a copy so callers cannot mutate the session's saved configuration. */
 export function loadModelConfig(scope = "unscoped", deployment = "local"): ModelConfig | null {
-  if (deployment === "hosted") return null;
-  try {
-    const raw = modelStorage()?.getItem(`${MODEL_STORAGE_KEY}.${scope}`);
-    if (!raw) return null;
-    return parseStoredConfig(JSON.parse(raw));
-  } catch {
-    return null;
-  }
+  if (deployment === "hosted" || !browserSessionAllows(scope)) return null;
+  const config = configs.get(scope);
+  return config ? { ...config } : null;
 }
 
-/** Persist only the four model fields under the single localStorage key. */
+/** Use only for the current tab until refresh or logout; never write browser storage. */
 export function saveModelConfig(config: ModelConfig, scope = "unscoped", deployment = "local"): boolean {
-  if (deployment === "hosted") return false;
+  if (deployment === "hosted" || !browserSessionAllows(scope)) return false;
   const profile = isModelProfile(config.profile) ? config.profile : "custom";
   const stored: ModelConfig = {
     profile,
@@ -118,23 +89,13 @@ export function saveModelConfig(config: ModelConfig, scope = "unscoped", deploym
     model: config.model.trim(),
     api_key: config.api_key.trim(),
   };
-  try {
-    const storage = modelStorage();
-    if (!storage) return false;
-    storage.setItem(`${MODEL_STORAGE_KEY}.${scope}`, JSON.stringify(stored));
-    return true;
-  } catch {
-    return false;
-  }
+  configs.set(scope, stored);
+  return true;
 }
 
-/** Remove the browser-local config; a missing key is already clear. */
+/** Forget the in-memory key. Legacy storage is removed by session initialization. */
 export function clearModelConfig(scope = "unscoped"): void {
-  try {
-    modelStorage()?.removeItem(`${MODEL_STORAGE_KEY}.${scope}`);
-  } catch {
-    // The config is unusable either way when storage is unavailable.
-  }
+  configs.delete(scope);
 }
 
 /** A config is usable only when all three request fields are present. */

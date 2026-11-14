@@ -6,11 +6,11 @@ import type { MessageKey, Translate } from "./i18n";
 const TASK_LABEL_KEYS: Record<string, MessageKey> = {
   "2280_medium_repair_plan_medium": "runs.taskSupplierRepair",
   "2299_hard_repair_plan_hard": "runs.taskLineRepair",
-  "供应商断供": "runs.taskSupplierDisruption",
-  "产线停机": "runs.taskLineDowntime",
-  "其他任务": "runs.taskOther",
-  "供应商断供后的计划修复": "runs.taskSupplierRepair",
-  "产线停机后的计划修复": "runs.taskLineRepair",
+  "\u4f9b\u5e94\u5546\u65ad\u4f9b": "runs.taskSupplierDisruption",
+  "\u4ea7\u7ebf\u505c\u673a": "runs.taskLineDowntime",
+  "\u5176\u4ed6\u4efb\u52a1": "runs.taskOther",
+  "\u4f9b\u5e94\u5546\u65ad\u4f9b\u540e\u7684\u8ba1\u5212\u4fee\u590d": "runs.taskSupplierRepair",
+  "\u4ea7\u7ebf\u505c\u673a\u540e\u7684\u8ba1\u5212\u4fee\u590d": "runs.taskLineRepair",
 };
 
 export function translateTaskLabel(
