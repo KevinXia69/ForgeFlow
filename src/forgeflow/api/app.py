@@ -2371,6 +2371,15 @@ def create_app(
         if model is None or not model.api_key:
             raise HTTPException(status_code=400, detail="not_configured")
         started = time.monotonic()
+        if configured is not None:
+            from forgeflow.model_transport import ModelTransport, TransportError
+            try:
+                ModelTransport(base_url=model.base_url, api_key=model.api_key, model=model.model,
+                    api=model.api, provider=model.provider, timeout=45).probe_tools()
+            except TransportError as error:
+                return {"ok": False, "error": str(error)}
+            return {"ok": True, "tools": True, "protocol": model.api,
+                    "latency_ms": round((time.monotonic() - started) * 1000)}
         try:
             generation_options = ({"allow_redirects": False}
                                   if settings.deployment != "local" and configured is not None else {})

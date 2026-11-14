@@ -119,3 +119,67 @@ def test_probe_sources_compile_and_http_never_requests_a_model():
     http = (ROOT / "tests/integrations/workbench_http_probe.py").read_text()
     assert "/assistant/" not in http
     assert "cookie=saved_cookie" in http and "== 401" in http
+
+
+@pytest.mark.parametrize('ndjson', [False, True])
+def test_diagnostics_keep_only_closed_service_and_error_fields(ndjson):
+    secret = 'synthetic-credential'
+    rows = [
+        {'Service': 'odoo-init', 'State': 'exited', 'ExitCode': 1, 'Health': '',
+         'Command': secret, 'Labels': {'api_key': secret}, 'Name': secret},
+        {'Service': 'api', 'State': 'running', 'Health': 'healthy', 'ExitCode': 0},
+        {'Service': secret, 'State': 'running', 'ExitCode': 0},
+        {'Service': ['api'], 'State': 'running', 'ExitCode': 0},
+    ]
+    states = '\n'.join(json.dumps(row) for row in rows) if ndjson else json.dumps(rows)
+    log = '\n'.join([
+        'odoo-init-1 | ' + json.dumps({'ok': False, 'component': 'odoo_seed',
+             'error': 'odoo_native_addon_not_installed', 'message': secret, 'body': secret}),
+        'odoo-init-1 | ValueError: ' + secret,
+        json.dumps({'ok': False, 'component': secret, 'error': secret}),
+        json.dumps({'ok': False, 'component': 'api', 'error': {'api_key': secret}}),
+        json.dumps({'ok': True, 'error': 'local_database_not_fresh'}),
+        'Authorization: Bearer ' + secret,
+    ])
+    result = module.safe_diagnostics(states, log)
+    assert result == {'services': [
+        {'service': 'api', 'state': 'running', 'health': 'healthy', 'exit_code': 0},
+        {'service': 'odoo-init', 'state': 'exited', 'exit_code': 1}],
+        'errors': [{'component': 'odoo_seed', 'code': 'odoo_native_addon_not_installed'},
+                   {'type': 'ValueError'}], 'service_state_available': True}
+    assert secret not in json.dumps(result)
+
+
+@pytest.mark.parametrize('states', ['', 'invalid-json', '[null, 42]', 'x' * 70000])
+def test_invalid_diagnostics_never_replace_failure_with_untrusted_data(states):
+    result = module.safe_diagnostics(states, 'synthetic-credential')
+    assert result == {'services': [], 'errors': [], 'service_state_available': False}
+
+
+def test_diagnostics_reject_untyped_state_values_and_bound_old_messages():
+    secret = 'synthetic-credential'
+    states = json.dumps([{'Service': 'api', 'State': secret, 'ExitCode': True,
+                         'Health': {'detail': secret}}] * 20)
+    log = 'ModuleNotFoundError: ' + secret + '\n' + 'x' * 70000 + '\nPermissionError: ' + secret
+    result = module.safe_diagnostics(states, log)
+    assert result['services'] == [{'service': 'api'}]
+    assert result['errors'] == [{'type': 'PermissionError'}]
+    assert secret not in json.dumps(result)
+
+
+def test_diagnostics_collection_uses_only_given_project_and_bounded_private_tail(tmp_path, monkeypatch):
+    log = tmp_path / 'private.log'
+    log.write_bytes(b'synthetic-credential\n' * 20000 + b'RuntimeError: synthetic-credential\n')
+    commands = []
+    def run(command, **kwargs):
+        commands.append(command)
+        assert kwargs['timeout'] == 15 and kwargs['capture_output'] is True
+        return SimpleNamespace(returncode=0, stdout=json.dumps(
+            {'Service': 'bootstrap', 'State': 'exited', 'ExitCode': 1}))
+    monkeypatch.setattr(module.subprocess, 'run', run)
+    compose = ['docker', 'compose', '-p', 'isolated-test', '-f', '/tmp/isolated-compose.yaml']
+    result = module.collect_diagnostics(compose, log)
+    assert commands == [[*compose, 'ps', '-a', '--format', 'json']]
+    assert result['errors'] == [{'type': 'RuntimeError'}]
+    assert result['services'] == [{'service': 'bootstrap', 'state': 'exited', 'exit_code': 1}]
+    assert 'synthetic-credential' not in json.dumps(result)

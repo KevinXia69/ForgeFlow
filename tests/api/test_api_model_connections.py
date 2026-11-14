@@ -203,3 +203,28 @@ def test_case_chat_uses_optional_connection_and_releases_it(tmp_path, monkeypatc
     assert [row[0] for row in calls].count("select") == 1
     assert [row[0] for row in calls].count("close") == 1
     assert "Earlier case question" in next(row[2] for row in calls if row[0] in {"ask", "stream"})
+
+
+def test_public_connection_check_requires_a_real_tool_round_trip(tmp_path, monkeypatch):
+    from forgeflow.model_transport import TransportError
+
+    app, calls = make_app(tmp_path, monkeypatch)
+    probes = []
+
+    def probe(model):
+        probes.append((model.provider, model.api, model.api_key))
+
+    monkeypatch.setattr("forgeflow.model_transport.ModelTransport.probe_tools", probe)
+    with client_for(app) as client:
+        success = client.post("/api/settings/model/test", json={"model": MODEL})
+        assert success.json()["tools"] is True
+        assert probes == [("anthropic", "anthropic-messages", KEY)]
+
+        def unsupported(_):
+            raise TransportError("model_tools_unsupported")
+
+        monkeypatch.setattr("forgeflow.model_transport.ModelTransport.probe_tools", unsupported)
+        failed = client.post("/api/settings/model/test", json={"model": MODEL})
+        assert failed.json() == {"ok": False, "error": "model_tools_unsupported"}
+        assert KEY not in failed.text
+    assert not calls

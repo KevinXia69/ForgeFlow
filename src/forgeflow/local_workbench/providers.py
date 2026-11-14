@@ -22,7 +22,7 @@ PROVIDER_PRESETS = {
         "base_url": "https://api.deepseek.com/v1", "model": "deepseek-flash", "input": ["text", "image"],
         "endpoints": {"openai-completions": "https://api.deepseek.com/v1",
                       "openai-responses": "https://api.deepseek.com/v1",
-                      "anthropic-messages": "https://api.deepseek.com/anthropic/v1"}},
+                      "anthropic-messages": "https://api.deepseek.com/anthropic"}},
     "nemotron": {"label": "Nebius", "provider": "nebius", "api": "openai-completions",
         "base_url": "https://api.tokenfactory.nebius.com/v1", "model": "nvidia/Nemotron-3.5-Super-VL", "input": ["text", "image"],
         "endpoints": {"openai-completions": "https://api.tokenfactory.nebius.com/v1"}},

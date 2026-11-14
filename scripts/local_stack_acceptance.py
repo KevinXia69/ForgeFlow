@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import time
+from pathlib import Path
 
 GUARD = "FORGEFLOW_WORKBENCH_ISOLATED_TEST=1"
 PROVIDER_READY = (
@@ -14,6 +16,125 @@ PROVIDER_READY = (
     "s=socket.create_connection(('qdrant',6333),timeout=2); "
     "c.wrap_socket(s,server_hostname='qdrant').close()"
 )
+
+SERVICES = frozenset({'setup', 'control-db', 'odoo-db', 'odoo-init', 'odoo', 'qdrant',
+                      'bootstrap', 'api', 'supervisor', 'docmind', 'test-provider'})
+EXCEPTION_TYPES = frozenset({
+    'AssertionError', 'AttributeError', 'BootstrapError', 'CalledProcessError', 'ConfigError',
+    'ConnectionError', 'EmbeddingError', 'FileNotFoundError', 'ImportError', 'IndexError',
+    'InterfaceError', 'KeyError', 'ModuleNotFoundError', 'NameError', 'OSError',
+    'OperationalError', 'PermissionError', 'ProgrammingError', 'QdrantError',
+    'ReferencePackError', 'RuntimeError', 'SeedError', 'SemanticConfigError',
+    'TimeoutError', 'TimeoutExpired', 'TypeError', 'UndefinedColumn', 'UndefinedTable', 'ValueError',
+})
+ERROR_CODES = frozenset({
+    'configuration_missing', 'configuration_unreadable', 'configuration_invalid',
+    'configuration_locked', 'configuration_too_large', 'unsafe_configuration_permissions',
+    'unsafe_configuration_path', 'valid_provider_keys_required', 'unsupported_model_profile',
+    'invalid_configuration_fields', 'model_configuration_changed_retest', 'invalid_display_name',
+    'dashscope_api_key_format_invalid', 'incomplete_local_tls_configuration',
+    'local_single_operator_invite_required', 'local_odoo_configuration_missing',
+    'local_operator_login_mismatch', 'local_operator_company_scope_invalid',
+    'local_odoo_contract_incomplete', 'local_database_installation_mismatch',
+    'local_operator_binding_changed', 'local_database_not_fresh',
+    'local_reference_release_changed', 'local_reference_publication_incomplete',
+    'unsafe_odoo_bootstrap_configuration', 'invalid_odoo_bootstrap_configuration',
+    'odoo_bootstrap_database_mismatch', 'odoo_installation_mismatch',
+    'odoo_operator_already_exists_without_installation', 'odoo_database_not_fresh',
+    'odoo_native_addon_not_installed', 'local_admission_path_invalid',
+    'local_admission_busy', 'local_admission_marker_invalid', 'local_admission_runnable_invalid',
+    'embedding_unavailable', 'embedding_unauthorized', 'embedding_error',
+    'embedding_invalid_response', 'embedding_count_mismatch', 'collection_missing',
+    'qdrant_unavailable', 'qdrant_unauthorized', 'qdrant_error', 'distance_mismatch',
+    'vector_not_on_disk', 'tenant_index_missing', 'semantic_ca_file_invalid',
+})
+_COMPONENTS = SERVICES | {'odoo_seed', 'odoo_init', 'doctor', 'quiesce', 'resume-admission'}
+_STATES = frozenset({'created', 'running', 'paused', 'restarting', 'removing', 'exited', 'dead'})
+_HEALTH = frozenset({'healthy', 'unhealthy', 'starting'})
+_EXCEPTION = re.compile(r'(?:^|\s)(?:[A-Za-z_][A-Za-z0-9_]*\.)*('
+                        + '|'.join(sorted(EXCEPTION_TYPES)) + r'):')
+DIAGNOSTIC_BYTES = 65536
+
+
+def safe_diagnostics(states: str, log_tail: str) -> dict:
+    """Project only closed enums; never copy log lines, messages or identifiers."""
+    report = {'services': [], 'errors': [], 'service_state_available': False}
+    try:
+        if len(states.encode()) > DIAGNOSTIC_BYTES:
+            raise ValueError
+        try:
+            rows = json.loads(states)
+            rows = rows if isinstance(rows, list) else [rows]
+        except ValueError:
+            rows = [json.loads(line) for line in states.splitlines() if line.strip()]
+        if len(rows) > 64:
+            raise ValueError
+        seen = set()
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            name = row.get('Service')
+            if not isinstance(name, str) or name not in SERVICES or name in seen:
+                continue
+            seen.add(name)
+            item = {'service': name}
+            if isinstance(row.get('State'), str) and row['State'] in _STATES:
+                item['state'] = row['State']
+            if isinstance(row.get('Health'), str) and row['Health'] in _HEALTH:
+                item['health'] = row['Health']
+            if type(row.get('ExitCode')) is int and 0 <= row['ExitCode'] <= 255:
+                item['exit_code'] = row['ExitCode']
+            report['services'].append(item)
+        report['service_state_available'] = bool(report['services'])
+    except (ValueError, TypeError, RecursionError):
+        report['services'] = []
+    report['services'].sort(key=lambda item: item['service'])
+
+    errors = []
+    for line in log_tail[-DIAGNOSTIC_BYTES:].splitlines()[-120:]:
+        item = {}
+        try:
+            start = line.index('{')
+            row = json.loads(line[start:])
+            if isinstance(row, dict) and row.get('ok') is False:
+                component = row.get('component') or row.get('stage')
+                if isinstance(component, str) and component in _COMPONENTS:
+                    item['component'] = component
+                for key in ('error', 'error_type'):
+                    value = row.get(key)
+                    if isinstance(value, str) and value in ERROR_CODES:
+                        item['code'] = value
+                    elif isinstance(value, str) and value in EXCEPTION_TYPES:
+                        item['type'] = value
+        except (ValueError, TypeError, RecursionError):
+            pass
+        match = _EXCEPTION.search(line)
+        if match:
+            item['type'] = match.group(1)
+        if ('type' in item or 'code' in item) and item not in errors:
+            errors.append(item)
+    report['errors'] = errors[-12:]
+    return report
+
+
+def collect_diagnostics(compose: list[str], log_path: Path) -> dict:
+    """Read only this acceptance project's states and the bounded private log tail."""
+    states, tail = '', ''
+    try:
+        result = subprocess.run([*compose, 'ps', '-a', '--format', 'json'],
+                                capture_output=True, text=True, timeout=15)
+        if result.returncode == 0:
+            states = result.stdout
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    try:
+        with log_path.open('rb') as handle:
+            handle.seek(0, 2)
+            handle.seek(max(0, handle.tell() - DIAGNOSTIC_BYTES))
+            tail = handle.read(DIAGNOSTIC_BYTES).decode('utf-8', errors='replace')
+    except OSError:
+        pass
+    return safe_diagnostics(states, tail)
 
 
 def checked_json(raw: str, *, marker: str | None = None) -> dict:

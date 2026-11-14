@@ -80,7 +80,7 @@ def test_deepseek_preserves_all_three_verified_protocols(api):
     value = normalize_connection({'preset': 'deepseek_flash', 'api': api})
     assert value['api'] == api and value['provider'] == 'deepseek'
     assert value['model'] == 'deepseek-flash'
-    assert value['base_url'] == ('https://api.deepseek.com/anthropic/v1' if api == 'anthropic-messages'
+    assert value['base_url'] == ('https://api.deepseek.com/anthropic' if api == 'anthropic-messages'
                                  else 'https://api.deepseek.com/v1')
     assert normalize_connection({'preset': 'deepseek_flash'})['api'] == 'openai-completions'
 
@@ -89,3 +89,17 @@ def test_ollama_cannot_reuse_public_placeholder_for_remote_service():
     with pytest.raises(ProviderConfigError, match='ollama_local_endpoint_required'):
         normalize_connection({'preset': 'ollama', 'base_url': 'https://remote.example/v1',
                               'custom_endpoint': True})
+
+
+@pytest.mark.parametrize("preset,path", [
+    ("deepseek_flash", "/anthropic/v1/messages"),
+    ("anthropic", "/v1/messages"),
+    ("openrouter", "/api/v1/messages"),
+])
+def test_anthropic_base_is_the_sdk_root_not_the_messages_version_prefix(preset, path):
+    from urllib.parse import urlsplit
+
+    value = normalize_connection({"preset": preset, "api": "anthropic-messages"})
+    # Pinned Anthropic SDK appends /v1/messages; an extra /v1 breaks Harness
+    # even though the direct HTTP connection tester tolerates that suffix.
+    assert urlsplit(value["base_url"] + "/v1/messages").path == path

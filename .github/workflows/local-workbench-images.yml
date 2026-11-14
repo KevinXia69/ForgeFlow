@@ -58,6 +58,14 @@ jobs:
           labels: org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=workbench-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=workbench-${{ matrix.arch }}
+      - name: Verify pinned model protocol serialization without network access
+        env:
+          APP_IMAGE: ghcr.io/kevinxia69/forgeflow-workbench:sha-${{ github.sha }}-${{ matrix.arch }}
+        run: |
+          docker run --rm --network none --read-only --cap-drop ALL \
+            --security-opt no-new-privileges:true --tmpfs /tmp:rw,nosuid,nodev,size=64m \
+            -v "$GITHUB_WORKSPACE/tests/integrations/dsh_protocol_wire.mjs:/check/dsh_protocol_wire.mjs:ro" \
+            "$APP_IMAGE" node --experimental-import-meta-resolve /check/dsh_protocol_wire.mjs /app/.runtime/dsh
       - name: Build the native ERP addon image
         uses: docker/build-push-action@v6
         with:

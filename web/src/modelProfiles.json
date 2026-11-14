@@ -12,7 +12,7 @@
     "endpoints": {
       "openai-completions": "https://api.deepseek.com/v1",
       "openai-responses": "https://api.deepseek.com/v1",
-      "anthropic-messages": "https://api.deepseek.com/anthropic/v1"
+      "anthropic-messages": "https://api.deepseek.com/anthropic"
     }
   },
   "nemotron": {

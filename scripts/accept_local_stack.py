@@ -19,7 +19,12 @@ import uuid
 from pathlib import Path
 
 import yaml
-from local_stack_acceptance import PROVIDER_READY, exercise_stack
+from local_stack_acceptance import (
+    EXCEPTION_TYPES,
+    PROVIDER_READY,
+    collect_diagnostics,
+    exercise_stack,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -103,6 +108,7 @@ def main() -> int:
 
             try:
                 print("Generating a new isolated configuration with synthetic CI keys", flush=True)
+                result["stage"] = "generate_configuration"
                 setup = """import json,os
 from pathlib import Path
 from forgeflow.local_workbench.config import save_configuration,atomic_write
@@ -113,6 +119,7 @@ atomic_write(Path('/config/runtime.json'),json.dumps(value).encode())
 """
                 run(["run", "--rm", "--no-deps", "-T", "setup", "python", "-"], source=setup)
                 print("Starting real empty databases, Odoo addon and TLS Qdrant", flush=True)
+                result["stage"] = "start_empty_stack"
                 run(["up", "-d", "--wait", "--wait-timeout", "900"])
                 result["checks"]["fresh_stack_healthy"] = True
                 exercise_stack(run, result)
@@ -121,12 +128,17 @@ atomic_write(Path('/config/runtime.json'),json.dumps(value).encode())
                 result["checks"]["host_loopback_port"] = True
             except Exception as error:
                 result["ok"] = False
-                result["error_type"] = type(error).__name__
+                name = type(error).__name__
+                result["error_type"] = name if name in EXCEPTION_TYPES else "UnexpectedError"
             finally:
                 try:
                     subprocess.run([*compose, "logs", "--no-color", "--tail", "120"], stdout=log, stderr=log, timeout=60)
                 except subprocess.TimeoutExpired:
                     result["container_log_capture_timed_out"] = True
+                log.flush()
+                # Only closed service/state/code enums enter the uploaded
+                # receipt. The raw log remains private to this runner.
+                result["diagnostics"] = collect_diagnostics(compose, log_path)
                 # Only the unique project created above is removed; never use a
                 # global Docker prune or touch the user's workbench volumes.
                 try:

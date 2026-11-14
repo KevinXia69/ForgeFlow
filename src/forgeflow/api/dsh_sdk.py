@@ -473,5 +473,8 @@ class SdkDshHarness:
             cleanup_requested.set()
             with dispatch_lock:
                 started = provider_started.is_set()
-            if started and thread.is_alive():
+            # Optional-key runtimes are closed by their request's finally block.
+            # Also wait for an in-progress initialize so it cannot publish a
+            # late subprocess after that close clears its files/credential.
+            if (started or hasattr(self, "_owned_model_files")) and thread.is_alive():
                 thread.join()

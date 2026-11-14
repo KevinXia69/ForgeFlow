@@ -189,6 +189,9 @@ def dsh_patch(config: dict, model: str, base_url: str, *,
             # An explicit SDK effort (including off) overrides this default.
             **({"reasoning": "max"} if provider == "deepseek"
                and model in {"deepseek-flash", "deepseek-v4-pro"} else {}),
+            **({"compat": {"forceAdaptiveThinking": True}}
+               if provider == "deepseek" and api == "anthropic-messages"
+               and model in {"deepseek-flash", "deepseek-v4-pro"} else {}),
             "timeoutMs": 150000,
         }}}},
         {"id": "system-prompt", "config": {"personaPrefix":

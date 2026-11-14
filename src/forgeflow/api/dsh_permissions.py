@@ -156,6 +156,10 @@ def _model_profile(settings) -> tuple[str, dict]:
             "maxTokens": 8192}])
     if provider == "deepseek" and settings.model in {"deepseek-flash", "deepseek-v4-pro"}:
         profile["reasoning"] = "max"
+        if api == "anthropic-messages":
+            # pi-ai's legacy budget mode omits output_config.effort. The
+            # official DeepSeek Anthropic route uses adaptive + effort=Max.
+            profile["compat"] = {"forceAdaptiveThinking": True}
     return provider, profile
 
 

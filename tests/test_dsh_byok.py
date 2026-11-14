@@ -257,3 +257,93 @@ def test_real_sdk_initialize_failure_reaps_child_and_clears_runtime(tmp_path):
             os.kill(int(pid_file.read_text()), 0)
     finally:
         bound.close()
+
+
+def test_optional_sdk_cancel_during_initialize_waits_before_owner_cleanup(tmp_path):
+    import threading
+    import time
+
+    entered, release, pid_file = tmp_path / "entered", tmp_path / "release", tmp_path / "pid"
+    cli = tmp_path / "delayed-initialize.py"
+    cli.write_text('import json,os,sys,time\n'
+                   f'open({str(pid_file)!r},"w").write(str(os.getpid()))\n'
+                   'for line in sys.stdin:\n'
+                   ' request=json.loads(line);reply={"jsonrpc":"2.0","id":request["id"]}\n'
+                   ' if request["method"]=="initialize":\n'
+                   f'  open({str(entered)!r},"w").write("ready")\n'
+                   f'  while not os.path.exists({str(release)!r}):time.sleep(.01)\n'
+                   '  reply["error"]={"code":-32000,"message":"synthetic-refusal"}\n'
+                   ' else:reply["result"]={}\n'
+                   ' print(json.dumps(reply),flush=True)\n'
+                   ' if request["method"]=="shutdown":break\n')
+    bound = scoped(tmp_path, SdkDshHarness, cli=cli, node=sys.executable).with_model(setting())
+    cancelled = threading.Event()
+    cleanup_entered = threading.Event()
+    outcome = []
+
+    def consume_and_close():
+        try:
+            outcome.extend(bound.stream("Synthetic question", cancel_event=cancelled))
+        finally:
+            cleanup_entered.set()
+            bound.close()
+
+    consumer = threading.Thread(target=consume_and_close)
+    consumer.start()
+    try:
+        deadline = time.monotonic() + 5
+        while not entered.exists() and time.monotonic() < deadline:
+            time.sleep(.01)
+        assert entered.exists(), "actual SDK child did not initialize"
+        cancelled.set()
+        # Cancellation closes output promptly; request cleanup must not clear
+        # the key or composition while initialize can still publish a runtime.
+        assert not cleanup_entered.wait(timeout=1), "cleanup raced unfinished SDK initialization"
+        assert consumer.is_alive() and bound.patch.is_file()
+        assert bound._model_api_key == setting().api_key
+    finally:
+        release.touch()
+        consumer.join(timeout=5)
+        bound.close()
+    assert not consumer.is_alive() and not outcome
+    assert not bound.patch.exists() and bound._model_api_key is None
+    with pytest.raises(ProcessLookupError):
+        os.kill(int(pid_file.read_text()), 0)
+
+
+@pytest.mark.parametrize("model", ["deepseek-flash", "deepseek-v4-pro"])
+@pytest.mark.parametrize("api", ["openai-completions", "openai-responses", "anthropic-messages"])
+def test_deepseek_max_keeps_each_protocols_wire_contract(tmp_path, model, api):
+    from forgeflow.local_workbench.providers import PROVIDER_PRESETS
+
+    base_url = PROVIDER_PRESETS["deepseek_flash"]["endpoints"][api]
+    default = scoped(tmp_path)
+    bound = default.with_model(setting(provider="deepseek", model=model, api=api, base_url=base_url))
+    try:
+        rows = json.loads(bound.patch.read_text())
+        personal = [row for row in rows if row.get("id") == "llm-pi-ai"][-1]["config"]["providers"]["deepseek"]
+        installed = dsh_patch({"python": sys.executable, "repo_root": str(tmp_path)}, model,
+            base_url, provider="deepseek", api=api)[1]["config"]["providers"]["deepseek"]
+        for profile in [personal, installed]:
+            assert profile["reasoning"] == "max" and profile["api"] == api
+            if api == "anthropic-messages":
+                assert profile["compat"] == {"forceAdaptiveThinking": True}
+                assert profile["baseURL"] == "https://api.deepseek.com/anthropic"
+            else:
+                assert "compat" not in profile
+                assert profile["baseURL"] == "https://api.deepseek.com/v1"
+    finally:
+        bound.close()
+
+
+@pytest.mark.parametrize("provider,model", [("anthropic", "claude-sonnet-4-6"),
+    ("deepseek", "unknown-custom-model"), ("forgeflow-custom", "deepseek-flash")])
+def test_anthropic_compatibility_does_not_impose_deepseek_effort_on_other_models(tmp_path, provider, model):
+    default = scoped(tmp_path)
+    bound = default.with_model(setting(provider=provider, model=model, api="anthropic-messages"))
+    try:
+        rows = json.loads(bound.patch.read_text())
+        profile = [row for row in rows if row.get("id") == "llm-pi-ai"][-1]["config"]["providers"][provider]
+        assert "compat" not in profile and "reasoning" not in profile
+    finally:
+        bound.close()

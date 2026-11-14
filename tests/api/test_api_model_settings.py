@@ -508,7 +508,8 @@ def test_review_accepts_a_browser_supplied_model(tmp_path, monkeypatch):
 
 
 def test_review_model_test_uses_the_supplied_configuration(tmp_path, monkeypatch):
-    monkeypatch.setattr(assistant, "generate", lambda *args, **kwargs: "pong")
+    calls = []
+    monkeypatch.setattr("forgeflow.model_transport.ModelTransport.probe_tools", lambda model: calls.append(model))
 
     with make_client(tmp_path, deployment="review") as client:
         sign_in(client)
@@ -525,6 +526,8 @@ def test_review_model_test_uses_the_supplied_configuration(tmp_path, monkeypatch
         )
     assert response.status_code == 200
     assert response.json()["ok"] is True
+    assert response.json()["tools"] is True
+    assert len(calls) == 1 and calls[0].api_key == API_KEY
 
 
 def test_platform_model_is_hidden_and_used_when_no_browser_key(tmp_path, monkeypatch):
