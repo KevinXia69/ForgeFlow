@@ -5,6 +5,7 @@ import ast
 import json
 import re
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 
@@ -26,6 +27,10 @@ EXCEPTION_TYPES = frozenset({
     'InterfaceError', 'KeyError', 'ModuleNotFoundError', 'NameError', 'OSError',
     'OperationalError', 'PermissionError', 'ProgrammingError', 'QdrantError',
     'ReferencePackError', 'RuntimeError', 'SeedError', 'SemanticConfigError',
+    'Odoo20Error', 'Odoo20Unavailable', 'SemanticServiceError', 'SemanticUnavailable',
+    'SemanticAuthentication', 'SemanticRateLimited', 'SemanticInvalidResponse',
+    'RerankError', 'IndexQuotaExceeded', 'CheckViolation', 'ForeignKeyViolation',
+    'NotNullViolation', 'UniqueViolation', 'InvalidTextRepresentation', 'InvalidForeignKey',
     'TimeoutError', 'TimeoutExpired', 'TypeError', 'UndefinedColumn', 'UndefinedTable', 'ValueError',
 })
 ERROR_CODES = frozenset({
@@ -157,7 +162,32 @@ def collect_diagnostics(compose: list[str], log_path: Path) -> dict:
             tail = handle.read(DIAGNOSTIC_BYTES).decode('utf-8', errors='replace')
     except OSError:
         pass
-    return safe_diagnostics(states, tail)
+    report = safe_diagnostics(states, tail)
+    # Compose aggregates per-service tails. A verbose Odoo startup can push a
+    # short bootstrap error outside the aggregate byte/line bound. Read failed
+    # services individually, still bounded and without exporting their raw log.
+    failures = [item['service'] for item in report['services']
+                if item.get('exit_code', 0) != 0 or item.get('health') == 'unhealthy']
+    errors = []
+    for service in failures:
+        try:
+            with tempfile.TemporaryFile() as private:
+                result = subprocess.run([*compose, 'logs', '--no-color', '--tail', '20', service],
+                                        stdout=private, stderr=subprocess.DEVNULL, timeout=15)
+                if result.returncode:
+                    continue
+                private.seek(0, 2)
+                private.seek(max(0, private.tell() - DIAGNOSTIC_BYTES))
+                raw = private.read(DIAGNOSTIC_BYTES).decode('utf-8', errors='replace')
+            for item in safe_diagnostics('', raw)['errors']:
+                item.setdefault('component', service)
+                if item not in errors:
+                    errors.append(item)
+        except (OSError, subprocess.TimeoutExpired):
+            continue
+    if errors:
+        report['errors'] = errors[-12:]
+    return report
 
 
 def checked_json(raw: str, *, marker: str | None = None) -> dict:

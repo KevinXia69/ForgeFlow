@@ -174,15 +174,44 @@ def test_diagnostics_collection_uses_only_given_project_and_bounded_private_tail
     commands = []
     def run(command, **kwargs):
         commands.append(command)
-        assert kwargs['timeout'] == 15 and kwargs['capture_output'] is True
+        assert kwargs['timeout'] == 15
+        if 'logs' in command:
+            assert kwargs['stderr'] is module.subprocess.DEVNULL
+            kwargs['stdout'].write(b'RuntimeError: synthetic-credential\n')
+            return SimpleNamespace(returncode=0)
+        assert kwargs['capture_output'] is True
         return SimpleNamespace(returncode=0, stdout=json.dumps(
             {'Service': 'bootstrap', 'State': 'exited', 'ExitCode': 1}))
     monkeypatch.setattr(module.subprocess, 'run', run)
     compose = ['docker', 'compose', '-p', 'isolated-test', '-f', '/tmp/isolated-compose.yaml']
     result = module.collect_diagnostics(compose, log)
-    assert commands == [[*compose, 'ps', '-a', '--format', 'json']]
-    assert result['errors'] == [{'type': 'RuntimeError'}]
+    assert commands == [[*compose, 'ps', '-a', '--format', 'json'],
+                        [*compose, 'logs', '--no-color', '--tail', '20', 'bootstrap']]
+    assert result['errors'] == [{'type': 'RuntimeError', 'component': 'bootstrap'}]
     assert result['services'] == [{'service': 'bootstrap', 'state': 'exited', 'exit_code': 1}]
+    assert 'synthetic-credential' not in json.dumps(result)
+
+
+def test_failed_service_diagnostic_survives_chatty_aggregate_and_keeps_only_known_errors(tmp_path, monkeypatch):
+    log = tmp_path / 'private.log'
+    log.write_text('bootstrap | {"ok":false,"error":"SemanticInvalidResponse"}\n' + 'x' * 70000)
+    states = [{'Service': 'bootstrap', 'State': 'exited', 'ExitCode': 1},
+              {'Service': 'odoo', 'State': 'running', 'Health': 'healthy', 'ExitCode': 0}]
+    commands = []
+    def run(command, **kwargs):
+        commands.append(command)
+        if 'ps' in command:
+            return SimpleNamespace(returncode=0, stdout=json.dumps(states))
+        assert command[-1] == 'bootstrap'
+        kwargs['stdout'].write(b'x' * 70000 + json.dumps({
+            'ok': False, 'component': 'bootstrap', 'error': 'SemanticInvalidResponse',
+            'message': 'synthetic-credential', 'env': {'API_KEY': 'synthetic-credential'},
+        }).encode() + b'\n')
+        return SimpleNamespace(returncode=0)
+    monkeypatch.setattr(module.subprocess, 'run', run)
+    result = module.collect_diagnostics(['docker', 'compose', '-p', 'isolated-test'], log)
+    assert result['errors'] == [{'component': 'bootstrap', 'type': 'SemanticInvalidResponse'}]
+    assert len(commands) == 2
     assert 'synthetic-credential' not in json.dumps(result)
 
 

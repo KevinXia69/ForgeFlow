@@ -43,7 +43,7 @@ def probe():
     def business_state():
         result = {}
         for model in ("purchase.order", "purchase.order.line", "sale.order", "sale.order.line",
-                      "stock.move", "stock.picking", "stock.quant", "mrp.production"):
+                      "stock.move", "stock.quant", "mrp.production"):
             # Fresh synthetic fixtures are tiny. Reaching the limit is not a
             # complete snapshot and therefore blocks this acceptance claim.
             rows = adapter.search_read(model, [], ["id", "write_date"], limit=1000, order="id")

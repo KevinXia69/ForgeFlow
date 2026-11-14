@@ -207,6 +207,7 @@ def _write_service_files(value: dict, path: Path, mounts: dict[str, Path] | None
     odoo = ("[options]\ndb_host = odoo-db\ndb_port = 5432\ndb_user = odoo\n"
             f"db_password = {env['FORGEFLOW_LOCAL_ODOO_DB_PASSWORD']}\n"
             f"admin_passwd = {env['FORGEFLOW_LOCAL_ODOO_ADMIN_PASSWORD']}\n"
+            "http_interface = 0.0.0.0\n"
             "db_name = forgeflow_local\ndbfilter = ^forgeflow_local$\nlist_db = False\n"
             "data_dir = /var/lib/odoo\naddons_path = /usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons\nproxy_mode = False\n")
     atomic_write(roots["odoo_config"] / "odoo.conf", odoo.encode(), 0o640)

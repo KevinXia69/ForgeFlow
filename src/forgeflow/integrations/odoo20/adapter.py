@@ -125,25 +125,32 @@ class Odoo20Adapter:
         return OdooVersion(major, raw)
 
     def check_contract(self) -> ContractCheck:
+        available: dict[str, set[str]] = {}
         try:
             version = self.version()
             if version.major != SUPPORTED_MAJOR:
                 return ContractCheck(False, version, ("version",), ())
             uid = self._authenticate()
             models = self._models()
-            fields_by_model = models.execute_kw(
-                self.config.database, uid, self.config.password,
-                "ir.model.fields", "search_read",
-                [[("model", "in", list(REQUIRED_MODELS))]],
-                {"fields": ["model", "name"], "limit": 10000},
-            )
+            # Inspect the fixed business contract through each model's public
+            # metadata API. Ordinary business operators need not be granted
+            # access to the administrator's ir.model.fields registry.
+            for model in REQUIRED_MODELS:
+                fields = models.execute_kw(
+                    self.config.database, uid, self.config.password,
+                    model, "fields_get", [], {"attributes": ["type"]},
+                )
+                if not isinstance(fields, dict) or any(
+                    not isinstance(name, str) or not isinstance(metadata, dict)
+                    for name, metadata in fields.items()
+                ):
+                    raise ValueError("invalid_contract_metadata")
+                if fields:
+                    available[model] = set(fields)
         except Odoo20Unavailable:
             raise
         except Exception:
             raise Odoo20Unavailable("odoo_contract_unavailable") from None
-        available: dict[str, set[str]] = {}
-        for row in fields_by_model:
-            available.setdefault(str(row["model"]), set()).add(str(row["name"]))
         missing_models = tuple(name for name in REQUIRED_MODELS if name not in available)
         missing_fields = tuple(
             f"{model}.{field}"
