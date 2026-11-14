@@ -25,9 +25,9 @@ The release launcher does not require host Python or Node.js.
 
 | Computer | Release package | Start after extracting the complete package |
 | --- | --- | --- |
-| Windows | [ForgeFlow-v3.10.0-Windows.zip](https://github.com/KevinXia69/ForgeFlow/releases/download/v3.10.0/ForgeFlow-v3.10.0-Windows.zip) | Double-click `Start-ForgeFlow.cmd` |
-| macOS | [ForgeFlow-v3.10.0-macOS.zip](https://github.com/KevinXia69/ForgeFlow/releases/download/v3.10.0/ForgeFlow-v3.10.0-macOS.zip) | Open `Start-ForgeFlow.command` |
-| Linux | [ForgeFlow-v3.10.0-Linux.zip](https://github.com/KevinXia69/ForgeFlow/releases/download/v3.10.0/ForgeFlow-v3.10.0-Linux.zip) | Run `bash start.sh` |
+| Windows | [ForgeFlow-v3.11.0-Windows.zip](https://github.com/KevinXia69/ForgeFlow/releases/download/v3.11.0/ForgeFlow-v3.11.0-Windows.zip) | Double-click `Start-ForgeFlow.cmd` |
+| macOS | [ForgeFlow-v3.11.0-macOS.zip](https://github.com/KevinXia69/ForgeFlow/releases/download/v3.11.0/ForgeFlow-v3.11.0-macOS.zip) | Open `Start-ForgeFlow.command` |
+| Linux | [ForgeFlow-v3.11.0-Linux.zip](https://github.com/KevinXia69/ForgeFlow/releases/download/v3.11.0/ForgeFlow-v3.11.0-Linux.zip) | Run `bash start.sh` |
 
 The launcher opens a one-time local setup page. Choose your chat provider, enter
 your own service keys, save the generated private invitation code, and wait for

@@ -2,7 +2,7 @@
 
 [English README](../README.md) · [中文说明](../README.zh-CN.md)
 
-The v3.10.0 package starts the workbench, an independent synthetic Odoo 20 ERP,
+The v3.11.0 package starts the workbench, an independent synthetic Odoo 20 ERP,
 its PostgreSQL database, the PostgreSQL control database, Qdrant, source/task
 services and the document worker. It uses the public application source and
 your provider accounts. It does not connect to the hosted demonstration's

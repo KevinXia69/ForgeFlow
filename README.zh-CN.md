@@ -21,9 +21,9 @@ ForgeFlow 将 AI 问答、资料检索、约束规划、人工审批和执行回
 
 | 系统 | 下载 | 完整解压后的入口 |
 | --- | --- | --- |
-| Windows | [ForgeFlow-v3.10.0-Windows.zip](https://github.com/KevinXia69/ForgeFlow/releases/download/v3.10.0/ForgeFlow-v3.10.0-Windows.zip) | 双击 `Start-ForgeFlow.cmd` |
-| macOS | [ForgeFlow-v3.10.0-macOS.zip](https://github.com/KevinXia69/ForgeFlow/releases/download/v3.10.0/ForgeFlow-v3.10.0-macOS.zip) | 打开 `Start-ForgeFlow.command` |
-| Linux | [ForgeFlow-v3.10.0-Linux.zip](https://github.com/KevinXia69/ForgeFlow/releases/download/v3.10.0/ForgeFlow-v3.10.0-Linux.zip) | 执行 `bash start.sh` |
+| Windows | [ForgeFlow-v3.11.0-Windows.zip](https://github.com/KevinXia69/ForgeFlow/releases/download/v3.11.0/ForgeFlow-v3.11.0-Windows.zip) | 双击 `Start-ForgeFlow.cmd` |
+| macOS | [ForgeFlow-v3.11.0-macOS.zip](https://github.com/KevinXia69/ForgeFlow/releases/download/v3.11.0/ForgeFlow-v3.11.0-macOS.zip) | 打开 `Start-ForgeFlow.command` |
+| Linux | [ForgeFlow-v3.11.0-Linux.zip](https://github.com/KevinXia69/ForgeFlow/releases/download/v3.11.0/ForgeFlow-v3.11.0-Linux.zip) | 执行 `bash start.sh` |
 
 启动器会打开一次性本地配置页。填入自己的服务 Key，保存页面生成的私密邀请码，
 等待服务就绪后访问 **[127.0.0.1:17800/app/](http://127.0.0.1:17800/app/)** 登录。

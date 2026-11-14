@@ -1,7 +1,7 @@
 name: forgeflow-local
 
 x-app: &app
-  image: ${FORGEFLOW_APP_IMAGE:-ghcr.io/kevinxia69/forgeflow-workbench:3.10.0}
+  image: ${FORGEFLOW_APP_IMAGE:-ghcr.io/kevinxia69/forgeflow-workbench:3.11.0}
   user: "10001:10001"
   init: true
   extra_hosts: ["host.docker.internal:host-gateway"]
@@ -71,7 +71,7 @@ services:
     stop_grace_period: 60s
 
   odoo-init:
-    image: ${FORGEFLOW_ODOO_IMAGE:-ghcr.io/kevinxia69/forgeflow-workbench-odoo:3.10.0}
+    image: ${FORGEFLOW_ODOO_IMAGE:-ghcr.io/kevinxia69/forgeflow-workbench-odoo:3.11.0}
     group_add: ["10001"]
     command: [python3, /opt/forgeflow/odoo_init.py]
     volumes:
@@ -83,7 +83,7 @@ services:
     restart: "no"
 
   odoo:
-    image: ${FORGEFLOW_ODOO_IMAGE:-ghcr.io/kevinxia69/forgeflow-workbench-odoo:3.10.0}
+    image: ${FORGEFLOW_ODOO_IMAGE:-ghcr.io/kevinxia69/forgeflow-workbench-odoo:3.11.0}
     group_add: ["10001"]
     volumes:
       - odoo-config:/etc/forgeflow:ro
