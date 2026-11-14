@@ -14,9 +14,13 @@ ForgeFlow 将 AI 问答、资料检索、约束规划、人工审批和执行回
 [源码安装](#源码安装) ·
 [English](README.md)
 
-![最新公网 ForgeFlow 工作台首页](docs/images/local-workbench-home.png)
+<p align="center">
+  <img src="docs/images/local-workbench-home.png" alt="ForgeFlow 工作台首页" width="32%">
+  <img src="assets/readme/forgeflow-recovery-case-en.png" alt="供应商恢复案例：3 件失效供给、13 件关联需求、50 件计划覆盖" width="32%">
+  <img src="assets/readme/forgeflow-architecture-en.png" alt="ForgeFlow 恢复架构：Router、调查 Worker、CP-SAT、人工批准、Executor、Verifier 和 Control Engine" width="32%">
+</p>
 
-*当前公网工作台界面；本地安装包使用相同界面。*
+*工作台、恢复案例和架构一览；同一产品同时支持公网和本地运行。*
 
 ## 公网还是本地
 
@@ -28,12 +32,6 @@ ForgeFlow 有两种运行形态，核心产品流程相同：
 | **本地安装** | 在自己的电脑上运行 | 本机 Odoo 20、PostgreSQL、Qdrant 数据；用户自己的服务 Key |
 
 公网和本地实例不共享数据。两边都使用同一套案例、调查、规划、审批、执行和独立回读流程。
-
-## 产品一览
-
-![供应商恢复案例：3 件失效供给、13 件直接关联需求，以及 5 张销售订单共 50 件的规划范围。计划覆盖由 7 件库存、40 件保留制造和 3 件替代采购组成。](assets/readme/forgeflow-recovery-case-en.png)
-
-![ForgeFlow 恢复架构：业务输入进入 Router、调查 Worker、CP-SAT 规划器、人工批准、Executor、Verifier 和受跟踪的结果；共享 Control Engine 保存上下文、任务、持久动作和授权。](assets/readme/forgeflow-architecture-en.png)
 
 ## ForgeFlow 交付什么
 

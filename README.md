@@ -14,9 +14,13 @@ traceable workflow.
 [Architecture](#architecture) ·
 [Source setup](#source-setup)
 
-![The ForgeFlow workbench home screen](docs/images/local-workbench-home.png)
+<p align="center">
+  <img src="docs/images/local-workbench-home.png" alt="ForgeFlow workbench home screen" width="32%">
+  <img src="assets/readme/forgeflow-recovery-case-en.png" alt="Supplier recovery case: 3 units failed supply, 13 units linked demand, 50 units planned" width="32%">
+  <img src="assets/readme/forgeflow-architecture-en.png" alt="ForgeFlow recovery architecture: Router, Investigation Worker, CP-SAT, approval, Executor, Verifier and Control Engine" width="32%">
+</p>
 
-*The same workbench runs on the hosted review environment and in a local installation.*
+*The workbench, a recovery case and the architecture at a glance. The same product runs hosted and locally.*
 
 ## Hosted or local
 
@@ -33,12 +37,6 @@ investigation, planning, approval, execution and independent-readback workflow.
 ```text
 Investigate → Prepare a plan → Review and approve → Execute → Read back and verify
 ```
-
-## Product at a glance
-
-![Supplier recovery case: 3 units of failed supply, 13 units of directly linked demand, and 50 units across five sales orders. Planned coverage uses 7 stock units, 40 retained manufacturing units, and 3 replacement units.](assets/readme/forgeflow-recovery-case-en.png)
-
-![ForgeFlow recovery architecture: Business inputs to Router, Investigation Worker, CP-SAT planner, Human approval, Executor, Verifier, and a tracked outcome; shared Control Engine retains context, tasks, durable actions, and authorization.](assets/readme/forgeflow-architecture-en.png)
 
 ## Install locally
 
