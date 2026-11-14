@@ -7,6 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("stack_acceptance", ROOT / "scripts/local_stack_acceptance.py")
@@ -183,3 +184,44 @@ def test_diagnostics_collection_uses_only_given_project_and_bounded_private_tail
     assert result['errors'] == [{'type': 'RuntimeError'}]
     assert result['services'] == [{'service': 'bootstrap', 'state': 'exited', 'exit_code': 1}]
     assert 'synthetic-credential' not in json.dumps(result)
+
+
+def test_seed_diagnostics_retain_source_location_but_not_unknown_identifiers():
+    rows = [
+        {'ok': False, 'component': 'odoo_seed', 'error': 'AttributeError',
+         'error_line': 83, 'error_attribute': 'context', 'message': 'synthetic-credential'},
+        {'ok': False, 'component': 'odoo_seed', 'error': 'AttributeError',
+         'error_line': True, 'error_attribute': 'synthetic_private_credential'},
+        {'ok': False, 'component': 'api', 'error': 'AttributeError',
+         'error_line': 12, 'error_attribute': 'context'},
+        {'ok': False, 'component': 'odoo_seed', 'error': 'ValueError',
+         'error_line': 10001, 'error_attribute': 'context'},
+    ]
+    result = module.safe_diagnostics('', '\n'.join(json.dumps(row) for row in rows))
+    assert result['errors'] == [
+        {'component': 'odoo_seed', 'type': 'AttributeError', 'error_line': 83,
+         'error_attribute': 'context'},
+        {'component': 'odoo_seed', 'type': 'AttributeError'},
+        {'component': 'api', 'type': 'AttributeError'},
+        {'component': 'odoo_seed', 'type': 'ValueError'},
+    ]
+    assert 'synthetic' not in json.dumps(result)
+
+
+def test_minimal_odoo_probe_reuses_pins_without_exposing_other_services(tmp_path, monkeypatch):
+    monkeypatch.syspath_prepend(str(ROOT / 'scripts'))
+    spec = importlib.util.spec_from_file_location('accept_local_odoo', ROOT / 'scripts/accept_local_odoo.py')
+    driver = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(driver)
+    source = yaml.safe_load((ROOT / 'deploy/workbench/compose.yaml').read_text())
+    original = json.dumps(source, sort_keys=True)
+    result = driver.odoo_only_compose(source, 'local-tested-image', tmp_path)
+    assert set(result['services']) == {'odoo-db', 'odoo-init', 'odoo'}
+    assert result['services']['odoo-db']['image'] == source['services']['odoo-db']['image']
+    assert '@sha256:' in result['services']['odoo-db']['image']
+    assert all('ports' not in service for service in result['services'].values())
+    assert set(result['volumes']) == {'odoo-db', 'odoo-data'}
+    assert result['networks'] == {'backend': source['networks']['backend']}
+    assert result['services']['odoo-init']['depends_on'] == {'odoo-db': {'condition': 'service_healthy'}}
+    assert result['services']['odoo']['image'] == result['services']['odoo-init']['image'] == 'local-tested-image'
+    assert json.dumps(source, sort_keys=True) == original

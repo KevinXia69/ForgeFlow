@@ -22,6 +22,39 @@ def seed_module():
     return module
 
 
+@pytest.mark.parametrize("shell_exec", [False, True])
+def test_seed_error_diagnostics_expose_only_owned_line_and_known_attribute(shell_exec):
+    module = seed_module()
+    if shell_exec:
+        # Match odoo shell's real exec(open(...).read()) entry point: there is
+        # no __file__, and every seed function has '<string>' as its filename.
+        namespace = {}
+        exec(Path(module.__file__).read_text(), namespace)
+        module = SimpleNamespace(**namespace)
+
+    class Environment:
+        cr = SimpleNamespace(dbname="forgeflow_local", execute=lambda *_: None)
+
+        def __getitem__(self, name):
+            item = SimpleNamespace(get_param=lambda _: None) if name == "ir.config_parameter" else object()
+            return SimpleNamespace(sudo=lambda: item)
+
+    try:
+        module.seed(Environment(), {"database": "forgeflow_local", "operator": {"login": "synthetic"}})
+    except AttributeError as error:
+        detail = module.safe_error_details(error)
+    assert detail["error_attribute"] == "with_context"
+    source = (ROOT / "deploy/workbench/odoo_bootstrap.py").read_text().splitlines()
+    assert "users.with_context" in source[detail["error_line"] - 1]
+
+
+def test_seed_error_diagnostics_do_not_echo_unknown_attributes_or_messages():
+    module = seed_module()
+    error = AttributeError("private-provider-secret", name="private_provider_secret")
+    assert module.safe_error_details(error) == {}
+    assert module.safe_error_details(ValueError("postgresql://private-credentials")) == {}
+
+
 def test_missing_sql_is_an_error_before_any_database_statement(tmp_path):
     connection = SimpleNamespace(execute=lambda *_: pytest.fail("database changed"))
     store = ControlStore("unused", migrations_dir=tmp_path, connection=connection)

@@ -1,6 +1,7 @@
 """Assertions shared by the disposable Docker acceptance driver and seam tests."""
 from __future__ import annotations
 
+import ast
 import json
 import re
 import subprocess
@@ -56,8 +57,22 @@ _EXCEPTION = re.compile(r'(?:^|\s)(?:[A-Za-z_][A-Za-z0-9_]*\.)*('
 DIAGNOSTIC_BYTES = 65536
 
 
+def _seed_attribute_names() -> frozenset[str]:
+    """Only source-defined attribute names may appear in a seed diagnostic."""
+    try:
+        path = Path(__file__).resolve().parents[1] / 'deploy/workbench/odoo_bootstrap.py'
+        tree = ast.parse(path.read_text())
+        seed = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'seed')
+        return frozenset(node.attr for node in ast.walk(seed) if isinstance(node, ast.Attribute))
+    except (OSError, SyntaxError, StopIteration):
+        return frozenset()
+
+
+_SEED_ATTRIBUTES = _seed_attribute_names()
+
+
 def safe_diagnostics(states: str, log_tail: str) -> dict:
-    """Project only closed enums; never copy log lines, messages or identifiers."""
+    """Project closed enums/source locations, never raw messages or identifiers."""
     report = {'services': [], 'errors': [], 'service_state_available': False}
     try:
         if len(states.encode()) > DIAGNOSTIC_BYTES:
@@ -106,6 +121,14 @@ def safe_diagnostics(states: str, log_tail: str) -> dict:
                         item['code'] = value
                     elif isinstance(value, str) and value in EXCEPTION_TYPES:
                         item['type'] = value
+                if item.get('component') == 'odoo_seed':
+                    location = row.get('error_line')
+                    if type(location) is int and 1 <= location <= 10000:
+                        item['error_line'] = location
+                    attribute = row.get('error_attribute')
+                    if (item.get('type') == 'AttributeError' and isinstance(attribute, str)
+                            and attribute in _SEED_ATTRIBUTES):
+                        item['error_attribute'] = attribute
         except (ValueError, TypeError, RecursionError):
             pass
         match = _EXCEPTION.search(line)

@@ -179,6 +179,23 @@ def seed(odoo_env, config: dict) -> dict:
             "recovery_approvals": 0, "recovery_executions": 0}
 
 
+_SEED_ATTRIBUTES = frozenset(seed.__code__.co_names)
+
+
+def safe_error_details(error: Exception) -> dict:
+    """Expose code locations only; exception messages and locals may be secret."""
+    detail = {}
+    owned_code = {seed.__code__, read_configuration.__code__, run.__code__}
+    frame = error.__traceback__
+    while frame is not None:
+        if frame.tb_frame.f_code in owned_code:
+            detail["error_line"] = frame.tb_lineno
+        frame = frame.tb_next
+    if isinstance(error, AttributeError) and error.name in _SEED_ATTRIBUTES:
+        detail["error_attribute"] = error.name
+    return detail
+
+
 def run(odoo_env) -> None:
     try:
         configuration = read_configuration(os.environ.get(
@@ -188,7 +205,8 @@ def run(odoo_env) -> None:
     except Exception as error:
         odoo_env.cr.rollback()
         code = str(error) if isinstance(error, SeedError) else type(error).__name__
-        print(json.dumps({"ok": False, "component": "odoo_seed", "error": code}), flush=True)
+        print(json.dumps({"ok": False, "component": "odoo_seed", "error": code,
+                          **safe_error_details(error)}), flush=True)
         raise SystemExit(1) from None
     print(json.dumps(result), flush=True)
 

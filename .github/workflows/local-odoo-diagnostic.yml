@@ -1,0 +1,45 @@
+name: local-odoo-diagnostic
+
+on:
+  workflow_dispatch:
+    inputs:
+      architecture:
+        description: Native runner architecture
+        type: choice
+        options: [amd64, arm64]
+        default: amd64
+
+permissions:
+  contents: read
+
+jobs:
+  fresh-odoo:
+    runs-on: ${{ inputs.architecture == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.12'
+      - uses: docker/setup-buildx-action@v3
+      - name: Build only the pinned ERP image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/workbench/Dockerfile.odoo
+          platforms: linux/${{ inputs.architecture }}
+          load: true
+          tags: forgeflow-odoo-diagnostic:${{ github.sha }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=workbench-odoo-${{ inputs.architecture }}
+      - name: Initialize a disposable real database and verify repeat seed
+        env:
+          ODOO_IMAGE: forgeflow-odoo-diagnostic:${{ github.sha }}
+        run: uv run --frozen python scripts/accept_local_odoo.py --odoo-image "$ODOO_IMAGE" --output dist/odoo-diagnostic
+      - name: Preserve only bounded diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-odoo-diagnostic-${{ inputs.architecture }}
+          path: dist/odoo-diagnostic/result.json
+          if-no-files-found: warn
