@@ -225,14 +225,22 @@ content; review and redact before sharing them.
 
 ## Installation acceptance
 
-**Candidate status — awaiting final local-stack and platform receipts.**
+Downloadable releases are created only after the following gates pass. A source
+checkout, an existing launcher or a passing health endpoint does not establish
+that a release has completed them.
 
-| Target | Current claim |
+| Target | Required release gate and its limits |
 | --- | --- |
-| Linux | Launcher and container deployment supplied; final complete-stack result pending |
-| macOS | macOS launcher supplied; final native-host/Docker result pending |
-| Windows | CMD/PowerShell launcher supplied; actual Windows complete-stack result pending |
-| Apple Silicon / ARM | Architecture-specific execution pending; do not infer it from a desktop launcher |
+| Linux amd64 and arm64 | Native launcher checks and real empty PostgreSQL/Odoo/Qdrant stacks, API/ERP checks, synthetic approval/execution/readback, and stop/resume preservation |
+| macOS | Native shell launcher and package checks with a Docker substitute; this does not certify a complete installation on every Docker Desktop host |
+| Windows | Actual PowerShell launcher and package checks with a Docker substitute; this does not certify a complete installation on every Docker Desktop host |
+| Apple Silicon / ARM | The Linux arm64 image must pass on an arm64 runner; this is separate from host-specific Docker Desktop acceptance |
+
+Empty-stack tests use real local databases and synthetic ERP records, with
+fixture external services for repeatable, credential-free CI. They do not
+establish universal model quality, provider account permissions, quotas, image
+capabilities or document-service availability. Provider-specific checks have
+their own bounded scope.
 
 Source checks, HTTP wizard tests and synthetic browser tests are separate from
 a complete installation using real provider services. The release acceptance
@@ -242,7 +250,7 @@ README screenshots show the current public interface and are labeled accordingly
 the local installer uses the same interface. Screenshots do not replace the
 separate local-stack installation and persistence checks.
 
-Required feature acceptance includes all three examples, a real model turn,
+Additional feature acceptance includes all three examples, a real model turn,
 document parsing/indexing and source viewing, ERP lookup, supported synthetic
 prepare/approve/execute/readback, service continuity and stop/resume preservation.
 Historical benchmark scores and a passing `/api/health` do not replace these checks.

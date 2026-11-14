@@ -39,10 +39,13 @@ workspace. It needs internet access and may take several minutes. If the public
 image download is unavailable, the complete package includes a source-build
 fallback; it does not require a private registry account.
 
-**Release validation:** v3.10.0 is a candidate while the installation matrix is
-being completed. Package availability and tested operating systems will be
-recorded in the [installation acceptance section](docs/LOCAL_INSTALL.md#installation-acceptance).
-A launcher existing for a platform is not an end-to-end pass on that platform.
+**Release gates:** downloadable packages are created only after native launcher
+checks on Windows, macOS and Linux, plus real empty-stack tests on Linux amd64
+and arm64. Launcher checks use a Docker substitute; stack tests use synthetic
+ERP records and fixture external services. They do not certify every provider
+account or a complete Docker Desktop installation on every host OS.
+See the [verification scope](docs/LOCAL_INSTALL.md#installation-acceptance).
+Unreleased source checkouts have not necessarily completed these gates.
 
 ## Bring your own service keys
 
