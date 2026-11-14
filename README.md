@@ -16,6 +16,25 @@ its exact actions, and inspect the resulting ERP records and receipts.
 
 *Current public workbench; the local installer uses the same interface.*
 
+## Install with one command
+
+On macOS or Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/KevinXia69/ForgeFlow/main/install.sh | bash
+```
+
+On Windows PowerShell:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/KevinXia69/ForgeFlow/main/install.ps1 | iex"
+```
+
+The command downloads the release, verifies its SHA-256 checksum, installs under
+`~/ForgeFlow` (or `%USERPROFILE%\ForgeFlow`), and starts the one-time setup page.
+Set `FORGEFLOW_HOME` to choose another directory. Docker must already be installed
+and running in Linux-container mode.
+
 ## Install on your computer
 
 **Docker must be installed and running in Linux-container mode.** Use Docker
