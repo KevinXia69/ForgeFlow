@@ -3429,17 +3429,15 @@ body.review #approval-panel { display: none !important; }
 .home-card-count,
 .home-card-hint,
 .home-cards-title { font-size: 14px; }
-.home-chat .chat-presets-title { text-align: center; }
+.home-chat .chat-presets-title { text-align: left; margin: 0 0 12px; font-family: var(--font-sans); }
 .home-chat .chat-presets-list {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 7px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 .home-chat .chat-preset {
-  display: inline-flex;
-  width: auto;
+  display: flex;
+  width: 100%;
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
@@ -3959,15 +3957,36 @@ body.review #approval-panel { display: none !important; }
 .login-card .error:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
 .login-card input[aria-invalid="true"] { border-color: #b42318; }
 
-/* Reviewer questions use the existing ask flow below the task cards. */
-.home-chat .chat-preset:not(.is-rich) {
-  flex-basis: 100%;
-  justify-content: flex-start;
-  max-width: 100%;
-  text-align: start;
-  background: transparent;
-  border-color: transparent;
-  padding-block: 5px;
+/* Keep task actions and example questions aligned with the composer. */
+.home-chat .chat-presets { display: grid; gap: 24px; padding-top: 24px; }
+.home-chat .chat-preset-group { min-width: 0; }
+.home-chat .chat-preset.is-rich {
+  min-width: 0;
+  min-height: 90px;
+  padding: 16px;
+  gap: 12px;
 }
-.home-chat .chat-preset:not(.is-rich) .chat-preset-copy { overflow-wrap: anywhere; }
-.home-chat .chat-preset:not(.is-rich):hover { background: var(--surface-muted, #f7f8fa); }
+.home-chat .chat-preset-copy { overflow-wrap: anywhere; }
+.home-chat .chat-preset:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+.home-chat .chat-preset.is-rich:focus-visible .chat-preset-arrow { opacity: 1; transform: none; }
+.home-chat .chat-preset-group-examples { border-top: 1px solid var(--line); padding-top: 20px; }
+.home-chat .chat-examples-list { display: grid; gap: 4px; }
+.home-chat .chat-preset.is-example {
+  align-items: center;
+  min-height: 48px;
+  gap: 12px;
+  padding: 10px 12px;
+  border-color: transparent;
+  background: transparent;
+  text-align: left;
+  line-height: 1.6;
+}
+.chat-example-number { flex: 0 0 22px; color: #667085; font-size: 14px; font-variant-numeric: tabular-nums; }
+.home-chat .chat-preset.is-example .chat-preset-arrow { flex: 0 0 auto; opacity: 1; transform: none; }
+.home-chat .chat-preset.is-example:hover { background: #f7f8fa; border-color: #e4e7ec; }
+@media (max-width: 760px) {
+  .home-chat .chat-presets-list { grid-template-columns: 1fr; }
+  .home-chat .chat-preset.is-rich { min-height: 84px; padding: 14px; }
+  .home-chat .chat-presets { gap: 20px; padding-top: 20px; }
+  .home-chat .chat-preset.is-example { padding: 10px 8px; gap: 10px; }
+}

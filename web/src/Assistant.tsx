@@ -589,32 +589,6 @@ export function ChatSurface({
         ) : null}
       </div>
 
-        {messages.length === 0 && presets.length > 0 && activeMode === "ask" ? (
-          <div className="chat-presets" data-chat-presets="true">
-            {presetsTitle ? <span className="chat-presets-title">{presetsTitle}</span> : null}
-            <div className="chat-presets-list">
-              {presets.map((preset) => {
-                const item = typeof preset === "string" ? { label: preset, prompt: preset } : preset;
-                return (
-                  <button
-                    key={item.prompt ?? item.label}
-                    type="button"
-                    data-judge-example={item.judgeExample}
-                    className={`chat-preset${item.description ? " is-rich" : ""}`}
-                    onClick={() => item.onSelect ? item.onSelect() : item.prompt && void send(item.prompt)}
-                  >
-                    {item.icon ? <span className="chat-preset-icon" aria-hidden="true"><PresetIcon name={item.icon} /></span> : null}
-                    <span className="chat-preset-copy">
-                      {item.description ? <><strong>{item.label}</strong><small>{item.description}</small></> : item.label}
-                    </span>
-                    {item.description ? <span className="chat-preset-arrow" aria-hidden="true">→</span> : null}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
-
         {attachment && activeMode === "ask" ? (
           <div className="composer-attachment" data-composer-attachment="true">
             <img src={chatImageSrc(attachment)} alt={t("assistant.imageAlt")} />
@@ -675,6 +649,40 @@ export function ChatSurface({
         {intakeNotice ? <p className="composer-intake-notice" role="status">{intakeNotice}</p> : null}
         {intakeError ? <p className="composer-intake-notice is-error" role="alert">{intakeError}</p> : null}
         {composerNote ? <p className="composer-note">{composerNote}</p> : null}
+        {messages.length === 0 && presets.length > 0 && activeMode === "ask" ? (
+          <div className="chat-presets" data-chat-presets="true">
+            {[
+              { key: "actions", title: presetsTitle, items: presets.filter(preset => typeof preset === "string" || !preset.judgeExample) },
+              { key: "examples", title: t("home.exampleQuestions"), items: presets.filter(preset => typeof preset !== "string" && preset.judgeExample) },
+            ].filter(group => group.items.length > 0).map(group => (
+              <section className={`chat-preset-group chat-preset-group-${group.key}`} key={group.key}>
+                {group.title ? <h2 className="chat-presets-title">{group.title}</h2> : null}
+                <div className={group.key === "examples" ? "chat-examples-list" : "chat-presets-list"}>
+                  {group.items.map((preset, index) => {
+                    const item = typeof preset === "string" ? { label: preset, prompt: preset } : preset;
+                    return (
+                      <button
+                        key={item.prompt ?? item.label}
+                        type="button"
+                        data-judge-example={item.judgeExample}
+                        className={`chat-preset${item.description ? " is-rich" : ""}${item.judgeExample ? " is-example" : ""}`}
+                        onClick={() => item.onSelect ? item.onSelect() : item.prompt && void send(item.prompt)}
+                      >
+                        {item.icon ? <span className="chat-preset-icon" aria-hidden="true"><PresetIcon name={item.icon} /></span> : null}
+                        {item.judgeExample ? <span className="chat-example-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span> : null}
+                        <span className="chat-preset-copy">
+                          {item.description ? <><strong>{item.label}</strong><small>{item.description}</small></> : item.label}
+                        </span>
+                        {item.description || item.judgeExample ? <span className="chat-preset-arrow" aria-hidden="true">→</span> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : null}
+
       </div>
   );
 }

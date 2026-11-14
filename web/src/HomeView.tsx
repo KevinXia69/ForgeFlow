@@ -220,6 +220,7 @@ export function HomeView({ onOpenModelSettings }: { onOpenModelSettings?: (profi
           { judgeExample: "specification", label: t("home.reviewerCoil"), prompt: t("home.reviewerCoil") },
           { judgeExample: "impact", label: t("home.reviewerImpactEntry"), onSelect: () => navigate(caseRoute(HISTORICAL_DEMO_CASE_ID, "chat")) },
         ]}
+        presetsTitle={t("home.quickActions")}
         emptyText={t("home.empty")}
         composerPlaceholder={t("home.composerPlaceholder")}
         composerAria={t("home.composerAria")}

@@ -12,6 +12,8 @@ export type Lang = "en";
 // The public workbench is English-only. Every user-visible string lives in
 // this dictionary so the interface and its tests stay in one language.
 const en = {
+  "home.quickActions": "Quick actions",
+  "home.exampleQuestions": "Example questions",
   "home.reviewerPolicy": "Can urgent purchases be ordered before approval and approved later? (Policy reference)",
   "home.reviewerCoil": "How should I verify the coil ratings of an MY2N-GS-R DC24 with an LED?",
   "home.reviewerImpact": "What is the impact scope?",
