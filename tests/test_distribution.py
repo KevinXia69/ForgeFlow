@@ -63,13 +63,14 @@ def test_test_directory_does_not_exempt_new_credentials():
     assert checker.scan_text('API_KEY = "synthetic-test-key"', "src/config.py")
 
 
-def test_container_acceptance_canaries_are_exact_and_path_bound():
+@pytest.mark.parametrize('script', ['scripts/accept_local_stack.py', 'scripts/accept_local_odoo.py'])
+def test_container_acceptance_canaries_are_exact_and_path_bound(script):
     for value in ("ci-model-fixture-key", "sk-ci-parser-fixture-key", "ci-embedding-fixture-key"):
         source = f'API_KEY = "{value}"'
-        assert not checker.scan_text(source, "scripts/accept_local_stack.py")
+        assert not checker.scan_text(source, script)
         assert checker.scan_text(source, "src/config.py")
     assert checker.scan_text('API_KEY = "' + 'unreviewed-ci-' + 'fixture-value"',
-                             "scripts/accept_local_stack.py")
+                             script)
 
 
 @pytest.mark.parametrize("value", [

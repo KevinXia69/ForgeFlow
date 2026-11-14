@@ -148,6 +148,9 @@ RUNTIME_CANARIES = {
     "scripts/accept_local_stack.py": {
         "ci-model-fixture-key", "sk-ci-parser-fixture-key", "ci-embedding-fixture-key",
     },
+    "scripts/accept_local_odoo.py": {
+        "ci-model-fixture-key", "sk-ci-parser-fixture-key", "ci-embedding-fixture-key",
+    },
 }
 
 
