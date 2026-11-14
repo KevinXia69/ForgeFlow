@@ -720,7 +720,7 @@ wheels = [
 
 [[package]]
 name = "forgeflow"
-version = "3.0.0"
+version = "3.10.0"
 source = { editable = "." }
 dependencies = [
     { name = "cryptography" },
@@ -732,6 +732,7 @@ dependencies = [
     { name = "python-docx" },
     { name = "python-dotenv" },
     { name = "python-multipart" },
+    { name = "python-pptx" },
     { name = "pyyaml" },
 ]
 
@@ -772,6 +773,7 @@ requires-dist = [
     { name = "python-docx", specifier = ">=1.2.0" },
     { name = "python-dotenv", specifier = "==1.2.4" },
     { name = "python-multipart", specifier = ">=0.0.33" },
+    { name = "python-pptx", specifier = "==1.0.2" },
     { name = "pyyaml", specifier = "==6.0.3" },
 ]
 provides-extras = ["planning", "dsh-sdk", "docmind"]

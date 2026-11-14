@@ -481,9 +481,9 @@ const en = {
   "v11.dueUnmeasured": "Customer deadline; actual delivery was not measured.",
   "v11.exportReceipt": "Export receipt",
   "settings.scopeAsk": "Workbench chat",
-  "settings.scopeAskBody": "Uses the browser configuration below; affects Workbench chat only.",
+  "settings.scopeAskBody": "Uses the optional configuration for this tab; otherwise uses the platform default.",
   "settings.scopeCase": "Case Q&A",
-  "settings.scopeCaseBody": "Uses server configuration; this page does not change it.",
+  "settings.scopeCaseBody": "Live case questions use the same optional tab configuration. Historical examples remain local reference views.",
   "settings.scopePlan": "Recovery planning",
   "settings.scopePlanBody": "Controlled by planner and executor settings, not this model page.",
   "settings.scopeResearch": "Autonomous research runs",
@@ -1479,6 +1479,12 @@ const en = {
     "With the platform default, the API key stays hidden on the server; requests carry no key.",
 
   "settings.useOwnKey": "Use my own key",
+  "settings.provider": "Provider",
+  "settings.protocol": "API protocol",
+  "settings.imageInput": "This model supports image input",
+  "settings.capabilityNote": "Changing a model or endpoint clears the image capability selection. Enable it only if your selected model supports images. Test the connection before using it; tools and features depend on that model and account.",
+  "settings.httpsRequired": "Use a public HTTPS API URL allowed by this service, without embedded credentials, query parameters or a fragment. Local engines are configured in the local installer.",
+  "settings.imageUnavailable": "This model is configured for text only. Choose an image-capable model in Settings before sending an image.",
   "settings.profile": "Profile",
   "settings.profileNemotron": "Nemotron 3.5 Super VL",
   "settings.profileDeepseek": "DeepSeek V4.1 Flash 1017",
@@ -1489,7 +1495,7 @@ const en = {
   "settings.showKey": "Show",
   "settings.hideKey": "Hide",
   "settings.keyNote":
-    "Your API key stays only in this tab’s memory and is cleared on refresh or logout. It is sent with requests, never saved to the server.",
+    "Optional: the platform default works without your key. This changes only your Home and live-case chat, not the shared platform default or background investigations. Your key stays in this tab’s memory until refresh or logout and is sent to the chosen service with each request, without being saved on the server. Hosted custom endpoints must be allowed by the service administrator.",
   "settings.chatRetention": "Chat and images stay in this tab for refresh recovery. Logout clears them and signs out other open tabs.",
   "settings.logoutFailed": "Logout did not complete; your session may still be active. Please retry. Current content has not been cleared.",
 

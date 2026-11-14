@@ -1,0 +1,132 @@
+{
+  "deepseek_flash": {
+    "label": "DeepSeek",
+    "provider": "deepseek",
+    "api": "openai-completions",
+    "base_url": "https://api.deepseek.com/v1",
+    "model": "deepseek-flash",
+    "input": [
+      "text",
+      "image"
+    ],
+    "endpoints": {
+      "openai-completions": "https://api.deepseek.com/v1",
+      "openai-responses": "https://api.deepseek.com/v1",
+      "anthropic-messages": "https://api.deepseek.com/anthropic/v1"
+    }
+  },
+  "nemotron": {
+    "label": "Nebius",
+    "provider": "nebius",
+    "api": "openai-completions",
+    "base_url": "https://api.tokenfactory.nebius.com/v1",
+    "model": "nvidia/Nemotron-3.5-Super-VL",
+    "input": [
+      "text",
+      "image"
+    ],
+    "endpoints": {
+      "openai-completions": "https://api.tokenfactory.nebius.com/v1"
+    }
+  },
+  "openai": {
+    "label": "OpenAI",
+    "provider": "openai",
+    "api": "openai-responses",
+    "base_url": "https://api.openai.com/v1",
+    "model": "gpt-4.1-mini",
+    "input": [
+      "text",
+      "image"
+    ],
+    "endpoints": {
+      "openai-responses": "https://api.openai.com/v1",
+      "openai-completions": "https://api.openai.com/v1"
+    }
+  },
+  "anthropic": {
+    "label": "Anthropic",
+    "provider": "anthropic",
+    "api": "anthropic-messages",
+    "base_url": "https://api.anthropic.com",
+    "model": "claude-sonnet-4-6",
+    "input": [
+      "text",
+      "image"
+    ],
+    "endpoints": {
+      "anthropic-messages": "https://api.anthropic.com"
+    }
+  },
+  "google": {
+    "label": "Google / Gemini",
+    "provider": "google",
+    "api": "google-generative-ai",
+    "base_url": "https://generativelanguage.googleapis.com/v1beta",
+    "model": "gemini-2.5-flash",
+    "input": [
+      "text",
+      "image"
+    ],
+    "endpoints": {
+      "google-generative-ai": "https://generativelanguage.googleapis.com/v1beta",
+      "openai-completions": "https://generativelanguage.googleapis.com/v1beta/openai"
+    }
+  },
+  "openrouter": {
+    "label": "OpenRouter",
+    "provider": "openrouter",
+    "api": "openai-completions",
+    "base_url": "https://openrouter.ai/api/v1",
+    "model": "openai/gpt-4.1-mini",
+    "input": [
+      "text",
+      "image"
+    ],
+    "endpoints": {
+      "openai-completions": "https://openrouter.ai/api/v1",
+      "anthropic-messages": "https://openrouter.ai/api"
+    }
+  },
+  "dashscope": {
+    "label": "DashScope / Qwen",
+    "provider": "dashscope",
+    "api": "openai-completions",
+    "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "model": "qwen-plus",
+    "input": [
+      "text"
+    ],
+    "endpoints": {
+      "openai-completions": "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    }
+  },
+  "siliconflow": {
+    "label": "SiliconFlow",
+    "provider": "siliconflow",
+    "api": "openai-completions",
+    "base_url": "https://api.siliconflow.cn/v1",
+    "model": "Qwen/Qwen3-8B",
+    "input": [
+      "text"
+    ],
+    "endpoints": {
+      "openai-completions": "https://api.siliconflow.cn/v1"
+    }
+  },
+  "custom": {
+    "label": "Custom compatible endpoint",
+    "provider": "forgeflow-custom",
+    "api": "openai-completions",
+    "base_url": "",
+    "model": "",
+    "input": [
+      "text"
+    ],
+    "endpoints": {
+      "openai-completions": "",
+      "openai-responses": "",
+      "anthropic-messages": ""
+    }
+  }
+}

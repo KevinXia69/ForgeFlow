@@ -1,0 +1,7 @@
+FROM odoo:20.0-20261102@sha256:a97a7665e2b9fd890e12785491a2c91d779f800bcbc30873dada1c8748b28f1c
+LABEL org.opencontainers.image.source="https://github.com/KevinXia69/ForgeFlow" \
+      org.opencontainers.image.licenses="LGPL-3.0-or-later AND Apache-2.0"
+COPY --chown=odoo:odoo odoo-addons/forgeflow_general /mnt/extra-addons/forgeflow_general
+COPY --chown=odoo:odoo deploy/workbench/odoo_init.py deploy/workbench/odoo_bootstrap.py /opt/forgeflow/
+ENTRYPOINT []
+CMD ["odoo", "-c", "/etc/forgeflow/odoo.conf"]

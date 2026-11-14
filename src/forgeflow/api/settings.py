@@ -125,16 +125,24 @@ class Settings:
 
     def allows_review_model(self, base_url: str) -> bool:
         """Only administrator-approved model authorities are reachable in review."""
-        if self.deployment != "review":
+        if self.deployment == "local":
             return True
         try:
             parsed = urlsplit(base_url)
             host, port = parsed.hostname, parsed.port
         except ValueError:
             return False
-        if not isinstance(host, str) or not host:
+        if (parsed.scheme != "https" or not isinstance(host, str) or not host or parsed.username
+                or parsed.password or parsed.query or parsed.fragment):
             return False
-        for entry in self.review_model_hosts:
+        allowed_hosts = self.review_model_hosts
+        if self.deployment == "hosted":
+            from forgeflow.local_workbench.providers import PROVIDER_PRESETS
+            official = tuple({urlsplit(url).hostname for preset in PROVIDER_PRESETS.values()
+                              for url in preset["endpoints"].values() if url.startswith("https://")})
+            if host.lower() in official and port in (None, 443):
+                return True
+        for entry in allowed_hosts:
             allowed = _host_parts(entry)
             if allowed is not None and host.lower() == allowed[0] and (
                     allowed[1] is None or port == allowed[1]):

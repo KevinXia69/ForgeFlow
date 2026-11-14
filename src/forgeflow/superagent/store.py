@@ -1,6 +1,7 @@
 """PostgreSQL control-store boundary. External calls never run in a transaction."""
 from __future__ import annotations
 
+import os
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
@@ -8,14 +9,17 @@ from typing import Iterator
 import psycopg
 from psycopg.rows import dict_row
 
-DEFAULT_MIGRATIONS = Path(__file__).resolve().parents[3] / "migrations" / "control"
+_PACKAGED_MIGRATIONS = Path(__file__).resolve().parents[1] / "_migrations" / "control"
+DEFAULT_MIGRATIONS = (_PACKAGED_MIGRATIONS if _PACKAGED_MIGRATIONS.is_dir()
+                      else Path(__file__).resolve().parents[3] / "migrations" / "control")
 
 
 class ControlStore:
     def __init__(self, database_url: str, migrations_dir: str | Path | None = None,
                  connection: psycopg.Connection | None = None) -> None:
         self.database_url = database_url
-        self.migrations_dir = Path(migrations_dir) if migrations_dir else DEFAULT_MIGRATIONS
+        selected = migrations_dir or os.environ.get("FORGEFLOW_CONTROL_MIGRATIONS")
+        self.migrations_dir = Path(selected) if selected else DEFAULT_MIGRATIONS
         self.connection = connection or psycopg.connect(
             database_url, autocommit=False, row_factory=dict_row, connect_timeout=5)
 
@@ -34,13 +38,18 @@ class ControlStore:
                 yield cursor
 
     def migrate(self) -> list[int]:
+        paths = sorted(self.migrations_dir.glob("*.sql"))
+        if not paths or not any(path.name == "001_control.sql" for path in paths):
+            # A wheel without SQL used to silently create only the migration
+            # marker table. Never report success for an uninitialized database.
+            raise RuntimeError("control_migrations_missing")
         applied: list[int] = []
         self.connection.execute(
             "CREATE TABLE IF NOT EXISTS control_schema_migrations "
             "(version integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())")
         done = {row["version"] for row in self.connection.execute(
             "SELECT version FROM control_schema_migrations").fetchall()}
-        for path in sorted(self.migrations_dir.glob("*.sql")):
+        for path in paths:
             version = int(path.stem.split("_", 1)[0])
             if version in done:
                 continue

@@ -99,7 +99,7 @@ def test_hosted_host_fence_applies_without_browser_headers_and_keeps_security_he
         assert "samesite=lax" in cookie.lower()
 
 
-def test_hosted_never_uses_browser_or_saved_workspace_model_settings(tmp_path, monkeypatch):
+def test_hosted_rejects_unapproved_browser_endpoints_and_saved_workspace_model_settings(tmp_path, monkeypatch):
     for key, value in MODEL.items():
         suffix = "NAME" if key == "model" else key.upper()
         monkeypatch.setenv(f"FORGEFLOW_MODEL_{suffix}", value)
@@ -123,11 +123,11 @@ def test_hosted_never_uses_browser_or_saved_workspace_model_settings(tmp_path, m
         ):
             response = client.post(path, json=body)
             assert response.status_code == 403
-            assert response.json()["detail"] == "model_override_disabled"
+            assert response.json()["detail"] == "model_address_not_allowed"
         assert not calls
         model_view = client.get("/api/settings/model").json()
         assert model_view["source"] == "platform"
-        assert model_view["read_only"] is True and model_view["can_override"] is False
+        assert model_view["read_only"] is True and model_view["can_override"] is True
         assert MODEL_KEY not in str(model_view)
         assert client.get("/api/config").json()["dsh_web_url"] == ""
         assert client.post("/api/settings/model/test").json()["ok"] is True

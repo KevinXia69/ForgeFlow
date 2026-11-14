@@ -62,7 +62,8 @@ class HttpModelRunner:
 
     def __init__(self, *, base_url: str, api_key: str, model: str, timeout: float = 120.0,
                  provider: str = "openai-compatible", temperature: float = 0.2,
-                 client_factory: Callable[..., httpx.Client] | None = None) -> None:
+                 client_factory: Callable[..., httpx.Client] | None = None,
+                 api: str = "openai-completions") -> None:
         if not base_url or not api_key or not model:
             raise ValueError("model_runner_configuration_required")
         self.base_url = base_url.rstrip("/")
@@ -70,6 +71,7 @@ class HttpModelRunner:
         self.model = model
         self.timeout = float(timeout)
         self.provider = provider
+        self.api = api
         self.temperature = float(temperature)
         self._client_factory = client_factory or (
             lambda: httpx.Client(timeout=self.timeout, trust_env=False))
@@ -88,48 +90,20 @@ class HttpModelRunner:
         model = env.get("FORGEFLOW_MODEL") or env.get("DEEPSEEK_MODEL")
         if not (base and key and model):
             return None
-        return cls(base_url=str(base), api_key=str(key), model=str(model))
+        return cls(base_url=str(base), api_key=str(key), model=str(model),
+                   api=env.get("FORGEFLOW_MODEL_API", "openai-completions"),
+                   provider=env.get("FORGEFLOW_MODEL_PROVIDER", "openai-compatible"))
 
     def complete(self, prompt: str, *, run_token: str | None = None) -> ModelReply:
-        headers = {"Authorization": f"Bearer {self.api_key}",
-                   "Content-Type": "application/json"}
-        if run_token:
-            headers["X-ForgeFlow-Run-Token"] = str(run_token)[:64]
-        body = {
-            "model": self.model,
-            "temperature": self.temperature,
-            "messages": [{"role": "user", "content": prompt}],
-        }
-        client = self._client_factory()
+        from forgeflow.model_transport import ModelTransport, TransportError
+        del run_token
+        transport = ModelTransport(base_url=self.base_url, api_key=self.api_key, model=self.model,
+            api=self.api, provider=self.provider, timeout=self.timeout, client_factory=self._client_factory)
         try:
-            response = client.post(f"{self.base_url}/chat/completions", headers=headers,
-                                   json=body)
-        except httpx.HTTPError:
-            raise ModelRunnerError("model_runner_unavailable") from None
-        finally:
-            client.close()
-        if response.status_code in (401, 403):
-            raise ModelRunnerError("model_runner_unauthorized")
-        if response.status_code == 429:
-            raise ModelRunnerError("model_runner_rate_limited")
-        if response.status_code != 200:
-            raise ModelRunnerError("model_runner_error", str(response.status_code))
-        try:
-            payload = response.json()
-            text = payload["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError, ValueError):
-            raise ModelRunnerError("model_runner_invalid_response") from None
-        usage = payload.get("usage") or {}
-        receipt = RunnerUsage(
-            tokens=int(usage.get("total_tokens") or 0),
-            prompt_tokens=int(usage.get("prompt_tokens") or 0),
-            completion_tokens=int(usage.get("completion_tokens") or 0),
-            model=str(payload.get("model") or self.model),
-            provider=self.provider,
-            request_id=str(payload.get("id") or "") or None,
-            complete=bool(usage.get("total_tokens")),
-        )
-        return ModelReply(str(text), receipt.as_dict(), receipt.complete)
+            result = transport.complete([{"role": "user", "content": prompt}])
+        except TransportError as error:
+            raise ModelRunnerError(str(error)) from None
+        return ModelReply(result.text, result.usage, result.usage["complete"])
 
 
 def parse_pi_usage(stream: str) -> RunnerUsage:

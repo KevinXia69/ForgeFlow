@@ -201,6 +201,13 @@ def generate(
     for turn in history or []:
         messages.append({"role": turn["role"], "content": turn["content"]})
     messages.append({"role": "user", "content": _user_content(question, passages)})
+    if settings.api != "openai-completions":
+        from forgeflow.model_transport import ModelTransport, TransportError
+        try:
+            return ModelTransport(base_url=settings.base_url, api_key=settings.api_key,
+                model=settings.model, api=settings.api, provider=settings.provider, timeout=timeout).complete(messages).text
+        except TransportError as error:
+            raise AssistantError(str(error), "model request failed") from None
     body = {"model": settings.model, "messages": messages, "temperature": 0.2}
     payload = _post(settings, body, timeout) if allow_redirects else _post(
         settings, body, timeout, allow_redirects=False)

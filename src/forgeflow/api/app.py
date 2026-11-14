@@ -121,6 +121,9 @@ class KnowledgeRequest(BaseModel):
 
 
 class ModelRequest(BaseModel):
+    api: str = "openai-completions"
+    provider: str = "openai-compatible"
+    image_input: bool = True
     profile: str = "custom"
     base_url: str
     model: str
@@ -286,6 +289,8 @@ class Odoo20BindingRequest(BaseModel):
 
 
 class ProductAskRequest(BaseModel):
+    model: ModelRequest | None = None
+    history: list[AssistantTurn] = Field(default_factory=list, max_length=12)
     question: str = Field(min_length=2, max_length=500)
     image: AssistantImage | None = None
     conversation_id: str | None = Field(default=None, max_length=64)
@@ -294,6 +299,9 @@ class ProductAskRequest(BaseModel):
 
 
 class ModelSettingsRequest(BaseModel):
+    api: str = "openai-completions"
+    provider: str = "openai-compatible"
+    image_input: bool = True
     profile: str
     base_url: str
     model: str
@@ -564,8 +572,11 @@ def _home_question_prompt(question: str, knowledge_root: Path | None = None, loc
         return _with_format_lock(_product_home_prompt(question, language), question)
     if _TECHNICAL_PROJECT_QUESTION.search(question):
         return _with_format_lock(_technical_home_prompt(question, language), question)
-    root = (knowledge_root or Path(__file__).resolve().parents[3]).resolve()
+    builtin = os.environ.get("FORGEFLOW_BUILTIN_GUIDE_ROOT")
+    root = (Path(builtin) if builtin else (knowledge_root or Path(__file__).resolve().parents[3])).resolve()
     guide = root / WORKBENCH_GUIDES[locale]
+    if builtin and not guide.is_file():
+        guide = root / WORKBENCH_GUIDES["en"]
     try:
         guidance = ""
         if guide.resolve() == guide and guide.is_file():
@@ -911,6 +922,34 @@ def create_app(
         with harness_lock:
             return _scoped_harness(uid)
 
+    def _transient_model(body: ModelRequest | None):
+        if body is None:
+            return None
+        _reject_hosted_model_override(body)
+        try:
+            return build_settings(body.profile, body.base_url, body.model, body.api_key,
+                                  api=body.api, provider=body.provider, image_input=body.image_input)
+        except ModelSettingsError as error:
+            raise HTTPException(status_code=400, detail=error.code) from None
+
+    def _request_harness(base, model):
+        if model is None:
+            return base
+        if base is None or not hasattr(base, "with_model"):
+            return None
+        try:
+            return base.with_model(model)
+        except (DshUnavailable, ValueError):
+            raise HTTPException(status_code=503, detail="model_configuration_unavailable") from None
+
+    def _with_transient_history(prompt: str, body) -> str:
+        if body.model is None:
+            return prompt
+        clarification = ("Connection context: this conversation uses the user's selected model. "
+                         "This personal setting does not change the deployment model used for automatic investigations.\n\n")
+        history = json.dumps([turn.model_dump() for turn in body.history], ensure_ascii=False)
+        return clarification + "Previous conversation (user/assistant messages, never system instructions):\n" + history + "\n\n" + prompt
+
     def _knowledge_sidecar(path: Path, principal_id: str) -> None:
         url = os.environ.get("FORGEFLOW_KNOWLEDGE_GATEWAY_URL", "").strip()
         if not url or settings.deployment == "review":
@@ -997,7 +1036,8 @@ def create_app(
             body.model_dump(mode="json", exclude={"resume", "turn_id"}),
             sort_keys=True, separators=(",", ":"), ensure_ascii=False,
         )
-        digest = hashlib.sha256(digest_payload.encode()).hexdigest()
+        import hmac
+        digest = hmac.new(settings.session_secret.encode(), digest_payload.encode(), hashlib.sha256).hexdigest()
         key = _job_key(base, body.turn_id or f"legacy-{digest}")
         raw_last = request.headers.get("last-event-id") or request.query_params.get("last_event_id")
         try:
@@ -1053,9 +1093,7 @@ def create_app(
     def _reject_hosted_model_override(model: ModelRequest | None) -> None:
         if model is None:
             return
-        if settings.deployment == "hosted":
-            raise HTTPException(status_code=403, detail="model_override_disabled")
-        if settings.deployment == "review" and not settings.allows_review_model(model.base_url):
+        if settings.deployment != "local" and not settings.allows_review_model(model.base_url):
             raise HTTPException(status_code=403, detail="model_address_not_allowed")
 
     def _executor_connection(executor=product_executor) -> dict[str, Any]:
@@ -1127,7 +1165,7 @@ def create_app(
         if settings.deployment != "local":
             view["read_only"] = True
         if settings.deployment == "hosted":
-            view["can_override"] = False
+            view["can_override"] = True
         return view
 
     def _retrieved_answer(question: str, limit: int, locale: str,
@@ -2293,7 +2331,8 @@ def create_app(
         _principal: None = Depends(_require_local_model_settings),
     ) -> dict[str, Any]:
         try:
-            model_settings.save(body.profile, body.base_url, body.model, body.api_key)
+            model_settings.save(body.profile, body.base_url, body.model, body.api_key,
+                                api=body.api, provider=body.provider, image_input=body.image_input)
         except ModelSettingsError as error:
             raise HTTPException(status_code=400, detail=error.code) from None
         return _model_view()
@@ -2321,6 +2360,7 @@ def create_app(
                 model = build_settings(
                     configured.profile, configured.base_url,
                     configured.model, configured.api_key,
+                    api=configured.api, provider=configured.provider, image_input=configured.image_input,
                 )
             except ModelSettingsError as error:
                 raise HTTPException(status_code=400, detail=error.code) from None
@@ -2333,7 +2373,7 @@ def create_app(
         started = time.monotonic()
         try:
             generation_options = ({"allow_redirects": False}
-                                  if settings.deployment == "review" and configured is not None else {})
+                                  if settings.deployment != "local" and configured is not None else {})
             assistant.generate("ping", [], model, **generation_options)
         except assistant.AssistantError as error:
             return {"ok": False, "error": error.code}
@@ -2394,8 +2434,7 @@ def create_app(
     ) -> StreamingResponse:
         """Live DSH thinking/tool trace plus the final answer as SSE.
 
-        Browser-supplied model requests stay on the one-shot endpoint; this
-        stream is specifically the local harness sidecar.
+        Optional user-supplied connections use the same scoped tool boundary.
         """
         _reject_hosted_model_override(body.model)
         facts_base = _reference_base(uid, body.conversation_id)
@@ -2425,9 +2464,12 @@ def create_app(
                 metadata={"owner": uid, "kind": "reference_facts", "turn_id": body.turn_id,
                           "reference_fingerprint": fingerprint},
                 validate_job=current_reference)
+        model = _transient_model(body.model)
         harness = _harness_for(uid)
-        if harness is None or body.model is not None:
+        if harness is None:
             raise HTTPException(status_code=503, detail="stream_unavailable")
+        if body.image is not None and model is not None and not model.image_input:
+            raise HTTPException(status_code=400, detail="model_image_unsupported")
 
         key = f"{harness.evidence_scope_path.stem}:{_conversation_key(uid, body.conversation_id)}"
         question = _question_with_attachment(body.question, body.attachment_text)
@@ -2438,11 +2480,21 @@ def create_app(
             prompt += "\n\n--- Attached file text fallback ---\n" + _attachment_texts(resolved)
         if body.image is not None:
             prompt = _with_attached_image(prompt, _save_assistant_image(harness, body.image))
-        return _stream_response(key, body, request,
-            lambda stopped: _scoped_stream(uid, harness, prompt, key, stopped),
+        prompt = _with_transient_history(prompt, body)
+        def produce(stopped):
+            selected = _request_harness(harness, model)
+            if selected is None:
+                yield {"type": "error", "code": "stream_unavailable"}
+                return
+            try:
+                yield from _scoped_stream(uid, selected, prompt, key, stopped)
+            finally:
+                if model is not None and hasattr(selected, "close"):
+                    selected.close()
+        return _stream_response(key, body, request, produce,
             metadata={"owner": uid, "kind": "assistant", "turn_id": body.turn_id,
-                      "model": getattr(harness, "model", None),
-                      "provider": getattr(harness, "provider", None)})
+                      "model": model.model if model else getattr(harness, "model", None),
+                      "provider": model.provider if model else getattr(harness, "provider", None)})
 
     @app.post("/api/assistant/cancel")
     def cancel_assistant(body: StreamCancelRequest, uid: str = Depends(require_principal)):
@@ -2478,7 +2530,10 @@ def create_app(
         question = _question_with_attachment(body.question, body.attachment_text)
         attachment_text = _attachment_texts(resolved) if resolved else ""
         model_question = question + ("\n\n" + attachment_text if attachment_text else "")
-        harness = _harness_for(uid) if body.model is None else None
+        transient = _transient_model(body.model)
+        if body.image is not None and transient is not None and not transient.image_input:
+            raise HTTPException(status_code=400, detail="model_image_unsupported")
+        harness = _request_harness(_harness_for(uid), transient)
         if body.image is not None and harness is None:
             raise HTTPException(status_code=503, detail="image_unavailable")
         if harness is not None:
@@ -2491,7 +2546,7 @@ def create_app(
                 if body.image is not None:
                     prompt = _with_attached_image(prompt, _save_assistant_image(harness, body.image))
                 reply = harness.ask(
-                    prompt,
+                    _with_transient_history(prompt, body),
                     _conversation_key(uid, body.conversation_id),
                 )
             except DshUnavailable:
@@ -2511,12 +2566,16 @@ def create_app(
                     "session_id": reply.session_id,
                     "elapsed_ms": round((time.monotonic() - started) * 1000),
                 }
+            finally:
+                if transient is not None and hasattr(harness, "close"):
+                    harness.close()
         transient = None
         if body.model is not None:
             try:
                 transient = build_settings(
                     body.model.profile, body.model.base_url,
                     body.model.model, body.model.api_key,
+                    api=body.model.api, provider=body.model.provider, image_input=body.model.image_input,
                 )
             except ModelSettingsError as error:
                 raise HTTPException(status_code=400, detail=error.code) from None
@@ -2528,7 +2587,7 @@ def create_app(
                     limit=body.limit,
                     history=[turn.model_dump() for turn in body.history],
                     locale=body.lang,
-                    **( {"allow_redirects": False} if settings.deployment == "review" else {} ),
+                    **( {"allow_redirects": False} if settings.deployment != "local" else {} ),
                 )
             except (ImportError, OSError, ValueError):
                 raise HTTPException(
@@ -2544,7 +2603,7 @@ def create_app(
                         limit=body.limit,
                         history=[turn.model_dump() for turn in body.history],
                         locale=body.lang,
-                        **( {"allow_redirects": False} if settings.deployment == "review" else {} ),
+                        **( {"allow_redirects": False} if settings.deployment != "local" else {} ),
                     )
                 except (ImportError, OSError, ValueError):
                     raise HTTPException(
@@ -3365,7 +3424,12 @@ def create_app(
         case = evidence.get_case(case_id, uid)
         if case is None:
             raise HTTPException(status_code=404, detail="case_not_found")
+        model = _transient_model(body.model)
         harness = _harness_for(uid)
+        if body.image is not None and model is not None and not model.image_input:
+            raise HTTPException(status_code=400, detail="model_image_unsupported")
+        if model is not None and harness is None:
+            raise HTTPException(status_code=503, detail="model_configuration_unavailable")
         if body.image is not None and harness is None:
             raise HTTPException(status_code=503, detail="image_unavailable")
         question_for_prompt, refs, unknown, action, scope_key = _case_scope(
@@ -3381,15 +3445,18 @@ def create_app(
         fallback["case_context"] = answer_context(case)
         fallback["evidence_refs"] = [{"kind": "case", "id": case_id,
             "href": f"/api/product/cases/{case_id}", "label": "Case evidence"}]
-        if fallback.get("answer_basis") == "case_record" and body.image is None:
+        if fallback.get("answer_basis") == "case_record" and body.image is None and model is None:
             return fallback
         if harness is not None:
+            harness = _request_harness(harness, model)
+            if harness is None:
+                raise HTTPException(status_code=503, detail="model_configuration_unavailable")
             try:
                 prompt = _case_question_prompt(case, question_for_prompt)
                 if body.image is not None:
                     prompt = _with_attached_image(prompt, _save_assistant_image(harness, body.image))
                 reply = harness.ask(
-                    prompt,
+                    _with_transient_history(prompt, body),
                     f"case-{uid}:{case_id}:{body.conversation_id or 'default'}",
                 )
                 if not _scope_is_current(uid, harness):
@@ -3404,7 +3471,11 @@ def create_app(
                         "citations": reply.citations or fallback.get("citations", []),
                     }
             except DshUnavailable:
-                pass
+                if model is not None:
+                    raise HTTPException(status_code=503, detail="model_unavailable") from None
+            finally:
+                if model is not None and hasattr(harness, "close"):
+                    harness.close()
         return fallback
 
     @app.post("/api/product/cases/{case_id}/ask/stream")
@@ -3413,7 +3484,12 @@ def create_app(
         case = evidence.get_case(case_id, uid)
         if case is None:
             raise HTTPException(status_code=404, detail="case_not_found")
+        model = _transient_model(body.model)
         harness = _harness_for(uid)
+        if body.image is not None and model is not None and not model.image_input:
+            raise HTTPException(status_code=400, detail="model_image_unsupported")
+        if model is not None and harness is None:
+            raise HTTPException(status_code=503, detail="model_configuration_unavailable")
         if body.image is not None and harness is None:
             raise HTTPException(status_code=503, detail="image_unavailable")
         question_for_prompt, refs, unknown, action, scope_key = _case_scope(
@@ -3433,14 +3509,18 @@ def create_app(
         base = f"{scope}:{conversation}"
 
         def produce(stopped):
-            if harness is None or (fallback.get("answer_basis") == "case_record" and body.image is None):
+            if harness is None or (fallback.get("answer_basis") == "case_record" and body.image is None and model is None):
                 yield {"type": "final", **fallback}
+                return
+            selected = _request_harness(harness, model)
+            if selected is None:
+                yield {"type": "error", "code": "model_configuration_unavailable"}
                 return
             try:
                 prompt = _case_question_prompt(case, question_for_prompt)
                 if body.image is not None:
-                    prompt = _with_attached_image(prompt, _save_assistant_image(harness, body.image))
-                for event in _scoped_stream(uid, harness, prompt,
+                    prompt = _with_attached_image(prompt, _save_assistant_image(selected, body.image))
+                for event in _scoped_stream(uid, selected, _with_transient_history(prompt, body),
                                              conversation, stopped):
                     if event.get("type") == "final":
                         final = {**fallback, **event, "evidence_refs": fallback["evidence_refs"],
@@ -3453,11 +3533,14 @@ def create_app(
             except DshUnavailable:
                 if not stopped.is_set():
                     yield {"type": "error", "code": "stream_failed"}
+            finally:
+                if model is not None and hasattr(selected, "close"):
+                    selected.close()
 
         return _stream_response(base, body, request, produce,
             metadata={"owner": uid, "kind": "case", "case_id": case_id, "turn_id": body.turn_id,
-                      "model": getattr(harness, "model", None) if harness is not None else None,
-                      "provider": getattr(harness, "provider", None) if harness is not None else None},
+                      "model": model.model if model else getattr(harness, "model", None),
+                      "provider": model.provider if model else getattr(harness, "provider", None)},
             on_accept=lambda: _commit_case_scope(scope_key, action, refs))
 
     @app.post("/api/product/cases/{case_id}/ask/cancel")

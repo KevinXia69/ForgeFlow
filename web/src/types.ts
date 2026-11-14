@@ -445,6 +445,10 @@ export type ModelSettingsInfo = {
   profile?: string | null;
   base_url?: string;
   model?: string;
+  api?: string;
+  provider?: string;
+  input?: ("text" | "image")[];
+  image_input?: boolean;
   has_key?: boolean;
   key_hidden?: boolean;
   can_override?: boolean;

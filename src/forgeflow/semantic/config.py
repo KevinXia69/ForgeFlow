@@ -45,6 +45,7 @@ class SemanticConfig:
     reranker_model: str = ""
     reranker_api_key: str = field(default="", repr=False)
     vector_size: int = VECTOR_SIZE
+    ca_file: str = ""
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "qdrant_url", _url("QDRANT_URL", self.qdrant_url))
@@ -90,4 +91,5 @@ class SemanticConfig:
             reranker_url=(env.get("RERANKER_API_URL") or "").strip(),
             reranker_model=(env.get("RERANKER_MODEL_ID") or "").strip(),
             reranker_api_key=key,
+            ca_file=(env.get("FORGEFLOW_SEMANTIC_CA_FILE") or "").strip(),
         )

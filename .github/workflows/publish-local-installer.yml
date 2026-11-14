@@ -1,0 +1,57 @@
+name: publish-local-installer
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  tested-images:
+    uses: ./.github/workflows/local-workbench-images.yml
+    permissions:
+      contents: read
+      packages: write
+
+  publish:
+    needs: tested-images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install packaging dependencies
+        run: python -m pip install PyYAML==6.0.3
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: local-stack-*
+          path: receipts
+      - name: Verify anonymous image access and package the tested commit
+        run: python scripts/package_tested_release.py --receipts receipts --output dist/installer
+      - name: Publish three installers and their checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import os, subprocess, tomllib
+          from pathlib import Path
+          version = tomllib.loads(Path('pyproject.toml').read_text())['project']['version']
+          tag = 'v' + version
+          if os.environ['GITHUB_REF_TYPE'] == 'tag':
+              assert os.environ['GITHUB_REF_NAME'] == tag
+          notes = Path('dist/installer/release-notes.md')
+          notes.write_text('Download the ZIP for Windows, macOS, or Linux, extract it, and run Start-ForgeFlow. Docker is required. Configure your own model, document-parsing, and knowledge API keys in the local setup page. The hosted judge workbench remains ready to use with its existing DeepSeek configuration.\n\nThe installers contain no API keys or production data. Local ERP, control database, semantic index, document worker, assistant tools, approval and execution services are included. Source fallback is included. See README and docs/LOCAL_INSTALL.md for supported providers, requirements, data retention, and verification limits.\n')
+          assets = sorted(Path('dist/installer').glob('*.zip'))
+          assert len(assets) == 3
+          assets += [Path('dist/installer/SHA256SUMS'), Path('dist/installer/release-manifest.json')]
+          subprocess.run(['gh', 'release', 'create', tag, '--target', os.environ['GITHUB_SHA'],
+                          '--title', 'ForgeFlow ' + tag + ' — local workbench',
+                          '--notes-file', str(notes), *map(str, assets)], check=True)
+          PY

@@ -4,6 +4,7 @@ from __future__ import annotations
 import httpx
 
 from .config import SemanticConfig
+from .http import semantic_client
 
 
 class QdrantError(RuntimeError):
@@ -21,7 +22,7 @@ def _vector_params(info: dict) -> dict:
 
 def check_collection(config: SemanticConfig, client: httpx.Client | None = None) -> dict:
     owns = client is None
-    client = client or httpx.Client(timeout=20, trust_env=False)
+    client = client or semantic_client(config, timeout=20)
     try:
         response = client.get(
             f"{config.qdrant_url}/collections/{config.collection}",

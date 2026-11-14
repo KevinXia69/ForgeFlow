@@ -37,14 +37,34 @@ _ALLOWED_KEY_ENVS = {"NEBIUS_API_KEY", "DEEPSEEK_API_KEY"}
 def assistant_key_env(patch_path: Path, config: dict | None = None) -> str:
     """Read the selected provider key name from trusted config or the DSH patch."""
     configured = (config or {}).get("api_key_env")
-    if configured in _ALLOWED_KEY_ENVS:
-        return configured
     try:
         patches = json.loads(patch_path.read_text(encoding="utf-8"))
     except (OSError, ValueError, TypeError):
-        return "DEEPSEEK_API_KEY"
+        return configured if configured in _ALLOWED_KEY_ENVS else "DEEPSEEK_API_KEY"
     if not isinstance(patches, list):
-        return "DEEPSEEK_API_KEY"
+        return configured if configured in _ALLOWED_KEY_ENVS else "DEEPSEEK_API_KEY"
+    selected = None
+    selected_key = None
+    for patch in patches:
+        if isinstance(patch, dict) and patch.get("id") == "agent-default-model":
+            values = patch.get("config")
+            if isinstance(values, dict) and "provider" in values:
+                selected = values["provider"]
+    for patch in patches:
+        if not isinstance(patch, dict) or patch.get("id") != "llm-pi-ai":
+            continue
+        values = patch.get("config")
+        providers = values.get("providers") if isinstance(values, dict) else None
+        provider = providers.get(selected) if isinstance(providers, dict) and isinstance(selected, str) else None
+        if isinstance(provider, dict) and "apiKeyEnv" in provider:
+            selected_key = provider["apiKeyEnv"]
+    # Only an effective, owner-bound BYOK route overrides the deployment key.
+    if selected_key == "FORGEFLOW_CHAT_API_KEY":
+        return selected_key
+    if configured in _ALLOWED_KEY_ENVS:
+        return configured
+    if selected_key in _ALLOWED_KEY_ENVS:
+        return selected_key
     for patch in patches:
         if not isinstance(patch, dict) or patch.get("id") != "llm-pi-ai":
             continue
@@ -60,6 +80,18 @@ def assistant_key_env(patch_path: Path, config: dict | None = None) -> str:
     return "DEEPSEEK_API_KEY"
 
 
+def _uses_deepseek_search(patch_path: Path) -> bool:
+    try:
+        rows = json.loads(patch_path.read_text(encoding="utf-8"))
+        enabled = False
+        for row in rows:
+            if isinstance(row, dict) and row.get("id") == "web-search-deepseek":
+                enabled = not row.get("disabled", False)
+        return enabled
+    except (OSError, ValueError, TypeError):
+        return False
+
+
 def assistant_launch_environment(config: dict, evidence: Path, patch_path: Path,
                                  source: dict[str, str] | None = None) -> dict[str, str]:
     """Pass only the credential selected by the patch into the model process."""
@@ -68,7 +100,7 @@ def assistant_launch_environment(config: dict, evidence: Path, patch_path: Path,
     api_key = source.get(key_env, "")
     if not api_key:
         raise ValueError("assistant_model_key_required")
-    return {
+    environment = {
         "PATH": "/usr/local/bin:/usr/bin:/bin", "LANG": "C.UTF-8",
         "HOME": config["home"], "DSH_HOME": config["home"],
         "DSH_PERMISSION_MODE": "read-only",
@@ -77,6 +109,9 @@ def assistant_launch_environment(config: dict, evidence: Path, patch_path: Path,
         "FORGEFLOW_ASSISTANT_EVIDENCE": str(evidence),
         key_env: api_key,
     }
+    if _uses_deepseek_search(patch_path) and source.get("DEEPSEEK_API_KEY"):
+        environment["DEEPSEEK_API_KEY"] = source["DEEPSEEK_API_KEY"]
+    return environment
 
 
 def launch_arguments(argv: list[str], config: dict, evidence: Path) -> list[str]:
@@ -100,7 +135,11 @@ def launch_arguments(argv: list[str], config: dict, evidence: Path) -> list[str]
                     raise ValueError("invalid_assistant_command")
                 profile = option
             elif value == "--patch":
-                if patch is not None or Path(option) != evidence.with_suffix(".patch.json"):
+                candidate = Path(option)
+                default = candidate == evidence.with_suffix(".patch.json")
+                byok = (candidate.parent == evidence.parent and re.fullmatch(
+                    re.escape(evidence.stem) + r"\.byok-[0-9a-f]{32}\.patch\.json", candidate.name))
+                if patch is not None or not (default or byok):
                     raise ValueError("invalid_assistant_scope")
                 patch = scoped_file(Path(option), Path(config["evidence_root"]),
                                     owner_uid=config.get("api_uid"))
@@ -135,7 +174,7 @@ def main() -> int:
                                owner_uid=api.pw_uid)
         arguments = launch_arguments(sys.argv[1:], config, evidence)
         environment = assistant_launch_environment(
-            config, evidence, evidence.with_suffix(".patch.json"))
+            config, evidence, Path(arguments[arguments.index("--patch") + 1]))
         os.umask(0o007)
         os.chdir(config["workspace"])
         os.execve(config["node"], arguments, environment)

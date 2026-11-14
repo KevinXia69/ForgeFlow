@@ -11,6 +11,7 @@ from .errors import (
     SemanticRateLimited,
     SemanticUnavailable,
 )
+from .http import semantic_client
 from .rerank import rerank
 
 
@@ -29,7 +30,7 @@ def search(config: SemanticConfig, tenant_id: str, query: str, *,
     if acl_scopes is not None and not acl_scopes:
         return []
     owns = client is None
-    client = client or httpx.Client(timeout=120, trust_env=False)
+    client = client or semantic_client(config, timeout=120)
     try:
         vector = embed_texts(config, [query], client=client)[0]
         try:

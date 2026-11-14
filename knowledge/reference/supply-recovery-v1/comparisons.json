@@ -1,0 +1,268 @@
+{
+  "schema_version": 1,
+  "pack_id": "supply-recovery-v1",
+  "review_kind": "reviewed_reference_facts",
+  "sources": [
+    {
+      "source_id": "K04",
+      "source_path": "reference/supply-recovery-v1/K04.md",
+      "filename": "K04.md",
+      "pack_id": "supply-recovery-v1",
+      "sha256": "ba18264011f17d37044cfef5910780fff74715d6e5bf8b3877f57f9116eafd14",
+      "support": {
+        "l11": {
+          "line_start": 11,
+          "line_end": 11,
+          "excerpt": "型号表中MY2N-GS-R DC24为2极、带LED与机械指示、24 VDC线圈；N表示LED，I表示闭锁杆，D1/D2和CR区分内置二极管或CR回路，不能省略后缀核对。",
+          "sha256": "841c9814884c6340ea07a43047f3fba319c781f6f40b43ff2e0dab13958ce9fb"
+        },
+        "l13": {
+          "line_start": 13,
+          "line_end": 13,
+          "excerpt": "第4页Operating Coil表的DC24行列出额定电流36.3 (37.7) mA、线圈电阻662 (636) Ω。按注4对带LED型号括号值的说明，对应37.7 mA和636 Ω。原英文注4使用“coil voltages”，与表格电阻列表头措辞不一致；此措辞疑点需向原厂确认，不能自行改写原文或据此认定另一型号适用。",
+          "sha256": "b0fefbfe3f462b44561b27063ae7242f0a4a4a41b1fdf419d966c97a9cfe8c74"
+        },
+        "l15": {
+          "line_start": 15,
+          "line_end": 15,
+          "excerpt": "注1明确额定电流及线圈电阻在23°C线圈温度下测量，DC线圈电阻公差写为+15%，未在此处给出负向公差；不能改写成±15%，也不能套用AC额定电流的+15%/−20%。注3的动作特性同样以23°C线圈温度测量。表中标称数据不是脱离型号、温度、测量方法及工程验收规范的直接判废标准。",
+          "sha256": "7516f2798a0f0edebcec97906ac61e7bd09ff4530b3cc91257e66e719fdf8209"
+        },
+        "l17": {
+          "line_start": 17,
+          "line_end": 17,
+          "excerpt": "核对顺序：确认实物完整型号及批次，核对同版本表格的DC/AC行、单位、LED括号值和脚注，再比对渠道记录。K06渠道目录的36.3 mA、662 Ω与带LED括号值不同；应保留各自出处并向原厂或渠道取得书面澄清，不能仅凭目录差异断言供错货，或自动批准选型、替代与验收。",
+          "sha256": "3cf71d84b6022d064c8f49393fe7a60b2eee80db6d91dc74df4fd1000fec8407"
+        }
+      }
+    },
+    {
+      "source_id": "K06",
+      "source_path": "reference/supply-recovery-v1/K06.md",
+      "filename": "K06.md",
+      "pack_id": "supply-recovery-v1",
+      "sha256": "83e2b78aeb038a2973534ee75442d701152cc476a5a772b586e3a76abdf5a5b0",
+      "support": {
+        "l11": {
+          "line_start": 11,
+          "line_end": 11,
+          "excerpt": "目录MPN为MY2N-GS-R DC24，渠道号236-MY2N-GS-RDC24-ND，包装标为散装，币种CNY。目录线圈数据36.3 mA、662 Ω与K04带LED注释值不同，已标记冲突。差异本身不能证明渠道实际供错型号；应核对完整MPN、批次、数据手册版本及测试条件，并取得原厂或渠道的书面澄清。不能自行解释为可互换型号，也不能将目录值覆盖原厂对应条件的数值。网页价格和现货数未作为有效报价表导入。",
+          "sha256": "29c08fd99fdda55f50c41a25adc34f7d9b5a2699831d6428be08f5a4156bb4a7"
+        }
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "comparison_id": "relay-dc-coil-reference-comparison",
+      "model": "MY2N-GS-R DC24",
+      "aliases": [
+        "MY2N-GS-R DC24"
+      ],
+      "features": [
+        {
+          "name": "led_indicator",
+          "value": true,
+          "support": [
+            "K04:l11"
+          ]
+        },
+        {
+          "name": "coil_supply",
+          "value": "DC",
+          "support": [
+            "K04:l11"
+          ]
+        },
+        {
+          "name": "rated_coil_voltage",
+          "value": "24",
+          "unit": "V",
+          "support": [
+            "K04:l11"
+          ]
+        }
+      ],
+      "conflicting_patterns": [
+        "(?:无|不带|没有|非|去掉|不要)\\s*LED",
+        "\\b(?:without|no|non[- ]?|remove(?:d)?)\\s*LED\\b",
+        "(?:无|不带|没有|去掉)\\s*(?:灯|指示灯)",
+        "交流|\\bAC\\s*\\d",
+        "\\bDC\\s*(?!24(?:\\D|$))\\d",
+        "\\b(?:D1|D2|CR)\\b"
+      ],
+      "parameter_terms": [
+        "参数",
+        "电流",
+        "电阻",
+        "current",
+        "resistance",
+        "parameters",
+        "specifications",
+        "specs",
+        "rating",
+        "ratings"
+      ],
+      "coil_terms": [
+        "线圈",
+        "coil"
+      ],
+      "comparison_terms": [
+        "核对",
+        "对照",
+        "核查",
+        "比较",
+        "差异",
+        "check",
+        "compare",
+        "comparison",
+        "verify",
+        "difference"
+      ],
+      "summary": {
+        "zh": "{model} 的原厂与渠道资料存在参数差异，应保留各自条件核对。",
+        "en": "The manufacturer and distributor references for {model} differ; compare their values with the stated conditions."
+      },
+      "rows": [
+        {
+          "source_id": "K04",
+          "label": {
+            "zh": "欧姆龙数据手册，第4页",
+            "en": "OMRON datasheet, p. 4"
+          },
+          "parameters": [
+            {
+              "name": "coil_current",
+              "label": {
+                "zh": "额定线圈电流",
+                "en": "Rated coil current"
+              },
+              "value": "37.7",
+              "unit": "mA",
+              "support": [
+                "K04:l13"
+              ],
+              "evidence_text": "37.7 mA"
+            },
+            {
+              "name": "coil_resistance",
+              "label": {
+                "zh": "线圈电阻",
+                "en": "Coil resistance"
+              },
+              "value": "636",
+              "unit": "Ω",
+              "support": [
+                "K04:l13"
+              ],
+              "evidence_text": "636 Ω"
+            }
+          ],
+          "conditions": [
+            {
+              "text": {
+                "zh": "带 LED 型号；23°C 线圈温度。",
+                "en": "LED variant; coil temperature 23°C."
+              },
+              "support": [
+                "K04:l11",
+                "K04:l13",
+                "K04:l15"
+              ]
+            },
+            {
+              "text": {
+                "zh": "DC线圈电阻公差仅给出 +15%；未给出负向公差。",
+                "en": "DC coil resistance: +15% tolerance stated; no negative tolerance stated."
+              },
+              "support": [
+                "K04:l15"
+              ]
+            }
+          ]
+        },
+        {
+          "source_id": "K06",
+          "label": {
+            "zh": "DigiKey 中国产品目录",
+            "en": "DigiKey China catalogue"
+          },
+          "parameters": [
+            {
+              "name": "coil_current",
+              "label": {
+                "zh": "目录线圈电流",
+                "en": "Listed coil current"
+              },
+              "value": "36.3",
+              "unit": "mA",
+              "support": [
+                "K06:l11"
+              ],
+              "evidence_text": "36.3 mA"
+            },
+            {
+              "name": "coil_resistance",
+              "label": {
+                "zh": "目录线圈电阻",
+                "en": "Listed coil resistance"
+              },
+              "value": "662",
+              "unit": "Ω",
+              "support": [
+                "K06:l11"
+              ],
+              "evidence_text": "662 Ω"
+            }
+          ],
+          "conditions": [
+            {
+              "text": {
+                "zh": "目录 MPN 与所问完整型号一致；当前摘要未给出相应测试温度或电阻公差。",
+                "en": "The listed MPN matches the requested full model; the reviewed summary does not state the corresponding test temperature or resistance tolerance."
+              },
+              "support": [
+                "K06:l11"
+              ]
+            }
+          ]
+        }
+      ],
+      "limitations": [
+        {
+          "text": {
+            "zh": "原厂注4的英文措辞有疑点，需向原厂澄清；差异本身不能证明渠道供错型号，标称值也不是直接判废标准。",
+            "en": "The wording of manufacturer note 4 needs clarification. The discrepancy does not prove the wrong variant was supplied, and nominal values are not rejection criteria."
+          },
+          "support": [
+            "K04:l13",
+            "K04:l15",
+            "K06:l11"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "text": {
+            "zh": "核对实物完整型号、批次、资料版本及测量条件。",
+            "en": "Check the complete marking, batch, document revision and measurement conditions."
+          },
+          "support": [
+            "K04:l17",
+            "K06:l11"
+          ]
+        },
+        {
+          "text": {
+            "zh": "保留两份出处，就参数差异及脚注措辞向原厂或渠道取得书面澄清。",
+            "en": "Keep both sources and request written clarification of the parameter discrepancy and footnote wording."
+          },
+          "support": [
+            "K04:l17",
+            "K06:l11"
+          ]
+        }
+      ]
+    }
+  ]
+}

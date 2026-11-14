@@ -1,0 +1,169 @@
+name: forgeflow-local
+
+x-app: &app
+  image: ${FORGEFLOW_APP_IMAGE:-ghcr.io/kevinxia69/forgeflow-workbench:3.10.0}
+  user: "10001:10001"
+  init: true
+  extra_hosts: ["host.docker.internal:host-gateway"]
+  read_only: true
+  tmpfs:
+    - /tmp:rw,nosuid,nodev,size=1g
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  stop_grace_period: 120s
+  volumes:
+    - config:/config:ro
+    - data:/data
+  networks: [backend, internet]
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+
+services:
+  setup:
+    <<: *app
+    profiles: [setup]
+    command: [python, -m, forgeflow.local_workbench.setup, serve]
+    ports: ["127.0.0.1:17801:8080"]
+    volumes:
+      - config:/config
+      - control-secret:/control-secret
+      - odoo-secret:/odoo-secret
+      - odoo-config:/odoo-config
+      - qdrant-config:/qdrant-config
+    networks: [internet]
+    restart: "no"
+
+  control-db:
+    image: postgres:17.11-bookworm@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826
+    environment:
+      POSTGRES_USER: forgeflow
+      POSTGRES_DB: forgeflow_control
+      POSTGRES_PASSWORD_FILE: /run/forgeflow/password
+    volumes:
+      - control-db:/var/lib/postgresql/data
+      - control-secret:/run/forgeflow:ro
+    networks: [backend]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U forgeflow -d forgeflow_control"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+    stop_grace_period: 60s
+
+  odoo-db:
+    image: postgres:17.11-bookworm@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD_FILE: /run/forgeflow/password
+    volumes:
+      - odoo-db:/var/lib/postgresql/data
+      - odoo-secret:/run/forgeflow:ro
+    networks: [backend]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U odoo -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+    stop_grace_period: 60s
+
+  odoo-init:
+    image: ${FORGEFLOW_ODOO_IMAGE:-ghcr.io/kevinxia69/forgeflow-workbench-odoo:3.10.0}
+    group_add: ["10001"]
+    command: [python3, /opt/forgeflow/odoo_init.py]
+    volumes:
+      - odoo-config:/etc/forgeflow:ro
+      - odoo-data:/var/lib/odoo
+    depends_on:
+      odoo-db: {condition: service_healthy}
+    networks: [backend]
+    restart: "no"
+
+  odoo:
+    image: ${FORGEFLOW_ODOO_IMAGE:-ghcr.io/kevinxia69/forgeflow-workbench-odoo:3.10.0}
+    group_add: ["10001"]
+    volumes:
+      - odoo-config:/etc/forgeflow:ro
+      - odoo-data:/var/lib/odoo
+    depends_on:
+      odoo-init: {condition: service_completed_successfully}
+    ports: ["127.0.0.1:17802:8069"]
+    networks: [backend]
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8069/web/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 30
+    restart: unless-stopped
+    stop_grace_period: 120s
+
+  qdrant:
+    image: qdrant/qdrant:v1.20.1@sha256:d18c8e5061be3eaea2f53fbee1f0bf0382dc59cbb9b7112e41ffcc937ec14220
+    group_add: ["10001"]
+    command: [./qdrant, --config-path, /etc/forgeflow/config.yaml]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    volumes:
+      - qdrant-config:/etc/forgeflow:ro
+      - qdrant-data:/qdrant/storage
+      - qdrant-snapshots:/qdrant/snapshots
+    networks: [backend]
+    restart: unless-stopped
+
+  bootstrap:
+    <<: *app
+    command: [python, -m, forgeflow.local_workbench.runtime, bootstrap]
+    depends_on:
+      control-db: {condition: service_healthy}
+      odoo: {condition: service_healthy}
+      qdrant: {condition: service_started}
+    restart: "no"
+
+  api:
+    <<: *app
+    command: [python, -m, forgeflow.local_workbench.runtime, api]
+    depends_on:
+      bootstrap: {condition: service_completed_successfully}
+    ports: ["127.0.0.1:17800:8000"]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 30
+    restart: unless-stopped
+
+  supervisor:
+    <<: *app
+    command: [python, -m, forgeflow.local_workbench.runtime, supervisor]
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+
+  docmind:
+    <<: *app
+    command: [python, -m, forgeflow.local_workbench.runtime, docmind]
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+
+networks:
+  backend: {internal: true}
+  internet: {}
+
+volumes:
+  config: {}
+  control-secret: {}
+  odoo-secret: {}
+  odoo-config: {}
+  qdrant-config: {}
+  data: {}
+  control-db: {}
+  odoo-db: {}
+  odoo-data: {}
+  qdrant-data: {}
+  qdrant-snapshots: {}

@@ -1,0 +1,16 @@
+# Use with compose.yaml from this directory for a source checkout.
+x-build: &build
+  context: ../..
+  dockerfile: deploy/workbench/Dockerfile.app
+services:
+  setup: {image: forgeflow-workbench:source, build: *build}
+  api: {image: forgeflow-workbench:source, build: *build}
+  bootstrap: {image: forgeflow-workbench:source, build: *build}
+  supervisor: {image: forgeflow-workbench:source, build: *build}
+  docmind: {image: forgeflow-workbench:source, build: *build}
+  odoo-init:
+    image: forgeflow-workbench-odoo:source
+    build: {context: ../.., dockerfile: deploy/workbench/Dockerfile.odoo}
+  odoo:
+    image: forgeflow-workbench-odoo:source
+    build: {context: ../.., dockerfile: deploy/workbench/Dockerfile.odoo}

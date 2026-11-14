@@ -1,0 +1,137 @@
+name: local-workbench-images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'deploy/**'
+      - 'scripts/**'
+      - 'installer/**'
+      - 'tests/**'
+      - 'web/**'
+      - 'knowledge/**'
+      - 'migrations/**'
+      - 'odoo-addons/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/**'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  checks:
+    uses: ./.github/workflows/local-installer-checks.yml
+    permissions:
+      contents: read
+
+  native-images:
+    needs: checks
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {arch: amd64, runner: ubuntu-24.04}
+          - {arch: arm64, runner: ubuntu-24.04-arm}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build the full workbench
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/workbench/Dockerfile.app
+          platforms: linux/${{ matrix.arch }}
+          load: true
+          tags: ghcr.io/kevinxia69/forgeflow-workbench:sha-${{ github.sha }}-${{ matrix.arch }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=workbench-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=workbench-${{ matrix.arch }}
+      - name: Build the native ERP addon image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/workbench/Dockerfile.odoo
+          platforms: linux/${{ matrix.arch }}
+          load: true
+          tags: ghcr.io/kevinxia69/forgeflow-workbench-odoo:sha-${{ github.sha }}-${{ matrix.arch }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=workbench-odoo-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=workbench-odoo-${{ matrix.arch }}
+      - name: Exercise a real empty local stack
+        env:
+          APP_IMAGE: ghcr.io/kevinxia69/forgeflow-workbench:sha-${{ github.sha }}-${{ matrix.arch }}
+          ODOO_IMAGE: ghcr.io/kevinxia69/forgeflow-workbench-odoo:sha-${{ github.sha }}-${{ matrix.arch }}
+        run: |
+          python3 -m pip install PyYAML==6.0.3
+          python3 scripts/accept_local_stack.py --app-image "$APP_IMAGE" --odoo-image "$ODOO_IMAGE" --output dist/stack
+      - name: Publish the exact tested image IDs
+        env:
+          APP_IMAGE: ghcr.io/kevinxia69/forgeflow-workbench:sha-${{ github.sha }}-${{ matrix.arch }}
+          ODOO_IMAGE: ghcr.io/kevinxia69/forgeflow-workbench-odoo:sha-${{ github.sha }}-${{ matrix.arch }}
+          PLATFORM_ARCH: ${{ matrix.arch }}
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          receipt = {'commit': os.environ['GITHUB_SHA'], 'architecture': os.environ['PLATFORM_ARCH'], 'images': {}}
+          for role in ('APP', 'ODOO'):
+              ref = os.environ[role + '_IMAGE']
+              before = json.loads(subprocess.check_output(['docker','image','inspect',ref]))[0]
+              assert before['Config']['Labels']['org.opencontainers.image.revision'] == os.environ['GITHUB_SHA']
+              subprocess.run(['docker','push',ref], check=True)
+              after = json.loads(subprocess.check_output(['docker','image','inspect',ref]))[0]
+              assert before['Id'] == after['Id']
+              assert after['RepoDigests']
+              receipt['images'][role.lower()] = {'tested_id': before['Id'], 'published_id': after['Id'], 'reference': after['RepoDigests'][0]}
+          Path('dist/image-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+      - name: Preserve safe acceptance receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-stack-${{ matrix.arch }}
+          path: |
+            dist/stack/result.json
+            dist/image-receipt.json
+          if-no-files-found: warn
+
+  manifests:
+    needs: native-images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: local-stack-*
+          path: receipts
+      - name: Combine verified native platform images without rebuilding
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          receipts = [json.loads(p.read_text()) for p in Path('receipts').rglob('image-receipt.json')]
+          assert len(receipts) == 2 and {r['architecture'] for r in receipts} == {'amd64','arm64'}
+          assert all(r['commit'] == os.environ['GITHUB_SHA'] for r in receipts)
+          for role, name in [('app','forgeflow-workbench'),('odoo','forgeflow-workbench-odoo')]:
+              target = f"ghcr.io/kevinxia69/{name}:sha-{os.environ['GITHUB_SHA']}"
+              subprocess.run(['docker','buildx','imagetools','create','-t',target,
+                              *[r['images'][role]['reference'] for r in receipts]],check=True)
+              subprocess.run(['docker','buildx','imagetools','inspect',target],check=True)
+          PY

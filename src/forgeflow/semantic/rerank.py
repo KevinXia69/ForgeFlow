@@ -4,6 +4,7 @@ from __future__ import annotations
 import httpx
 
 from .config import SemanticConfig
+from .http import semantic_client
 
 
 class RerankError(RuntimeError):
@@ -17,7 +18,7 @@ def rerank(config: SemanticConfig, query: str, documents: list[str], *, top_n: i
     if not query.strip() or not documents:
         raise RerankError("empty_input")
     owns = client is None
-    client = client or httpx.Client(timeout=60, trust_env=False)
+    client = client or semantic_client(config, timeout=60)
     try:
         native = not config.reranker_url.rstrip("/").endswith("/rerank")
         body = (

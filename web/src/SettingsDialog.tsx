@@ -7,12 +7,16 @@ import { KnowledgeLibrary } from "./KnowledgeLibrary";
 import { useI18n, type MessageKey } from "./i18n";
 import {
   MODEL_PROFILES,
+  MODEL_APIS,
   PROFILE_ORDER,
   clearModelConfig,
   isModelConfigComplete,
   isModelProfile,
+  isPublicModelEndpoint,
   loadModelConfig,
+  modelPreset,
   saveModelConfig,
+  type ModelApi,
   type ModelConfig,
   type ModelProfile,
 } from "./modelConfig";
@@ -32,16 +36,12 @@ type Status = {
 };
 
 function defaultConfig(profile: ModelProfile = "deepseek_flash"): ModelConfig {
-  return {
-    profile,
-    base_url: MODEL_PROFILES[profile]?.base_url ?? "",
-    model: MODEL_PROFILES[profile]?.model ?? "",
-    api_key: "",
-  };
+  return modelPreset(profile);
 }
 
 function formConfig(config: ModelConfig): ModelConfig {
   return {
+    ...config,
     profile: config.profile,
     base_url: config.base_url.trim(),
     model: config.model.trim(),
@@ -63,9 +63,9 @@ export function SettingsDialog({ onClose, initialProfile }: Props) {
       ? initialSaved
       : defaultConfig(initialProfile ?? "deepseek_flash")
   ));
-  const [ownKey, setOwnKey] = useState(() => isModelConfigComplete(initialSaved) || deployment === "local");
+  const [ownKey, setOwnKey] = useState(() => isModelConfigComplete(initialSaved));
   const [platform, setPlatform] = useState<ModelSettingsInfo | null>(null);
-  const canOverride = deployment !== "hosted" && platform?.can_override !== false;
+  const canOverride = platform?.can_override === true;
   const [platformLoading, setPlatformLoading] = useState(true);
   const [showKey, setShowKey] = useState(false);
   const [busy, setBusy] = useState<BusyState>(null);
@@ -249,20 +249,21 @@ export function SettingsDialog({ onClose, initialProfile }: Props) {
   }
 
   function update<K extends keyof ModelConfig>(key: K, value: ModelConfig[K]) {
-    setConfig((current) => ({ ...current, [key]: value }));
+    setConfig((current) => ({ ...current, [key]: value,
+      ...(["model", "base_url"].includes(key) ? { image_input: false, input: ["text"] as ["text"] } : {}) }));
     setStatus(null);
   }
 
   function selectProfile(profile: ModelProfile) {
-    const preset = MODEL_PROFILES[profile];
-    setConfig((current) => ({
-      ...current,
-      profile,
-      base_url: profile === "custom" ? "" : preset.base_url,
-      model: profile === "custom" ? "" : preset.model,
-      api_key: "",
-    }));
+    setConfig(modelPreset(profile));
     setShowKey(false);
+    setStatus(null);
+  }
+
+  function selectApi(api: ModelApi) {
+    const preset = MODEL_PROFILES[config.profile];
+    const base_url = preset.endpoints[api] ?? "";
+    setConfig(current => ({ ...current, api, base_url }));
     setStatus(null);
   }
 
@@ -288,6 +289,10 @@ export function SettingsDialog({ onClose, initialProfile }: Props) {
       setStatus({ kind: "error", key: "settings.statusRequired" });
       return;
     }
+    if (!isPublicModelEndpoint(candidate.base_url)) {
+      setStatus({ kind: "error", key: "settings.httpsRequired" });
+      return;
+    }
     setBusy("save");
     const stored = saveModelConfig(candidate, scope_id, deployment);
     setBusy(null);
@@ -303,6 +308,10 @@ export function SettingsDialog({ onClose, initialProfile }: Props) {
     const candidate = formConfig(config);
     if (canOverride && ownKey && (!candidate.base_url || !candidate.model || !candidate.api_key)) {
       setStatus({ kind: "error", key: "settings.statusRequired" });
+      return;
+    }
+    if (canOverride && ownKey && !isPublicModelEndpoint(candidate.base_url)) {
+      setStatus({ kind: "error", key: "settings.httpsRequired" });
       return;
     }
     setBusy("test");
@@ -338,13 +347,7 @@ export function SettingsDialog({ onClose, initialProfile }: Props) {
   function clear() {
     clearModelConfig(scope_id);
     setOwnKey(false);
-    const preset = MODEL_PROFILES[config.profile];
-    setConfig({
-      profile: config.profile,
-      base_url: preset.base_url,
-      model: preset.model,
-      api_key: "",
-    });
+    setConfig(modelPreset(config.profile));
     setShowKey(false);
     setStatus({ kind: "success", key: "settings.statusCleared" });
   }
@@ -384,21 +387,6 @@ export function SettingsDialog({ onClose, initialProfile }: Props) {
           <div id="settings-panel-model">
             <section className="settings-section" aria-labelledby="settings-model-heading">
               <h3 id="settings-model-heading">{t("settings.modelSection")}</h3>
-              {canOverride ? (
-                <div className="settings-field settings-model-choice">
-                  <label htmlFor="settings-model-choice">{t("settings.model")}</label>
-                  <SelectMenu
-                    id="settings-model-choice"
-                    value={config.profile}
-                    ariaLabel={t("settings.model")}
-                    options={PROFILE_ORDER.map((profile) => ({
-                      value: profile,
-                      label: MODEL_PROFILES[profile].label,
-                    }))}
-                    onChange={(value) => { selectProfile(value as ModelProfile); setOwnKey(true); }}
-                  />
-                </div>
-              ) : null}
               {deployment === "local" && <section className="settings-section" aria-labelledby="settings-odoo20-heading">
                 <h3 id="settings-odoo20-heading">{t("settings.odoo20Access")}</h3>
                 {binding?.bound ? <p className="settings-note">{t("settings.boundAs", { role: binding.role ?? "" })}</p> : <>
@@ -472,7 +460,8 @@ export function SettingsDialog({ onClose, initialProfile }: Props) {
                 ) : platform?.configured ? (
                   <dl className="settings-platform-facts">
                     <dt>{t("settings.profile")}</dt>
-                    <dd>{platformProfileLabel(platform.profile)}</dd>
+                    <dd>{platformProfileLabel(platform.profile) === "—"
+                      ? platform.model ?? "—" : platformProfileLabel(platform.profile)}</dd>
                     {platform.base_url ? (
                       <>
                         <dt>{t("settings.baseUrl")}</dt>
@@ -502,6 +491,28 @@ export function SettingsDialog({ onClose, initialProfile }: Props) {
 
               {canOverride && ownKey ? (
                 <>
+                  <p className="settings-note">{t("settings.keyNote")}</p>
+                <div className="settings-field settings-model-choice">
+                  <label htmlFor="settings-model-choice">{t("settings.provider")}</label>
+                  <SelectMenu
+                    id="settings-model-choice"
+                    value={config.profile}
+                    ariaLabel={t("settings.provider")}
+                    options={PROFILE_ORDER.map((profile) => ({
+                      value: profile,
+                      label: MODEL_PROFILES[profile].label,
+                    }))}
+                    onChange={(value) => { selectProfile(value as ModelProfile); setOwnKey(true); }}
+                  />
+                </div>
+                  <div className="settings-field">
+                    <label htmlFor="settings-api-protocol">{t("settings.protocol")}</label>
+                    <SelectMenu id="settings-api-protocol" value={config.api ?? "openai-completions"}
+                      ariaLabel={t("settings.protocol")}
+                      options={Object.keys(MODEL_PROFILES[config.profile].endpoints).map(api => ({
+                        value: api, label: MODEL_APIS[api as ModelApi],
+                      }))} onChange={value => selectApi(value as ModelApi)} />
+                  </div>
                   <div className="settings-field">
                     <label htmlFor="settings-base-url">{t("settings.baseUrl")}</label>
                     <Input
@@ -566,7 +577,14 @@ export function SettingsDialog({ onClose, initialProfile }: Props) {
                       </button>
                     </div>
                   </div>
-
+                  <label className="settings-check">
+                    <input id="settings-image-input" type="checkbox" checked={config.image_input ?? true}
+                      onChange={event => setConfig(current => ({ ...current,
+                        image_input: event.target.checked,
+                        input: event.target.checked ? ["text", "image"] : ["text"] }))} />
+                    {t("settings.imageInput")}
+                  </label>
+                  <p className="settings-note">{t("settings.capabilityNote")}</p>
                 </>
               ) : null}
 

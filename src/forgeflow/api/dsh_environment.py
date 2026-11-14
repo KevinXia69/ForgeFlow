@@ -21,10 +21,19 @@ def runtime_directories(source: Mapping[str, str]) -> tuple[Path, Path]:
 
 
 def assistant_environment(source: Mapping[str, str], *, home: Path,
-                          evidence: Path | str = "") -> dict[str, str]:
+                          evidence: Path | str = "", model_api_key: str | None = None) -> dict[str, str]:
     """Never inherit API identity, ERP, Docker, loader, or broad storage settings."""
+    # An optional user key never replaces the deployment's independent search
+    # credential, and never exposes unused deployment model-provider keys.
+    if model_api_key is None and source.get("FORGEFLOW_ASSISTANT_API_KEY_ENV") == "FORGEFLOW_CHAT_API_KEY":
+        # The installed local profile can use the same fixed key slot. The
+        # selector comes from deployment configuration, not a chat request.
+        model_api_key = source.get("FORGEFLOW_CHAT_API_KEY", "")
+    allowed = (MODEL_ENVIRONMENT if model_api_key is None else {"DEEPSEEK_API_KEY"})
     env = {name: value for name, value in source.items()
-           if name in MODEL_ENVIRONMENT | PROCESS_ENVIRONMENT}
+           if name in allowed | PROCESS_ENVIRONMENT}
+    if model_api_key is not None:
+        env["FORGEFLOW_CHAT_API_KEY"] = model_api_key
     # The pinned native loader otherwise copies .node files to /tmp, where
     # the read-only Compose deployment deliberately uses a noexec tmpfs.
     # Load the installed binaries directly, retaining the loader's ABI checks.

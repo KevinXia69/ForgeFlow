@@ -168,15 +168,21 @@ def assistant_binding(environment: dict[str, str]) -> dict[str, str]:
 
 
 def dsh_patch(config: dict, model: str, base_url: str, *,
-              provider: str = "nebius", api_key_env: str = "NEBIUS_API_KEY") -> list:
+              provider: str = "nebius", api_key_env: str = "NEBIUS_API_KEY",
+              api: str = "openai-completions", input_types: list[str] | None = None,
+              catalog_native: bool = False) -> list:
     from forgeflow.api.answer_guidance import DOCUMENT_ANSWER_GUIDANCE
     from forgeflow.api.dsh_permissions import DISABLED_MODULES
 
+    if api not in {"openai-completions", "openai-responses", "anthropic-messages", "google-generative-ai"}:
+        raise ValueError("unsupported_model_protocol")
+    if catalog_native != (api == "google-generative-ai") or (catalog_native and provider != "google"):
+        raise ValueError("invalid_catalog_native_provider")
     return [
         {"id": "agent-default-model", "config": {"provider": provider, "model": model}},
         {"id": "llm-pi-ai", "config": {"providers": {provider: {
-            "apiKeyEnv": api_key_env, "api": "openai-completions", "baseURL": base_url,
-            "models": [{"id": model, "input": ["text", "image"], "maxTokens": 8192}],
+            "apiKeyEnv": api_key_env, **({} if catalog_native else {"api": api}), "baseURL": base_url,
+            "models": [{"id": model, "input": input_types or ["text", "image"], "maxTokens": 8192}],
             # Both SDK and CLI consume this profile. The pinned DeepSeek
             # adapter explicitly disables thinking when effort is omitted;
             # its installed catalog already supplies these models' capability.

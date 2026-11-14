@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChatSurface, useKnowledgeResponder } from "./Assistant";
 import { api, cancelAssistantTurn, getModelSettings, getWorkspaces, intakeWorkspaceMaterial } from "./api";
 import { useI18n } from "./i18n";
-import { MODEL_PROFILES, isModelConfigComplete, isModelProfile, loadModelConfig, saveModelConfig, type ModelProfile } from "./modelConfig";
+import { MODEL_PROFILES, clearModelConfig, isModelConfigComplete, isModelProfile, loadModelConfig, type ModelProfile } from "./modelConfig";
 import { SelectMenu } from "./SelectMenu";
 import type { ModelSettingsInfo, Workspace } from "./types";
 import { caseRoute, focusPageEntry, navigate, useWorkspace } from "./workspace";
@@ -20,15 +20,20 @@ export function HomeView({ onOpenModelSettings }: { onOpenModelSettings?: (profi
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => { focusPageEntry(headingRef.current); }, []);
   const { scope_id, deployment } = useWorkspace();
+  const [, refreshModel] = useState(0);
   const savedModel = loadModelConfig(scope_id, deployment);
   const [platform, setPlatform] = useState<ModelSettingsInfo | null>(null);
   const platformProfile = platform?.configured && isModelProfile(platform.profile)
     ? platform.profile : null;
-  const currentProfile: ModelProfile = savedModel?.profile ?? platformProfile ?? "deepseek_flash";
-  const configuredModels = new Map<ModelProfile, string>();
-  if (platformProfile) configuredModels.set(platformProfile, MODEL_PROFILES[platformProfile].label);
+  const currentProfile = savedModel ? "byok" : "platform";
+  const configuredModels = new Map<string, string>();
+  if (platform?.configured && platform.model) {
+    const label = platformProfile === "deepseek_flash" && platform.model === "deepseek-flash"
+      ? "DeepSeek V4.1 Flash 1017" : platform.model;
+    configuredModels.set("platform", label);
+  }
   if (savedModel && isModelConfigComplete(savedModel)) {
-    configuredModels.set(savedModel.profile, MODEL_PROFILES[savedModel.profile].label);
+    configuredModels.set("byok", `${MODEL_PROFILES[savedModel.profile].label} · ${savedModel.model}`);
   }
   const modelOptions = [...configuredModels].map(([value, label]) => ({ value, label }));
   const [mode, setMode] = useState<"ask" | "intake">("ask");
@@ -99,14 +104,13 @@ export function HomeView({ onOpenModelSettings }: { onOpenModelSettings?: (profi
   }, []);
 
   function chooseModel(value: string) {
-    const profile = value as ModelProfile;
-    if (profile === currentProfile) return;
-    if (profile === "deepseek_flash" && savedModel?.profile === "deepseek_flash" && savedModel.api_key) {
-      const preset = MODEL_PROFILES[profile];
-      const next = { ...savedModel, profile, base_url: preset.base_url, model: preset.model };
-      if (saveModelConfig(next, scope_id, deployment)) return;
+    if (value === currentProfile) return;
+    if (value === "platform") {
+      clearModelConfig(scope_id);
+      refreshModel(value => value + 1);
+      return;
     }
-    onOpenModelSettings?.(profile);
+    onOpenModelSettings?.(savedModel?.profile);
   }
 
   const modelControl = modelOptions.length === 0 ? null : (

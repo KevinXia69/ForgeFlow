@@ -17,6 +17,8 @@ from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import urlsplit
 
+from forgeflow.local_workbench.providers import PROVIDER_PRESETS
+
 FILENAME = "model-settings.json"
 MAX_BASE_URL_CHARS = 2048
 MAX_MODEL_CHARS = 120
@@ -57,6 +59,10 @@ PROFILES: dict[str, dict[str, str]] = {
 # The read-only assistant has one model binding per deployment. Only the
 # profiles below are wired into its process environment, so an unreviewed
 # profile name cannot select an arbitrary provider.
+for _name, _preset in PROVIDER_PRESETS.items():
+    if _name not in PROFILES:
+        PROFILES[_name] = {"label": _preset["label"], "base_url": _preset["base_url"], "model": _preset["model"]}
+
 ASSISTANT_PROFILES = frozenset({"nemotron", "deepseek_flash"})
 ASSISTANT_PROVIDERS = {"nemotron": "nebius", "deepseek_flash": "deepseek"}
 ASSISTANT_KEY_ENV = {
@@ -75,6 +81,19 @@ def assistant_model(env: Mapping[str, str] | None = None) -> dict[str, str]:
     accepted for local experiments.
     """
     source = os.environ if env is None else env
+    if source.get("FORGEFLOW_ASSISTANT_API_KEY_ENV") == "FORGEFLOW_CHAT_API_KEY":
+        from forgeflow.local_workbench.providers import normalize_connection
+        preset = source.get("FORGEFLOW_ASSISTANT_PROFILE", "custom")
+        inputs = json.loads(source.get("FORGEFLOW_MODEL_INPUT", '["text"]'))
+        connection = normalize_connection({"preset": preset,
+            "api": source.get("FORGEFLOW_MODEL_API", "openai-completions"),
+            "base_url": source.get("FORGEFLOW_ASSISTANT_BASE_URL", ""),
+            "model": source.get("FORGEFLOW_ASSISTANT_MODEL", ""),
+            "image_input": "image" in inputs, "custom_endpoint": True})
+        return {"profile": preset, "provider": connection["provider"], "model": connection["model"],
+            "base_url": connection["base_url"], "api_key_env": "FORGEFLOW_CHAT_API_KEY",
+            "api": connection["api"], "input_types": connection["input"],
+            "catalog_native": connection["catalog_native"]}
     profile = (source.get("FORGEFLOW_ASSISTANT_PROFILE") or "deepseek_flash").strip()
     if profile not in ASSISTANT_PROFILES:
         profile = "deepseek_flash"
@@ -100,13 +119,16 @@ class ModelSettingsError(Exception):
 
 @dataclass(frozen=True)
 class ModelSettings:
-    """A saved OpenAI-compatible model profile; the key stays out of repr."""
+    """A saved model protocol profile; the key stays out of repr."""
 
     profile: str
     base_url: str
     model: str
     api_key: str = field(repr=False)
     updated_at: str
+    api: str = "openai-completions"
+    provider: str = "openai-compatible"
+    image_input: bool = True
 
 
 def build_settings(
@@ -115,19 +137,37 @@ def build_settings(
     model: object,
     api_key: object,
     now: datetime | float | int | str | None = None,
+    *, api: str = "openai-completions", provider: str = "openai-compatible",
+    image_input: bool = True,
 ) -> ModelSettings:
     """Validate a transient model configuration without persisting it.
 
     The review instance uses this path: each browser sends its own key with
     the request and the server never writes it to disk.
     """
+    if provider == "openai-compatible" and isinstance(profile, str) and profile in PROVIDER_PRESETS and profile != "custom":
+        provider = PROVIDER_PRESETS[profile]["provider"]
+    _validate_route(api, provider, image_input)
     return ModelSettings(
+        api=api, provider=provider, image_input=image_input,
         profile=_validate_profile(profile),
         base_url=_validate_base_url(base_url),
         model=_validate_model(model),
         api_key=_validate_api_key(api_key),
         updated_at=_stamp(now),
     )
+
+
+def _validate_route(api: str, provider: str, image_input: bool) -> None:
+    import re
+
+    from forgeflow.model_transport import APIS
+    if not isinstance(api, str) or api not in APIS or not isinstance(provider, str) or re.fullmatch(r"[a-z][a-z0-9-]{0,63}", provider) is None:
+        raise ModelSettingsError("invalid_model_protocol")
+    if api == "google-generative-ai" and provider != "google":
+        raise ModelSettingsError("invalid_model_protocol")
+    if type(image_input) is not bool:
+        raise ModelSettingsError("invalid_model_capability")
 
 
 def _stamp(now: datetime | float | int | str | None) -> str:
@@ -227,7 +267,14 @@ class ModelSettingsStore:
             return None
         if not base_url or not model:
             return None
+        try:
+            _validate_route(payload.get("api", "openai-completions"),
+                            payload.get("provider", "openai-compatible"), payload.get("image_input", True))
+        except ModelSettingsError:
+            return None
         return ModelSettings(
+            api=payload.get("api", "openai-completions"), provider=payload.get("provider", "openai-compatible"),
+            image_input=payload.get("image_input", True),
             profile=profile,
             base_url=base_url,
             model=model,
@@ -242,8 +289,10 @@ class ModelSettingsStore:
         model: str,
         api_key: str | None = None,
         now: datetime | float | int | str | None = None,
+        *, api: str = "openai-completions", provider: str = "openai-compatible", image_input: bool = True,
     ) -> ModelSettings:
         """Validate and atomically persist a profile, keeping an existing key."""
+        _validate_route(api, provider, image_input)
         profile = _validate_profile(profile)
         base_url = _validate_base_url(base_url)
         model = _validate_model(model)
@@ -251,10 +300,13 @@ class ModelSettingsStore:
         if api_key is None or api_key == "":
             if existing is None or not existing.api_key:
                 raise ModelSettingsError("api_key_required")
+            if (existing.provider != provider or urlsplit(existing.base_url).netloc != urlsplit(base_url).netloc):
+                raise ModelSettingsError("api_key_required")
             api_key = existing.api_key
         else:
             api_key = _validate_api_key(api_key)
         stored = ModelSettings(
+            api=api, provider=provider, image_input=image_input,
             profile=profile,
             base_url=base_url,
             model=model,
@@ -268,6 +320,7 @@ class ModelSettingsStore:
                 "model": stored.model,
                 "api_key": stored.api_key,
                 "updated_at": stored.updated_at,
+                "api": stored.api, "provider": stored.provider, "image_input": stored.image_input,
             }
         )
         return stored
@@ -298,6 +351,7 @@ class ModelSettingsStore:
         return {
             "configured": True,
             "profile": stored.profile,
+            "api": stored.api, "provider": stored.provider, "image_input": stored.image_input,
             "base_url": stored.base_url,
             "model": stored.model,
             "has_key": bool(stored.api_key),
@@ -362,6 +416,14 @@ def platform_settings(env: Mapping[str, str] | None = None) -> ModelSettings | N
     returned by an endpoint.
     """
     source = os.environ if env is None else env
+    if source.get("FORGEFLOW_ASSISTANT_API_KEY_ENV") == "FORGEFLOW_CHAT_API_KEY":
+        binding = assistant_model(source)
+        key = source.get("FORGEFLOW_CHAT_API_KEY", "")
+        if not key:
+            return None
+        return ModelSettings(profile=binding["profile"], base_url=binding["base_url"], model=binding["model"],
+            api_key=key, updated_at=_stamp(None), api=binding["api"], provider=binding["provider"],
+            image_input="image" in binding["input_types"])
     api_key = (
         source.get(PLATFORM_ENV["api_key"], "").strip()
         or source.get("DEEPSEEK_API_KEY", "").strip()
@@ -389,6 +451,7 @@ def platform_masked(settings: ModelSettings | None) -> dict[str, Any]:
         "configured": True,
         "source": "platform",
         "profile": settings.profile,
+        "api": settings.api, "provider": settings.provider, "image_input": settings.image_input,
         "base_url": settings.base_url,
         "model": settings.model,
         "has_key": True,

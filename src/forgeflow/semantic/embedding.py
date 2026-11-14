@@ -4,6 +4,7 @@ from __future__ import annotations
 import httpx
 
 from .config import VECTOR_SIZE, SemanticConfig
+from .http import semantic_client
 
 
 class EmbeddingError(RuntimeError):
@@ -16,7 +17,7 @@ def embed_texts(config: SemanticConfig, texts: list[str], client: httpx.Client |
     if not texts or any(not text.strip() for text in texts):
         raise EmbeddingError("empty_input")
     owns = client is None
-    client = client or httpx.Client(timeout=60, trust_env=False)
+    client = client or semantic_client(config, timeout=60)
     try:
         response = client.post(
             config.embedding_url,

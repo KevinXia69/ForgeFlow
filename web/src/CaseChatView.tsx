@@ -11,6 +11,7 @@ import { useI18n } from "./i18n";
 import { localCaseAnswer, caseOutcomeLabel, phaseLabel, formatDateTime } from "./caseUi";
 import { answerContextKind, caseAnswerContext, readAnswerContext, type AnswerContextNotice } from "./caseAnswerContext";
 import type { CaseFile } from "./types";
+import { isModelConfigComplete, loadModelConfig, supportsModelImages } from "./modelConfig";
 
 type Props = {
   caseFile: CaseFile;
@@ -24,7 +25,7 @@ type Props = {
  */
 export function CaseChatView({ caseFile, mode, onBack }: Props) {
   const { t, lang } = useI18n();
-  const { scope_id } = useWorkspace();
+  const { scope_id, deployment } = useWorkspace();
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => { focusPageEntry(headingRef.current); }, [caseFile.case_id]);
   // Only shorten this known case's prose references. Stored replies, Markdown
@@ -56,16 +57,20 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
   }, [caseFile, lang, t]);
 
   const responder = useMemo<ChatResponder>(
-    () => async (question, _history, trace, signal, conversation, turn, image) => {
+    () => async (question, history, trace, signal, conversation, turn, image) => {
       const local = localCaseAnswer(caseFile, question, t, mode === "fixture");
       if (mode !== "fixture") {
+        const stored = loadModelConfig(scope_id, deployment);
+        const model = isModelConfigComplete(stored) ? stored : undefined;
+        if (image && model && !supportsModelImages(model)) throw new Error(t("settings.imageUnavailable"));
+        if (turn?.resume && model) throw new ApiError("turn_unavailable", 410);
         try {
           let response;
           try {
-            response = turn && trace ? await streamProductCase(caseFile.case_id, question, conversation ?? "default", trace, signal, turn, image) : await askProductCase(caseFile.case_id, question, conversation, signal, image);
+            response = turn && trace ? await streamProductCase(caseFile.case_id, question, conversation ?? "default", trace, signal, turn, image, model, history) : await askProductCase(caseFile.case_id, question, conversation, signal, image, model, history);
           } catch (failure) {
             if (turn?.resume || signal?.aborted || !(failure instanceof ApiError && ([404, 405, 501].includes(failure.status) || failure.status === 503 && failure.message === "stream_unavailable"))) throw failure;
-            response = await askProductCase(caseFile.case_id, question, conversation, signal, image);
+            response = await askProductCase(caseFile.case_id, question, conversation, signal, image, model, history);
           }
           const text =
             typeof response.answer === "string" ? response.answer.trim() : "";
@@ -99,7 +104,7 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
             return reply;
           }
         } catch (failure) {
-          if (signal?.aborted || turn?.resume) throw failure;
+          if (model || signal?.aborted || turn?.resume) throw failure;
           // The deterministic case-field answer remains the safe fallback.
         }
       }
@@ -116,7 +121,7 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
         },
       };
     },
-    [caseFile, mode, t],
+    [caseFile, mode, t, scope_id, deployment],
   );
 
   return (

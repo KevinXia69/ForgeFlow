@@ -11,6 +11,7 @@ import httpx
 
 from .config import SemanticConfig
 from .embedding import embed_texts
+from .http import semantic_client
 
 MAX_CHUNK_CHARS = 1800
 MAX_CHUNK_LINES = 60
@@ -171,7 +172,7 @@ def delete_source_points(config: SemanticConfig, tenant_id: str, paths: set[str]
     if not tenant_id or not paths:
         raise ValueError("tenant_and_paths_required")
     owns = client is None
-    client = client or httpx.Client(timeout=60, trust_env=False)
+    client = client or semantic_client(config, timeout=60)
     try:
         for path in paths:
             query: dict = {"must": [
@@ -197,7 +198,7 @@ def delete_tenant_points(config: SemanticConfig, tenant_id: str, *,
     if not tenant_id or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", tenant_id):
         raise ValueError("invalid_tenant")
     owns = client is None
-    client = client or httpx.Client(timeout=60, trust_env=False)
+    client = client or semantic_client(config, timeout=60)
     try:
         response = client.post(
             f"{config.qdrant_url}/collections/{config.collection}/points/delete?wait=true",
@@ -218,7 +219,7 @@ def upsert_chunks(config: SemanticConfig, tenant_id: str, chunks: list[Chunk], *
     if not tenant_id or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", tenant_id):
         raise ValueError("invalid_tenant")
     owns = client is None
-    client = client or httpx.Client(timeout=120, trust_env=False)
+    client = client or semantic_client(config, timeout=120)
     try:
         ensure_collection(config, client)
         written = 0
@@ -285,7 +286,7 @@ def upsert_chunks(config: SemanticConfig, tenant_id: str, chunks: list[Chunk], *
 def publish_generation(config: SemanticConfig, tenant_id: str, generation: str, *,
                        client: httpx.Client | None = None) -> None:
     owns = client is None
-    client = client or httpx.Client(timeout=60, trust_env=False)
+    client = client or semantic_client(config, timeout=60)
     try:
         response = client.post(
             f"{config.qdrant_url}/collections/{config.collection}/points/payload?wait=true",
@@ -591,7 +592,7 @@ def index_single_document(config: SemanticConfig, store, tenant_id: str,
     if not generation:
         raise ValueError("published_generation_missing")
     path = f"document://{source_path}"
-    with httpx.Client(timeout=120, trust_env=False) as client:
+    with semantic_client(config, timeout=120) as client:
         written = upsert_chunks(config, tenant_id, chunks, generation=generation,
                                 status="published", replace_sources=False, client=client)
         ids = {chunk.point_id(tenant_id, generation) for chunk in chunks}

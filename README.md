@@ -1,230 +1,169 @@
 # ForgeFlow
 
-**Manufacturing recovery, from disruption to verified ERP changes.**
+**Recover purchasing and production plans, from disruption to verified ERP changes.**
 
-ForgeFlow is an AI-agent workbench for recovering purchase and production plans
-after supplier cancellations and manufacturing disruptions. It connects
-business investigation, constraint-based planning, human approval, and ERP
-execution in one traceable workflow.
+ForgeFlow combines an AI workbench, document knowledge, constrained planning and
+human-approved execution in a local Odoo 20 environment. Investigate a supplier
+cancellation or production disruption, review a concrete recovery plan, approve
+its exact actions, and inspect the resulting ERP records and receipts.
 
-[Open the workbench](https://forgeflowagent.com/app/) ·
-[Benchmark results](#benchmark-results) ·
-[One recovery case](#one-recovery-case) ·
-[Architecture](#architecture) ·
-[Source setup](#source-setup)
+[Download](https://github.com/KevinXia69/ForgeFlow/releases) ·
+[Installation guide](docs/LOCAL_INSTALL.md) ·
+[Capabilities](docs/en/current-capabilities.md) ·
+[中文](README.zh-CN.md)
 
-The hosted workbench uses project-provided access credentials.
+![The current public ForgeFlow workbench home screen](docs/images/local-workbench-home.png)
 
-Current Odoo 20 code includes multi-product procurement and multi-level BOM /
-multiple-MO recovery. Recorded acceptance uses isolated synthetic environments.
-Implementation, versioned evidence and permitted use remain distinct; customer
-production ERP writes remain blocked pending verified acceptance.
+*Current public workbench; the local installer uses the same interface.*
 
-```text
-Investigate → Prepare a plan → Review and approve → Execute → Read back and verify
-```
+## Install on your computer
 
-## What ForgeFlow delivers
+**Docker must be installed and running in Linux-container mode.** Use Docker
+Desktop on Windows or macOS, or Docker Engine with Compose v2 on Linux. We
+recommend Engine 28 or newer; see the [network boundary](docs/LOCAL_INSTALL.md#before-starting).
+The release launcher does not require host Python or Node.js.
 
-| Capability | Business outcome |
+| Computer | Release package | Start after extracting the complete package |
+| --- | --- | --- |
+| Windows | [ForgeFlow-v3.10.0-Windows.zip](https://github.com/KevinXia69/ForgeFlow/releases/download/v3.10.0/ForgeFlow-v3.10.0-Windows.zip) | Double-click `Start-ForgeFlow.cmd` |
+| macOS | [ForgeFlow-v3.10.0-macOS.zip](https://github.com/KevinXia69/ForgeFlow/releases/download/v3.10.0/ForgeFlow-v3.10.0-macOS.zip) | Open `Start-ForgeFlow.command` |
+| Linux | [ForgeFlow-v3.10.0-Linux.zip](https://github.com/KevinXia69/ForgeFlow/releases/download/v3.10.0/ForgeFlow-v3.10.0-Linux.zip) | Run `bash start.sh` |
+
+The launcher opens a one-time local setup page. Choose your chat provider, enter
+your own service keys, save the generated private invitation code, and wait for
+the local services to become ready. Then sign in at
+**[127.0.0.1:17800/app/](http://127.0.0.1:17800/app/)**.
+
+First startup downloads or builds images and initializes a fresh synthetic ERP
+workspace. It needs internet access and may take several minutes. If the public
+image download is unavailable, the complete package includes a source-build
+fallback; it does not require a private registry account.
+
+**Release validation:** v3.10.0 is a candidate while the installation matrix is
+being completed. Package availability and tested operating systems will be
+recorded in the [installation acceptance section](docs/LOCAL_INSTALL.md#installation-acceptance).
+A launcher existing for a platform is not an end-to-end pass on that platform.
+
+## Bring your own service keys
+
+The [public workbench](https://forgeflowagent.com/app/) already provides the
+configured DeepSeek V4.1 Flash 1017 model with Max reasoning. Reviewers can sign
+in and use it without entering provider keys. Its Settings page offers an
+optional, temporary personal model override; it does not replace that default.
+
+For a local installation, configure your own services:
+
+| Service | Choose or provide | Used for |
+| --- | --- | --- |
+| Chat and investigation | Select a supported provider below | Assistant reasoning, tool calls and declared image capabilities |
+| Web search | **DeepSeek** API key | The official search tool's auxiliary model; shared with official DeepSeek chat, otherwise a separate key |
+| Document processing | **DashScope** API key | DocumentMind parsing of uploaded enterprise material |
+| Semantic search | **SiliconFlow** API key | Embeddings and reranking for evidence-backed retrieval |
+
+Official DeepSeek chat needs three keys in total: DeepSeek, DashScope and
+SiliconFlow. Other cloud chat providers also need their own chat key, making
+four. Local Ollama does not require a chat-provider key, but the other services
+still do. Search calls have their own provider usage costs.
+
+The local setup offers DeepSeek, Nebius, OpenAI, Anthropic, Google/Gemini,
+OpenRouter, DashScope/Qwen, SiliconFlow, Ollama and custom endpoints. Protocols
+include OpenAI Chat Completions, OpenAI Responses, Anthropic Messages and the
+Google native route. See the [provider and protocol matrix](docs/LOCAL_INSTALL.md#provider-and-protocol-matrix)
+for supported combinations and capability limits.
+
+All service roles are configured in the setup page. Qdrant, PostgreSQL
+and Odoo run locally; their internal credentials are generated for your
+installation. Provider usage is charged to your accounts. The application is
+self-hosted, but model calls and document processing use the chosen external
+services. [Configuration and privacy details](docs/LOCAL_INSTALL.md#keys-and-privacy).
+
+## What you can do locally
+
+| Capability | Included workflow |
 | --- | --- |
-| **Evidence-backed investigation** | Connect the disruption to affected orders, existing supply, inventory, and relevant business rules. |
-| **Constraint-based recovery planning** | Use OR-Tools CP-SAT to calculate purchase and manufacturing plans under the selected scenario's quantity, timing, resource, and economic constraints. |
-| **Approval-bound execution** | Bind a specific plan to an authorized decision, then apply its recorded business actions. |
-| **Independent ERP verification** | Read the resulting records back from the ERP and keep the plan, execution journal, and verification result connected. |
+| Ask with evidence | Stream an assistant answer, attach a temporary file or supported image, and open versioned source citations |
+| Build a knowledge base | Upload enterprise material, inspect parsing status and original blocks, and retrieve published documents within the signed-in scope |
+| Try the three examples | Ask about procurement policy, inspect a reviewed parameter comparison, or explore the clearly labeled historical synthetic recovery case |
+| Inspect ERP facts | Look up supported purchasing, sales, inventory, BOM and manufacturing records in the local Odoo instance |
+| Investigate disruptions | Follow source events and tracked tasks through evidence collection and recovery preparation |
+| Plan recovery | Prepare supported multi-product purchasing and multi-level BOM / multiple-MO alternatives under explicit constraints |
+| Review and execute | Approve a specific plan and action set, apply authorized changes to the local ERP, then inspect receipts and independent readback |
+| Resume work | Keep configuration, documents, tasks and ERP records across normal stops and container replacement |
 
-## Benchmark results
+Chat remains read-only. Business changes require the authorized approval and
+execution path. The included ERP records are synthetic, but approved actions
+operate on a real local Odoo database. This is separate from the archived
+example, which is read-only. Material substitution, arbitrary ERP plug-and-play
+and whole-factory scheduling are outside the supported scope.
 
-**100/100 on both selected ERP-Bench recovery tasks.**
+[Workbench guide](docs/en/workbench-guide.md) ·
+[Technical guide](docs/en/technical-guide.md) ·
+[Capability boundaries](docs/en/current-capabilities.md)
 
-| Recovery task | Original verifier score | Applicable rules passed |
-| --- | ---: | ---: |
-| Supplier cancellation — task `2280` | **100 / 100** | **51 / 51** |
-| Workcenter outage — task `2299` | **100 / 100** | **95 / 95** |
+## Stop, update keys and preserve your data
 
-*Recorded product-approval workflow acceptance · Odoo 19 synthetic scenarios ·
-October 2026 · evaluated source `bf880f2` · original ERP-Bench verifier.*
+- **Stop:** run `Stop-ForgeFlow.cmd` on Windows or `bash stop.sh` on macOS/Linux.
+  The launcher drains active work and preserves all named Docker volumes.
+- **Resume:** run the same start launcher. Existing installation identity and data
+  are reused; startup is not a factory reset.
+- **Change keys:** run `Start-ForgeFlow.cmd -Configure` or `bash start.sh --configure`.
+  Leave an existing key blank to retain it; changing chat provider requires its key.
+- **Upgrade:** stop the old installation successfully, back up its named volumes,
+  and follow the new release's migration notes before starting its package.
+  There is no automatic database rollback. Do not delete volumes to fix a startup error.
 
-[Supplier-cancellation report][a-report] ·
-[Supplier-cancellation raw score][a-score] ·
-[Workcenter-outage report][b-report] ·
-[Workcenter-outage raw score][b-score]
+[Operations and troubleshooting](docs/LOCAL_INSTALL.md#stop-resume-and-upgrade).
 
-These benchmark records are preserved at a fixed public commit. The current
-source tree includes the Odoo 20 integration; the table identifies the environment
-used for these recorded results.
+## Development and verification
 
-## One recovery case
-
-A supplier withdraws a **3-unit purchase** linked to a **13-unit sales order**.
-The recovery plan coordinates **five sales orders totaling 50 units**.
-
-ForgeFlow replaces the failed purchase while retaining the valid supply
-arrangements:
-
-![Supplier recovery case: 3 units of failed supply, 13 units of directly linked demand, and 50 units across five sales orders. Planned coverage uses 7 stock units, 40 retained manufacturing units, and 3 replacement units.](assets/readme/forgeflow-recovery-case-en.png)
-
-**Planned supply:** 7 units from finished stock + 40 from retained manufacturing +
-3 from replacement purchasing = **50 units**.
-
-For the directly linked order, the plan covers all **13 units** from the combined
-finished stock, retained manufacturing, and replacement supply.
-
-The approved recovery produces **two purchase-document actions** and **seven
-verified execution steps**, followed by the **51/51** original-verifier result.
-
-[Recorded case and plan][case-record] · [Execution receipt][a-execution]
-
-## Architecture
-
-ForgeFlow separates model-driven investigation, numerical planning, and
-business execution. The control layer persists task progress and validates the
-authority to move from one stage to the next.
-
-![ForgeFlow recovery architecture: Business inputs to Router, Investigation Worker, CP-SAT planner, Human approval, Executor, Verifier, and a tracked outcome; shared Control Engine retains context, tasks, durable actions, and authorization.](assets/readme/forgeflow-architecture-en.png)
-
-The workbench assistant explains scoped business evidence through read-only
-tools. The investigation runtime can produce structured plan requests. CP-SAT
-solves the numerical constraints, and the controlled execution path applies the
-approved actions.
-
-Source entry points:
-[Router and workers](src/forgeflow/superagent/workers.py) ·
-[Plan preparation, execution, and verification](src/forgeflow/superagent/plan_effects.py) ·
-[API and workbench operations](src/forgeflow/api/app.py)
-
-## Knowledge and business facts
-
-Document knowledge and ERP records serve complementary purposes. Documents
-supply policy and product context; structured ERP queries establish the
-identifiers, quantities, dates, and states needed for a recovery decision.
-
-The source includes document-processing and semantic-retrieval modules. The
-semantic answer adapter applies server-resolved tenant, document-generation,
-and access-control scope before retrieval, and supports configured embedding
-and reranking services.
-
-[Scoped semantic answers](src/forgeflow/knowledge/semantic_answer.py)
-
-## Repository layout
-
-| Path | Contents |
-| --- | --- |
-| `src/forgeflow/` | Python application, FastAPI backend, assistant runtime, planning, and ERP integration |
-| `src/forgeflow/superagent/` | Routing, investigation, persistent control, and recovery effects |
-| `src/forgeflow/planning/` | Constraint models and action preparation |
-| `src/forgeflow/integrations/odoo20/` | Odoo 20 business integration |
-| `src/forgeflow/knowledge/` | Document and knowledge services |
-| `web/` | React and TypeScript workbench |
-| `odoo-addons/` | ForgeFlow Odoo add-on code |
-| `migrations/` | PostgreSQL control-layer migrations |
-| `contracts/` | Task-policy contracts |
-| `tests/` | Source-level and integration tests |
-
-## Source setup
-
-### Requirements
-
-- Python **3.12–3.14** and `uv`
-- Node.js **20.19+ or 22.12+**, with npm
-
-### Install dependencies and build the frontend
+The release contains the public source used to build the workbench. Docker
+source builds use the included lock files; application code, Odoo add-on,
+control migrations, runtime scripts and reviewed reference material are all
+included. No production database, user upload, invitation or provider key is
+shipped.
 
 ```bash
 git clone https://github.com/KevinXia69/ForgeFlow.git
 cd ForgeFlow
-
-cp .env.example .env
-uv sync --frozen --extra planning
-
-(
-  cd web
-  npm ci
-  npm run typecheck
-  npm run build
-)
+uv sync --frozen --extra planning --extra dsh-sdk
+uv run pytest tests/test_distribution.py -q
+python3 scripts/check_distribution.py .
 ```
 
-The frontend build is written to `web/dist` and is served under `/app/` by the
-API. These steps prepare the source checkout and frontend assets.
+For a complete source deployment, use the Docker instructions in the
+[installation guide](docs/LOCAL_INSTALL.md#from-source). A Python dependency
+install or a successful frontend build alone does not initialize the ERP,
+control database, knowledge index or background services.
 
-### Runtime configuration
+## Recorded research results
 
-The application provides the following API entry point for a configured
-environment:
+The historical product-approval workflow achieved **100/100 on each of two
+selected ERP-Bench tasks** in synthetic Odoo 19 environments:
 
-```bash
-uv run forgeflow api --host 127.0.0.1 --port 8000
-```
+| Task | Applicable original-verifier rules | Recorded score |
+| --- | ---: | ---: |
+| Supplier cancellation (`2280`) | 51 / 51 | 100 / 100 |
+| Workcenter outage (`2299`) | 95 / 95 | 100 / 100 |
 
-Set the API configuration in the process environment before starting it:
+These October 2026 results identify evaluated source `bf880f2`; they are not the
+installation acceptance result for the current Odoo 20 release, customer
+production validation or measured financial savings.
 
-| Setting | Purpose |
-| --- | --- |
-| `FORGEFLOW_SESSION_SECRET` | Session signing secret, at least 32 characters |
-| `FORGEFLOW_INVITE_CODES` | Comma-separated invitation codes, each at least 16 characters |
-| `FORGEFLOW_DEPLOYMENT` | Deployment mode; use `local` for local development |
-| `FORGEFLOW_SECURE_COOKIE` | Use `false` only for plain-HTTP loopback development; keep `true` for HTTPS |
+[Supplier-cancellation report][a-report] · [Original score][a-score] ·
+[Workcenter-outage report][b-report] · [Original score][b-score] ·
+[Product and evidence guide](docs/en/product-guide.md)
 
-For the persistent Odoo 20 workflow, configure a PostgreSQL control database,
-an Odoo 20 instance with the ForgeFlow add-on, and the required service processes.
-Model, semantic-search, and document-parsing services are configured for the
-features being used. Merely copying `.env.example` does not initialize these
-services or load their data.
+## License and contributions
 
-The current `.env.example` contains model-profile examples; choose the profile
-for the environment you are configuring.
+ForgeFlow is licensed under [Apache License 2.0](LICENSE). ERP-Bench, Pi,
+DeepSeek Harness, Odoo, PostgreSQL, Harbor, OR-Tools and other dependencies retain
+the notices in [NOTICE](NOTICE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The reference pack documents its separate source attribution and licenses.
 
-[API settings](src/forgeflow/api/settings.py) ·
-[CLI entry points](src/forgeflow/cli.py) ·
-[Python dependencies and optional features](pyproject.toml)
-
-## Tests
-
-Run from the repository root:
-
-```bash
-uv run --extra planning pytest tests -q
-
-(
-  cd web
-  npm run typecheck
-  npm run build
-)
-```
-
-The suite includes external-service and upstream-fixture integrations. Configure
-the relevant services for those checks and retain the passed, failed, and skipped
-counts in the test report. Target-environment and customer acceptance remain
-separate requirements; publishing a source revision does not approve customer
-production writes.
-
-## Public source and upstream projects
-
-This repository contains the application source, Odoo add-on, migrations,
-contracts, web client, and tests. Runtime data, upstream benchmark fixtures,
-reference solutions, model weights, and deployment credentials are supplied
-separately. The recorded benchmark links above resolve to the public history.
-
-ForgeFlow builds on ERP-Bench, Pi, DeepSeek Harness, Odoo, PostgreSQL, Harbor,
-and Google OR-Tools. Upstream attribution and version details are maintained in
-[NOTICE](NOTICE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-## Security
-
-Keep credentials and customer records out of the repository. Use dedicated test
-ERP instances and synthetic data for experiments. Human approval and server-side
-authorization govern business execution. Report security issues privately to
-the repository owner.
-
-## License
-
-ForgeFlow is licensed under [Apache License 2.0](LICENSE).
-Third-party materials retain the licenses recorded in [NOTICE](NOTICE).
+Keep credentials, setup links and customer records out of issues and commits.
+Report security concerns privately to the repository owner.
 
 [a-report]: https://github.com/KevinXia69/ForgeFlow/blob/9c673c8d479b238a18c489fab0dbac057fb72977/docs/evidence/2026-10-28-next-phase/A-final/report.json
 [a-score]: https://github.com/KevinXia69/ForgeFlow/blob/9c673c8d479b238a18c489fab0dbac057fb72977/docs/evidence/2026-10-28-next-phase/A-final/original-reward.raw.json
 [b-report]: https://github.com/KevinXia69/ForgeFlow/blob/9c673c8d479b238a18c489fab0dbac057fb72977/docs/evidence/2026-10-28-next-phase/B-final/report.json
 [b-score]: https://github.com/KevinXia69/ForgeFlow/blob/9c673c8d479b238a18c489fab0dbac057fb72977/docs/evidence/2026-10-28-next-phase/B-final/original-reward.raw.json
-[case-record]: https://github.com/KevinXia69/ForgeFlow/blob/9c673c8d479b238a18c489fab0dbac057fb72977/README.md#one-case-from-disruption-to-verified-result
-[a-execution]: https://github.com/KevinXia69/ForgeFlow/blob/9c673c8d479b238a18c489fab0dbac057fb72977/docs/evidence/2026-10-28-next-phase/A-final/executed.json

@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import queue
+import subprocess
 import threading
 import time
 from pathlib import Path
@@ -36,6 +37,42 @@ def _session_id_for(key: str) -> str:
     """Stable DSH session id for one owner-scoped conversation key."""
     digest = hashlib.sha256(key.encode("utf-8")).hexdigest()[:32]
     return f"session-{digest}"
+
+
+def _isolated_sdk_client(config, launch_args):
+    """Keep SDK transport/lifecycle, replace only its ambient-env spawn policy.
+
+    SDK 0.2.1rc2 HarnessClient.start merges config.env into os.environ. That is
+    unsuitable for an evidence-only child. The installed version and real
+    initialize/shutdown behavior are pinned by subprocess regression tests.
+    No global environment mutation or subprocess monkeypatch is involved.
+    """
+    from importlib.metadata import version
+
+    from deepseek_harness.client import HarnessClient
+
+    if version("deepseek-harness-sdk") != "0.2.1rc2":
+        raise DshUnavailable("dsh_sdk_version_unsupported")
+
+    class IsolatedHarnessClient(HarnessClient):
+        def start(self):
+            if self._proc is not None:
+                return
+            with self._lock:
+                self._session_parents.clear()
+            self._proc = subprocess.Popen(
+                list(launch_args), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, text=True, encoding="utf-8",
+                cwd=None if self.config.cwd is None else str(Path(self.config.cwd).resolve()),
+                env=dict(self.config.env or {}), bufsize=1)
+            try:
+                self._start_reader_thread()
+                self._start_stderr_thread()
+            except Exception:
+                self.close()
+                raise
+
+    return IsolatedHarnessClient(config, _launch_args=launch_args)
 
 
 def _events_to_view(events: list[dict[str, Any]]) -> tuple[
@@ -183,13 +220,31 @@ class SdkDshHarness:
         )
         scoped.evidence_path = evidence
         scoped.image_root = image_root
+        scoped._composition_source = self.patch
         return scoped
 
+    def with_model(self, settings):
+        from .dsh_permissions import bind_model_harness
+
+        return bind_model_harness(self, settings)
+
     def close(self) -> None:
-        if self._harness is not None:
-            self._harness.close()
+        from .dsh_permissions import close_model_harness
+
+        runtime = self._harness
+        try:
+            if self._harness is not None:
+                self._harness.close()
+        finally:
+            if runtime is not None and hasattr(self, "_owned_model_files"):
+                # The SDK keeps its launch environment in two config objects.
+                # Reap first; then release our optional credential references.
+                for config in (runtime.config, runtime.client.config):
+                    if isinstance(config.env, dict):
+                        config.env.pop("FORGEFLOW_CHAT_API_KEY", None)
             self._harness = None
-        self._sessions.clear()
+            self._sessions.clear()
+            close_model_harness(self)
 
     def configured(self) -> bool:
         return self.cli.is_file() and self.patch.is_file() and self.workspace.is_dir()
@@ -218,6 +273,8 @@ class SdkDshHarness:
                 "--patch", str(self.patch.expanduser().resolve()))
 
     def _runtime(self):
+        if getattr(self, "_model_closed", False):
+            raise DshUnavailable("dsh_model_binding_closed")
         if self._harness is not None:
             return self._harness
         from deepseek_harness import DeepSeekHarness
@@ -226,7 +283,8 @@ class SdkDshHarness:
 
         home = self.home.expanduser().resolve()
         env = assistant_environment(os.environ, home=home,
-                                    evidence=getattr(self, "evidence_path", ""))
+                                    evidence=getattr(self, "evidence_path", ""),
+                                    model_api_key=getattr(self, "_model_api_key", None))
         self._harness = DeepSeekHarness(
             _launch_args=self._launch_args(),
             dsh_home=str(home),
@@ -240,10 +298,21 @@ class SdkDshHarness:
             env=env,
             request_timeout_seconds=self.timeout,
         )
-        self._harness.start()
+        self._harness._client = _isolated_sdk_client(
+            self._harness.client.config, self._launch_args())
+        try:
+            self._harness.start()
+        except Exception:
+            try:
+                self._harness.close()
+            finally:
+                self._harness = None
+            raise
         return self._harness
 
     def _session(self, key: str):
+        if getattr(self, "_session_namespace", None):
+            key = f"{self._session_namespace}:{key}"
         if hasattr(self, "evidence_path"):
             key = f"{self.evidence_path.stem}:{key}"
         with self._lock:

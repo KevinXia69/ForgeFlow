@@ -482,7 +482,18 @@ class DshHarness:
         )
         scoped.evidence_path = evidence
         scoped.image_root = image_root
+        scoped._composition_source = self.patch
         return scoped
+
+    def with_model(self, settings):
+        from .dsh_permissions import bind_model_harness
+
+        return bind_model_harness(self, settings)
+
+    def close(self) -> None:
+        from .dsh_permissions import close_model_harness
+
+        close_model_harness(self)
 
     def configured(self) -> bool:
         return self.cli.is_file() and self.patch.is_file() and self.workspace.is_dir()
@@ -510,8 +521,11 @@ class DshHarness:
     def _env(self) -> dict[str, str]:
         from .dsh_environment import assistant_environment
 
+        if getattr(self, "_model_closed", False):
+            raise DshUnavailable("dsh_model_binding_closed")
         return assistant_environment(os.environ, home=self.home,
-                                     evidence=getattr(self, "evidence_path", ""))
+                                     evidence=getattr(self, "evidence_path", ""),
+                                     model_api_key=getattr(self, "_model_api_key", None))
 
     def _parse(self, stdout: str) -> DshReply:
         final = ""

@@ -82,7 +82,8 @@ class _FakeResponse:
 
 
 def test_the_profiles_match_the_declared_providers() -> None:
-    assert set(PROFILES) == {"nemotron", "deepseek_flash", "openai", "openrouter", "gemini", "custom"}
+    assert set(PROFILES) == {"nemotron", "deepseek_flash", "openai", "openrouter", "gemini", "custom",
+                             "anthropic", "google", "dashscope", "siliconflow", "ollama"}
     assert PROFILES["nemotron"]["base_url"] == "https://api.tokenfactory.nebius.com/v1"
     assert PROFILES["nemotron"]["model"] == "nvidia/Nemotron-3.5-Super-VL"
     assert PROFILES["deepseek_flash"]["base_url"] == "https://api.deepseek.com/v1"

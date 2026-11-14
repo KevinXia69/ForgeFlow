@@ -168,10 +168,10 @@ export const reconcileProductCase = (caseId: string) =>
  * Optional case Q&A. The route may not exist yet; callers fall back to a
  * deterministic answer built from the current case fields.
  */
-export const askProductCase = (caseId: string, question: string, conversationId?: string, signal?: AbortSignal, image?: ChatImage) =>
+export const askProductCase = (caseId: string, question: string, conversationId?: string, signal?: AbortSignal, image?: ChatImage, model?: ModelConfig, history?: AssistantHistoryTurn[]) =>
   api<ProductAskAnswer>(`/api/product/cases/${encodeURIComponent(caseId)}/ask`, {
     method: "POST",
-    body: JSON.stringify({ question, conversation_id: conversationId, ...(image ? { image: imagePayload(image) } : {}) }),
+    body: JSON.stringify({ question, conversation_id: conversationId, ...(image ? { image: imagePayload(image) } : {}), ...(model ? { model } : {}), ...(history?.length ? { history } : {}) }),
     signal,
   });
 
@@ -294,12 +294,12 @@ export const cancelAssistantTurn = (conversationId: string, turnId: string) =>
 export const cancelCaseTurn = (caseId: string, conversationId: string, turnId: string) =>
   api<void>(`/api/product/cases/${encodeURIComponent(caseId)}/ask/cancel`, { method: "POST", body: JSON.stringify({ conversation_id: conversationId, turn_id: turnId }), signal: AbortSignal.timeout(10_000) });
 
-export function streamProductCase(caseId: string, question: string, conversationId: string, onTrace: (activity: ActivityState) => void, signal: AbortSignal | undefined, turn: StreamTurn, image?: ChatImage): Promise<ProductAskAnswer> {
-  return streamReply(`/api/product/cases/${encodeURIComponent(caseId)}/ask/stream`, { question, conversation_id: conversationId, ...(image ? { image: imagePayload(image) } : {}) }, onTrace, signal, turn);
+export function streamProductCase(caseId: string, question: string, conversationId: string, onTrace: (activity: ActivityState) => void, signal: AbortSignal | undefined, turn: StreamTurn, image?: ChatImage, model?: ModelConfig, history?: AssistantHistoryTurn[]): Promise<ProductAskAnswer> {
+  return streamReply(`/api/product/cases/${encodeURIComponent(caseId)}/ask/stream`, { question, conversation_id: conversationId, ...(image ? { image: imagePayload(image) } : {}), ...(model ? { model } : {}), ...(history?.length ? { history } : {}) }, onTrace, signal, turn);
 }
 
-export function streamAssistant(question: string, history: AssistantHistoryTurn[] | undefined, conversationId: string, lang: "zh" | "en", onTrace: (activity: ActivityState) => void, signal?: AbortSignal, turn?: StreamTurn, image?: ChatImage, attachmentText?: string, attachments?: ConversationAttachment[]): Promise<Answer> {
-  return streamReply("/api/assistant/stream", { question, lang, conversation_id: conversationId, ...(history?.length ? { history } : {}), ...(image ? { image: imagePayload(image) } : {}), ...(attachmentText ? { attachment_text: attachmentText } : {}), ...(attachments?.length ? { attachments } : {}) }, onTrace, signal, turn);
+export function streamAssistant(question: string, history: AssistantHistoryTurn[] | undefined, conversationId: string, lang: "zh" | "en", onTrace: (activity: ActivityState) => void, signal?: AbortSignal, turn?: StreamTurn, image?: ChatImage, attachmentText?: string, attachments?: ConversationAttachment[], model?: ModelConfig): Promise<Answer> {
+  return streamReply("/api/assistant/stream", { question, lang, conversation_id: conversationId, ...(model ? { model } : {}), ...(history?.length ? { history } : {}), ...(image ? { image: imagePayload(image) } : {}), ...(attachmentText ? { attachment_text: attachmentText } : {}), ...(attachments?.length ? { attachments } : {}) }, onTrace, signal, turn);
 }
 
 /** A transport reconnect only subscribes to the existing turn; it never starts another model call. */

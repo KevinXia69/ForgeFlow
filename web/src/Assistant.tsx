@@ -12,7 +12,7 @@ import { DshComposer } from "./dsh/Composer";
 import chatCss from "./dsh/ChatView.module.css";
 import { useI18n, type Translate } from "./i18n";
 import { uploadAttachment } from "./api";
-import { isModelConfigComplete, loadModelConfig } from "./modelConfig";
+import { isModelConfigComplete, loadModelConfig, supportsModelImages } from "./modelConfig";
 import type {
   ActivityState,
   CaseAnswerContext,
@@ -694,9 +694,10 @@ export function useKnowledgeResponder(): ChatResponder {
     () => async (question, history, onTrace, signal, conversation, turn, image, attachmentText, attachments) => {
       const stored = loadModelConfig(scope_id, deployment);
       const model = isModelConfigComplete(stored) ? stored : undefined;
+      if (image && model && !supportsModelImages(model)) throw new Error(t("settings.imageUnavailable"));
       let answer: AnswerWithMode;
       if (turn?.resume && (model || !onTrace)) throw new ApiError("turn_unavailable", 410);
-      if (model || !onTrace) {
+      if (!onTrace) {
         answer = await askAssistant(
           question,
           model,
@@ -721,12 +722,13 @@ export function useKnowledgeResponder(): ChatResponder {
             image,
             attachmentText,
             attachments,
+            model,
           );
         } catch (failure) {
           if (signal?.aborted || turn?.resume || !(failure instanceof ApiError && failure.status === 503 && failure.message === "stream_unavailable")) throw failure;
           answer = await askAssistant(
             question,
-            undefined,
+            model,
             history.length > 0 ? history : undefined,
             conversation,
             lang,
