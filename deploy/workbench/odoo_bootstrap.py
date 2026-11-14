@@ -51,7 +51,7 @@ def seed(odoo_env, config: dict) -> dict:
         raise SeedError("odoo_bootstrap_database_mismatch")
     odoo_env.cr.execute("SELECT pg_advisory_xact_lock(716506391)")
     parameters = odoo_env["ir.config_parameter"].sudo()
-    saved = parameters.get_param(MARKER)
+    saved = parameters.get_str(MARKER)
     if saved:
         try:
             record = json.loads(saved)
@@ -147,7 +147,8 @@ def seed(odoo_env, config: dict) -> dict:
         "currency_id": currency.id, "picking_type_id": warehouse.in_type_id.id,
         "origin": "Synthetic local installation; no real supplier order"})
     purchase_line = business["purchase.order.line"]
-    unit_field = "product_uom_id" if "product_uom_id" in purchase_line._fields else "product_uom"
+    unit_field = next(name for name in ("uom_id", "product_uom_id", "product_uom")
+                      if name in purchase_line._fields)
     purchase_line.create({"order_id": purchase.id, "product_id": finished.id,
                           "name": "Synthetic assembly supply", "product_qty": 12,
                           "price_unit": 10, "date_planned": due, unit_field: unit.id})
@@ -172,7 +173,7 @@ def seed(odoo_env, config: dict) -> dict:
               "operator_login": config["operator"]["login"], "operator_id": operator.id,
               "company_id": company.id, "purchase_id": purchase.id, "sale_id": sale.id,
               "product_ids": [finished.id, component.id], "synthetic": True}
-    parameters.set_param(MARKER, json.dumps(record, sort_keys=True))
+    parameters.set_str(MARKER, json.dumps(record, sort_keys=True))
     return {"ok": True, "created": True, "synthetic": True,
             "company_id": company.id, "operator_id": operator.id,
             "purchase_orders": 1, "sales_orders": 1, "products": 2,

@@ -6,6 +6,7 @@ the affected business/auth tables. It does not approve or execute recovery.
 """
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
@@ -21,7 +22,7 @@ def probe(odoo_env):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     configuration = module.read_configuration("/etc/forgeflow/bootstrap.json")
-    record = json.loads(odoo_env["ir.config_parameter"].sudo().get_param(module.MARKER))
+    record = json.loads(odoo_env["ir.config_parameter"].sudo().get_str(module.MARKER))
     assert record["installation_id"] == configuration["installation_id"]
     assert record["synthetic"] is True
     operator = odoo_env["res.users"].browse(record["operator_id"])
@@ -39,6 +40,8 @@ def probe(odoo_env):
     assert len(purchase.order_line) == len(sale.order_line) == 1
     assert purchase.order_line.product_id.id == sale.order_line.product_id.id
     product = purchase.order_line.product_id
+    assert purchase.order_line.product_qty == sale.order_line.product_uom_qty == 12
+    assert purchase.order_line.uom_id == product.uom_id == sale.order_line.product_uom_id
     assert product.id in record["product_ids"]
     assert odoo_env["mrp.bom"].search_count([("product_id", "=", product.id)]) == 1
     assert odoo_env["product.supplierinfo"].search_count([("product_id", "=", product.id)]) == 2
@@ -75,6 +78,8 @@ def probe(odoo_env):
     assert snapshot() == before
     odoo_env.cr.rollback()
     return {"ok": True, "real_odoo": True, "repeat_seed_preserved_tables": len(tables),
+            "business_snapshot_sha256": hashlib.sha256(
+                json.dumps(before, sort_keys=True).encode()).hexdigest(),
             "foreign_installation_rejected": True, "synthetic_roles_and_business_verified": True,
             "recovery_approvals_created": 0, "recovery_executions_created": 0}
 

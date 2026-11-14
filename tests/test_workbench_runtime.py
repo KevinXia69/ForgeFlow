@@ -36,7 +36,7 @@ def test_seed_error_diagnostics_expose_only_owned_line_and_known_attribute(shell
         cr = SimpleNamespace(dbname="forgeflow_local", execute=lambda *_: None)
 
         def __getitem__(self, name):
-            item = SimpleNamespace(get_param=lambda _: None) if name == "ir.config_parameter" else object()
+            item = SimpleNamespace(get_str=lambda _: None) if name == "ir.config_parameter" else object()
             return SimpleNamespace(sudo=lambda: item)
 
     try:
@@ -141,7 +141,7 @@ def test_repeated_odoo_seed_does_not_touch_business_or_users():
 
         def __getitem__(self, model):
             assert model == "ir.config_parameter", "restart attempted a business/user mutation"
-            return SimpleNamespace(sudo=lambda: SimpleNamespace(get_param=lambda _: json.dumps(saved)))
+            return SimpleNamespace(sudo=lambda: SimpleNamespace(get_str=lambda _: json.dumps(saved)))
 
     assert module.seed(Environment(), config) == {
         "ok": True, "created": False, "synthetic": True, "company_id": 8, "operator_id": 9}
