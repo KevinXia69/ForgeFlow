@@ -39,7 +39,8 @@ infer native Apple Silicon support from the presence of a macOS launcher.
 2. Start Docker. Run `Start-ForgeFlow.cmd` on Windows,
    `Start-ForgeFlow.command` on macOS, or `bash start.sh` on Linux.
 3. The launcher opens a private one-time setup link on `127.0.0.1:17801`.
-   Choose a chat profile and supply its service keys below.
+   Choose a chat profile and supply its service keys below. Run the connection
+   and tools test successfully before saving.
 4. Save the generated invitation code shown by the authorized setup page.
    It grants access to this installation; there is no shared default code.
 5. Wait for initialization and health checks. Open
@@ -50,10 +51,15 @@ the link expires. If automatic browser opening is unavailable, use
 `bash start.sh --no-open` or `Start-ForgeFlow.cmd -NoOpen`; treat the printed link
 as private. Do not paste it into an issue or screenshot.
 
-Saving checks key format; it does not prove the account is funded or the service
-is reachable. Initialization must publish the reference index successfully before
-the application is presented as ready. A failed startup is not a successful
-installation and should not be bypassed by disabling the relevant service.
+Saving requires a successful real chat-provider test: the selected model must
+call a synthetic tool and return its result. This small provider call may incur
+usage charges. The result is bound to the tested model, protocol, endpoint and
+key; changing them requires another test. It does not validate the separate
+search, DocumentMind or embedding/reranking accounts, image handling, or future
+account balance and availability. Initialization must publish the reference
+index successfully before the application is presented as ready. A failed
+startup is not a successful installation and should not be bypassed by disabling
+the relevant service.
 
 ## Keys and privacy
 

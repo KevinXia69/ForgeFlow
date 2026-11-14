@@ -61,6 +61,9 @@ Docker Desktop 主机都已验收。具体见[验证范围](docs/LOCAL_INSTALL.m
 DashScope/Qwen、SiliconFlow、Ollama 和自定义端点，提供四类协议路径。
 具体兼容组合和图片/工具能力限制见[安装指南](docs/LOCAL_INSTALL.md#provider-and-protocol-matrix)。
 
+保存配置前必须通过真实的对话连接与工具调用测试，该测试可能产生模型用量。
+它不代表独立的文档解析、语义检索或联网搜索账号也已通过验证。
+
 Qdrant、PostgreSQL 和 Odoo 在本机运行，内部密码由安装器生成。模型和文档服务会
 使用你自己的 API 账号并产生相应费用；本地部署不等于所有推理离线运行。
 

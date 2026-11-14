@@ -74,6 +74,10 @@ include OpenAI Chat Completions, OpenAI Responses, Anthropic Messages and the
 Google native route. See the [provider and protocol matrix](docs/LOCAL_INSTALL.md#provider-and-protocol-matrix)
 for supported combinations and capability limits.
 
+Saving setup requires a successful real chat connection and tool-call test,
+which may incur provider usage. This does not validate the separate document,
+semantic-search or web-search accounts.
+
 All service roles are configured in the setup page. Qdrant, PostgreSQL
 and Odoo run locally; their internal credentials are generated for your
 installation. Provider usage is charged to your accounts. The application is
