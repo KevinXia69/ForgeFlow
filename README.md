@@ -14,13 +14,9 @@ traceable workflow.
 [Architecture](#architecture) ·
 [Source setup](#source-setup)
 
-<p align="center">
-  <img src="docs/images/local-workbench-home.png" alt="ForgeFlow workbench home screen" width="32%">
-  <img src="assets/readme/forgeflow-recovery-case-en.png" alt="Supplier recovery case: 3 units failed supply, 13 units linked demand, 50 units planned" width="32%">
-  <img src="assets/readme/forgeflow-architecture-en.png" alt="ForgeFlow recovery architecture: Router, Investigation Worker, CP-SAT, approval, Executor, Verifier and Control Engine" width="32%">
-</p>
+![The ForgeFlow workbench home screen](docs/images/local-workbench-home.png)
 
-*The workbench, a recovery case and the architecture at a glance. The same product runs hosted and locally.*
+*The same workbench runs on the hosted review environment and in a local installation.*
 
 ## Hosted or local
 
@@ -140,6 +136,8 @@ The recovery plan coordinates **five sales orders totaling 50 units**.
 ForgeFlow replaces the failed purchase while retaining the valid supply
 arrangements:
 
+![Supplier recovery case: 3 units of failed supply, 13 units of directly linked demand, and 50 units across five sales orders. Planned coverage uses 7 stock units, 40 retained manufacturing units, and 3 replacement units.](assets/readme/forgeflow-recovery-case-en.png)
+
 **Planned supply:** 7 units from finished stock + 40 from retained manufacturing +
 3 from replacement purchasing = **50 units**.
 
@@ -156,6 +154,8 @@ verified execution steps**, followed by the **51/51** original-verifier result.
 ForgeFlow separates model-driven investigation, numerical planning, and business
 execution. The control layer persists task progress and validates the authority to
 move from one stage to the next.
+
+![ForgeFlow recovery architecture: Business inputs to Router, Investigation Worker, CP-SAT planner, Human approval, Executor, Verifier, and a tracked outcome; shared Control Engine retains context, tasks, durable actions, and authorization.](assets/readme/forgeflow-architecture-en.png)
 
 The workbench assistant explains scoped business evidence through read-only tools.
 The investigation runtime can produce structured plan requests. CP-SAT solves the
