@@ -1,0 +1,5 @@
+# Keep source checkouts consistent across Windows, macOS, and Linux.
+* text=auto eol=lf
+
+# Reviewed reference hashes bind exact bytes. Never apply newline conversion.
+/knowledge/reference/** -text

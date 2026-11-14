@@ -157,7 +157,10 @@ try {
       && !module.supportsModelImages({ image_input: false });
   });
   check(guarded, 'endpoint and capability guards preserve legacy default compatibility');
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await Promise.all([
+    page.waitForEvent('load'),
+    page.getByRole('button', { name: 'Sign out', exact: true }).click(),
+  ]);
   await page.waitForFunction(() => !document.querySelector('[data-home-view]'));
   const retired = await page.evaluate(async () => {
     const module = await import('/app/src/modelConfig.ts');

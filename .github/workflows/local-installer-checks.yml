@@ -90,7 +90,7 @@ jobs:
           tests/test_local_installer_launchers.py tests/test_workbench_runtime.py
           tests/test_workbench_admission.py tests/test_semantic_local_tls.py
           tests/test_local_stack_acceptance.py
-          tests/test_local_provider_catalog.py tests/test_model_protocols.py tests/test_dsh_byok.py
+          tests/test_local_provider_catalog.py tests/test_model_protocols.py tests/test_model_transport_safety.py tests/test_dsh_byok.py
           tests/api/test_api_model_connections.py tests/api/test_hosted_security.py
           tests/test_reference_facts.py tests/test_dsh_environment.py tests/test_dsh_reasoning.py
           --junitxml=installer-source.xml

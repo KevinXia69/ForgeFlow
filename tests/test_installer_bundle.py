@@ -97,6 +97,45 @@ def archive_files(path):
         return {name: archive.read(name) for name in archive.namelist()}
 
 
+def test_windows_autocrlf_preserves_reviewed_reference_bytes(tmp_path):
+    """Exercise Git's real Windows conversion policy without weakening hashes."""
+    from hashlib import sha256
+
+    root = tmp_path / "windows checkout policy"
+    root.mkdir()
+    git(root, "init", "--quiet")
+    git(root, "config", "core.autocrlf", "false")
+    originals = {
+        "knowledge/reference/synthetic/reviewed.md": b"# Synthetic reference\nA reviewed fact.\n",
+        "knowledge/reference/synthetic/comparisons.json": b'{\n  "synthetic": true\n}\n',
+        "ordinary-source.txt": b"source line one\nsource line two\n",
+    }
+    for name, data in originals.items():
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+    commit(root)
+    git(root, "config", "core.autocrlf", "true")
+    for name in originals:
+        (root / name).unlink()
+    git(root, "checkout", "HEAD", "--", *originals)
+    # Reproduce the original failure: Windows checkout changes bound bytes.
+    for name, data in originals.items():
+        assert (root / name).read_bytes() == data.replace(b"\n", b"\r\n")
+
+    (root / ".gitattributes").write_bytes((ROOT / ".gitattributes").read_bytes())
+    git(root, "add", ".gitattributes")
+    git(root, "-c", "user.name=Distribution Test", "-c", "user.email=distribution@example.invalid",
+        "commit", "--quiet", "-m", "Preserve reviewed bytes")
+    for name in originals:
+        (root / name).unlink()
+    git(root, "checkout", "HEAD", "--", *originals)
+    for name, data in originals.items():
+        actual = (root / name).read_bytes()
+        assert actual == data
+        assert sha256(actual).digest() == sha256(data).digest()
+
+
 def test_three_bundles_include_only_committed_source_and_valid_hashes(source, tmp_path):
     before = git(source, "rev-parse", "HEAD")
     committed_readme = (source / "README.md").read_bytes()
