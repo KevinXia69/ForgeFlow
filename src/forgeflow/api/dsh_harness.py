@@ -19,6 +19,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from forgeflow.knowledge.citation_metadata import source_metadata
+
 from .case_qa import PLANNED_COST_CONTEXT
 from .model_settings import assistant_model
 
@@ -26,6 +28,8 @@ MAX_ACTIVITY = 40
 MAX_LABEL = 1600
 MAX_RESULT_SUMMARY = 200
 MAX_RESULT_PARSE = 64_000
+MAX_KNOWLEDGE_PASSAGES = 24
+MAX_SOURCE_CITATIONS = 32
 MCP_PREFIX = "mcp__forgeflow__"
 MCP_TOOL_LABELS = {
     "workspace_summary": "workspace summary",
@@ -288,12 +292,13 @@ def _knowledge_passages(tool: str, payload: object) -> tuple[list[dict[str, Any]
     if not isinstance(payload, dict) or not str(tool).endswith("project_knowledge"):
         return [], []
     passages: list[dict[str, Any]] = []
-    for item in payload.get("passages", [])[:5]:
+    rows = payload.get("passages", [])
+    for item in (rows[:MAX_KNOWLEDGE_PASSAGES] if isinstance(rows, list) else []):
         if not isinstance(item, dict):
             continue
         path, start, end, text = (item.get("path"), item.get("start_line"),
                                   item.get("end_line"), item.get("text"))
-        if not (isinstance(path, str) and isinstance(start, int) and isinstance(end, int)
+        if not (isinstance(path, str) and type(start) is int and type(end) is int
                 and isinstance(text, str)):
             continue
         passage = {"path": path, "start_line": start, "end_line": end, "text": text[:2000]}
@@ -304,9 +309,65 @@ def _knowledge_passages(tool: str, payload: object) -> tuple[list[dict[str, Any]
             value = item.get(metadata_key)
             if isinstance(value, str) and value:
                 passage[metadata_key] = value[:512]
+        metadata = source_metadata(item.get("source_metadata"))
+        if metadata:
+            passage["source_metadata"] = metadata
         passages.append(passage)
-    citations = [item for item in payload.get("citations", []) if isinstance(item, str)][:5]
+    raw_citations = payload.get("citations", [])
+    citations = [item for item in raw_citations if isinstance(item, str)][:MAX_SOURCE_CITATIONS] \
+        if isinstance(raw_citations, list) else []
     return passages, citations
+
+
+def _answer_sources(final: str, activity: list[dict], workspace: Path,
+                    passages: list[dict], tool_citations: list[str]) -> tuple[list[dict], list[str]]:
+    """Retain source diversity across tool calls, without claiming sentence attribution.
+
+    Repeated chunks from the first search must not evict a later specification
+    or conflicting source. Explicitly linked sources get first priority, then
+    one passage per document/version, then additional passages within the bound.
+    """
+    unique = []
+    keys = set()
+    for passage in passages:
+        key = (passage["path"], passage.get("document_version"), passage.get("locator"),
+               passage["start_line"], passage["end_line"])
+        if key not in keys:
+            keys.add(key)
+            unique.append(passage)
+
+    def explicitly_linked(passage):
+        url = passage.get("source_metadata", {}).get("original_url")
+        filename = passage["path"].rsplit("/", 1)[-1]
+        title = passage.get("source_metadata", {}).get("title", "")
+        named = bool(re.search(r"(?<![\w.-])" + re.escape(filename) + r"(?![\w-])", final))
+        named = named or bool(len(title) >= 8 and title in final)
+        return passage["path"] in final or bool(url and url in final) or named
+
+    ordered = sorted(unique, key=lambda item: not explicitly_linked(item))
+    selected, remainder, documents = [], [], set()
+    for passage in ordered:
+        document = (passage["path"], passage.get("document_version"))
+        if document in documents:
+            remainder.append(passage)
+        else:
+            selected.append(passage)
+            documents.add(document)
+    selected = (selected + remainder)[:MAX_KNOWLEDGE_PASSAGES]
+    citations = [f"{item['path']}#{item['locator']}" if item.get("locator") else
+                 f"{item['path']}:{item['start_line']}-{item['end_line']}" for item in selected]
+    citations += _citations(final, workspace) + _web_citations(final)
+    # Managed references must keep their captured passage/version. Other tool
+    # references remain available, but are labelled as consulted material in UI.
+    citations += [item for item in tool_citations if not item.startswith("document://")]
+    for step in activity:
+        for value in (step.get("label"), step.get("detail")):
+            for found in _citations(str(value or ""), workspace):
+                if found in citations or ":" not in found and any(
+                        item.startswith(found + ":") for item in citations):
+                    continue
+                citations.append(found)
+    return selected, list(dict.fromkeys(citations))[:MAX_SOURCE_CITATIONS]
 
 
 def _tool_step(tool: str, raw_input: object) -> dict[str, Any]:
@@ -358,6 +419,7 @@ class DshHarness:
         timeout: float = 180.0,
         sessions_file: Path | None = None,
         knowledge_root: Path | None = None,
+        reasoning_effort: str | None = None,
     ) -> None:
         self.cli = Path(cli)
         self.patch = Path(patch)
@@ -365,6 +427,7 @@ class DshHarness:
         self.workspace = Path(workspace)
         self.node = node
         self.model = model
+        self.reasoning_effort = (reasoning_effort or "").strip() or None
         self.provider = assistant_model()["provider"]
         self.knowledge_root = Path(knowledge_root) if knowledge_root else self.workspace
         self.timeout = timeout
@@ -396,6 +459,7 @@ class DshHarness:
             home=home, workspace=workspace,
             node=os.environ.get("FORGEFLOW_DSH_NODE", "node"),
             model=os.environ.get("FORGEFLOW_DSH_MODEL", "deepseek-flash"),
+            reasoning_effort=os.environ.get("FORGEFLOW_DSH_REASONING_EFFORT"),
         )
 
     def with_evidence(self, evidence: Path):
@@ -404,7 +468,8 @@ class DshHarness:
         image_root = scoped_image_root(self.workspace, evidence)
         try:
             patch = scoped_patch(self.patch, evidence, image_root=image_root,
-                image_tool_module=self.cli.parent.parent.parent / "dsh-tool-fs/lib/index.js")
+                image_tool_module=self.cli.parent.parent.parent / "dsh-tool-fs/lib/index.js",
+                reasoning_effort=self.reasoning_effort)
             share_scoped_patch(patch)
         except (OSError, ValueError):
             raise DshUnavailable("dsh_permissions_unavailable") from None
@@ -413,6 +478,7 @@ class DshHarness:
             node=self.node, model=self.model, timeout=self.timeout,
             sessions_file=evidence.with_suffix(".sessions.json"),
             knowledge_root=self.knowledge_root,
+            reasoning_effort=self.reasoning_effort,
         )
         scoped.evidence_path = evidence
         scoped.image_root = image_root
@@ -452,6 +518,8 @@ class DshHarness:
         session_id = None
         activity: list[dict[str, Any]] = []
         tools: dict[str, dict[str, Any]] = {}
+        passages: list[dict[str, Any]] = []
+        tool_citations: list[str] = []
         for line in stdout.splitlines():
             try:
                 event = json.loads(line)
@@ -471,30 +539,27 @@ class DshHarness:
                 step = tools.get(call_id)
                 if step is not None:
                     _finish_tool_step(step, event)
+                    if step["status"] == "done":
+                        payload = _result_payload(_result_text(event.get("result")))
+                        new_passages, new_citations = _knowledge_passages(str(step["kind"]), payload)
+                        passages.extend(new_passages)
+                        tool_citations.extend(new_citations)
             elif kind in ("text", "final") and isinstance(event.get("text"), str):
                 final = event["text"]
         if not final:
             raise DshUnavailable("dsh_no_final")
-        citations: list[str] = _citations(final, self.knowledge_root) + _web_citations(final)
-        for step in activity:
-            for value in (step.get("label"), step.get("detail")):
-                for found in _citations(str(value or ""), self.knowledge_root):
-                    if found in citations:
-                        continue
-                    if ":" not in found and any(
-                        item.startswith(found + ":") for item in citations
-                    ):
-                        continue
-                    citations.append(found)
+        passages, citations = _answer_sources(final, activity, self.knowledge_root,
+                                             passages, tool_citations)
         scope = "project" if citations or any(
             word in final.lower() for word in ("forgeflow", "approval", "executor", "verifier")
         ) else "general"
         return DshReply(
             answer=final,
-            citations=citations[:5],
+            citations=citations,
             activity=activity[:MAX_ACTIVITY],
             session_id=session_id,
             scope=scope,
+            passages=passages,
         )
 
     def _invoke(self, question: str, session_id: str | None):
@@ -565,14 +630,11 @@ class DshHarness:
                     if step is not None:
                         _finish_tool_step(step, event)
                         payload = _result_payload(_result_text(event.get("result")))
-                        new_passages, new_citations = _knowledge_passages(
-                            str(step.get("kind", "")), payload)
-                        for passage in new_passages:
-                            if passage not in passages:
-                                passages.append(passage)
-                        for citation in new_citations:
-                            if citation not in tool_citations:
-                                tool_citations.append(citation)
+                        if step["status"] == "done":
+                            new_passages, new_citations = _knowledge_passages(
+                                str(step.get("kind", "")), payload)
+                            passages.extend(new_passages)
+                            tool_citations.extend(new_citations)
                         yield {
                             "type": "trace",
                             "activity": activity[:MAX_ACTIVITY],
@@ -585,12 +647,8 @@ class DshHarness:
                 raise DshUnavailable("dsh_failed")
             if not final:
                 raise DshUnavailable("dsh_no_final")
-            citations: list[str] = list(tool_citations) + _citations(final, self.knowledge_root) + _web_citations(final)
-            for step in activity:
-                for value in (step.get("label"), step.get("detail")):
-                    for found in _citations(str(value or ""), self.knowledge_root):
-                        if found not in citations:
-                            citations.append(found)
+            passages, citations = _answer_sources(final, activity, self.knowledge_root,
+                                                 passages, tool_citations)
             scope = "project" if citations or any(
                 word in final.lower()
                 for word in ("forgeflow", "approval", "executor", "verifier")
@@ -604,8 +662,8 @@ class DshHarness:
                 "found": True,
                 "mode": "harness",
                 "answer": final,
-                "citations": list(dict.fromkeys(citations))[:5],
-                "passages": passages[:5],
+                "citations": citations,
+                "passages": passages,
                 "activity": activity[:MAX_ACTIVITY],
                 "scope": scope,
                 "session_id": reply_session,

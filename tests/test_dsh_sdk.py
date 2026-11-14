@@ -1,41 +1,113 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+import os
+import sys
 from types import SimpleNamespace
 
 import pytest
+from pydantic import BaseModel, ConfigDict
 
 from forgeflow.api import dsh_sdk
-from forgeflow.api.dsh_harness import DshUnavailable
+from forgeflow.api.dsh_harness import MAX_KNOWLEDGE_PASSAGES, DshHarness, DshUnavailable
 
 
-@pytest.mark.skipif(__import__("os").name != "posix", reason="requires Unix launcher")
-def test_shared_sdk_wrapper_remains_executable_during_parallel_owner_startup(tmp_path):
-    import subprocess
+class LaunchInspection(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+
+@pytest.fixture
+def synthetic_sdk_cli(tmp_path):
+    """A local JSON-RPC peer, launched by the real locked SDK; no provider/ERP."""
+    path = tmp_path / "synthetic cli.py"
+    path.write_text('''import json, os, sys
+initialized = None
+for line in sys.stdin:
+    request = json.loads(line)
+    method = request.get("method")
+    if method == "initialize":
+        initialized = request["params"]
+    result = {"argv": sys.argv[1:], "cwd": os.getcwd(), "initialized": initialized,
+              "home": os.environ.get("DSH_HOME"),
+              "permission_mode": os.environ.get("DSH_PERMISSION_MODE"),
+              "evidence": os.environ.get("FORGEFLOW_ASSISTANT_EVIDENCE")} if method == "inspect" else {}
+    print(json.dumps({"jsonrpc": "2.0", "id": request["id"], "result": result}), flush=True)
+    if method == "shutdown":
+        break
+''')
+    return path
+
+
+def test_pinned_sdk_supports_explicit_launch_argv():
+    from importlib.metadata import version
+    from inspect import signature
+
+    from deepseek_harness import DeepSeekHarness
+
+    assert version("deepseek-harness-sdk") == "0.2.1rc2"
+    assert "_launch_args" in signature(DeepSeekHarness).parameters
+
+
+def test_shared_sdk_runtime_starts_in_parallel_without_publishing_executables(tmp_path, synthetic_sdk_cli):
     from concurrent.futures import ThreadPoolExecutor
 
     def start(index):
-        harness = dsh_sdk.SdkDshHarness(cli=Path("%s"), patch=tmp_path,
-            home=tmp_path / "home", workspace=tmp_path, node="/usr/bin/printf")
-        result = subprocess.run([str(harness._wrapper()), str(index)],
-                                capture_output=True, text=True, check=True, timeout=5)
-        return result.stdout
+        patch = tmp_path / f"owner {index}.json"
+        patch.write_text("[]")
+        harness = dsh_sdk.SdkDshHarness(cli=synthetic_sdk_cli, patch=patch,
+            home=tmp_path / "shared home", workspace=tmp_path, node=sys.executable,
+            model="synthetic-model", reasoning_effort="low")
+        harness.evidence_path = tmp_path / f"scope-{index}.json"
+        try:
+            runtime = harness._runtime()
+            # This is the real DeepSeekHarness/HarnessClient initialization and
+            # subprocess, not a replacement constructor or subprocess mock.
+            view = runtime.client.request("inspect", None, response_model=LaunchInspection).model_dump()
+            assert view["argv"] == ["--profile", "sdk", "--patch", str(patch.resolve())]
+            assert view["home"] == str((tmp_path / "shared home").resolve())
+            assert view["cwd"] == str(tmp_path.resolve())
+            assert view["permission_mode"] == "read-only"
+            assert view["evidence"] == str(harness.evidence_path)
+            assert view["initialized"] == {"cwd": str(tmp_path.resolve()), "provider": harness.provider,
+                                            "model": "synthetic-model", "reasoningEffort": "low"}
+            assert runtime.client.config.request_timeout_seconds == harness.timeout
+            return index
+        finally:
+            harness.close()
 
     with ThreadPoolExecutor(max_workers=8) as pool:
-        assert list(pool.map(start, range(32))) == [str(index) for index in range(32)]
+        assert list(pool.map(start, range(32))) == list(range(32))
+    assert not (tmp_path / "dsh-sdk-wrapper.sh").exists()
+    assert not list(tmp_path.glob(".dsh-wrapper-*"))
 
 
-@pytest.mark.skipif(__import__("os").name != "posix", reason="requires Unix symlink")
-def test_sdk_wrapper_publication_does_not_follow_existing_symlink(tmp_path):
+def test_sdk_runtime_reads_cli_without_executing_a_writable_script(tmp_path, synthetic_sdk_cli):
+    # Linux rejects execve(script) with ETXTBSY while any process retains a
+    # writer. An interpreter may read the same source; its executable is stable.
+    descriptor = os.open(synthetic_sdk_cli, os.O_WRONLY)
+    harness = dsh_sdk.SdkDshHarness(cli=synthetic_sdk_cli, patch=tmp_path / "patch.json",
+                                  home=tmp_path / "home", workspace=tmp_path, node=sys.executable)
+    try:
+        view = harness._runtime().client.request("inspect", None, response_model=LaunchInspection)
+        assert view.model_dump()["permission_mode"] == "read-only"
+    finally:
+        harness.close()
+        os.close(descriptor)
+
+
+@pytest.mark.skipif(os.name != "posix", reason="requires Unix symlink")
+def test_sdk_runtime_ignores_legacy_launcher_symlink(tmp_path, synthetic_sdk_cli):
     unrelated = tmp_path / "unrelated"
     unrelated.write_text("preserve")
-    (tmp_path / "dsh-sdk-wrapper.sh").symlink_to(unrelated)
-    harness = dsh_sdk.SdkDshHarness(cli=tmp_path, patch=tmp_path,
-                                  home=tmp_path / "home", workspace=tmp_path)
-    result = harness._wrapper()
-    assert not result.is_symlink()
-    assert unrelated.read_text() == "preserve"
+    legacy = tmp_path / "dsh-sdk-wrapper.sh"
+    legacy.symlink_to(unrelated)
+    harness = dsh_sdk.SdkDshHarness(cli=synthetic_sdk_cli, patch=tmp_path / "patch.json",
+                                  home=tmp_path / "home", workspace=tmp_path, node=sys.executable)
+    try:
+        harness._runtime()
+        assert legacy.is_symlink() and unrelated.read_text() == "preserve"
+    finally:
+        harness.close()
 
 
 def test_deterministic_session_id_is_stable_and_key_scoped() -> None:
@@ -414,6 +486,76 @@ def test_sdk_reply_merges_tool_citations_and_passages(tmp_path) -> None:
     assert reply.citations == ["docs/TECHNICAL_GUIDE.md:2-2"]
     assert reply.passages == [{"path": "docs/TECHNICAL_GUIDE.md", "start_line": 2,
                                "end_line": 2, "text": "DSH runs the read-only loop."}]
+
+
+def _sdk_source(name, version=1):
+    return {"path": f"document://reference/{name}.md", "start_line": 1, "end_line": 4,
+            "document_id": name, "document_version": version, "locator": "md:l1",
+            "text": f"Captured {name} revision {version}", "source_metadata": {
+                "title": f"Reference {name} revision {version}",
+                "source_version": f"revision {version}",
+                "original_url": f"https://example.org/{name}.pdf",
+                "material_class": "industry_reference"}}
+
+
+@pytest.mark.parametrize("stream", [False, True])
+def test_sdk_and_cli_share_bounded_multisearch_sources_and_captured_versions(tmp_path, monkeypatch, stream):
+    """The real SDK reply/stream path must not lose a later cited specification."""
+    sdk_events, cli_events = [], []
+    searches = [
+        ("first", [_sdk_source(f"source-{index}") for index in range(20)], False),
+        ("second", [_sdk_source(f"source-{index}") for index in range(20, 40)], False),
+        ("versions", [_sdk_source("revision", 1), _sdk_source("revision", 3)], False),
+        ("failed", [_sdk_source("failed-source")], True),
+    ]
+    for call_id, passages, failed in searches:
+        payload = {"passages": passages,
+                   "citations": [f"{row['path']}#{row['locator']}" for row in passages]}
+        sdk_events += [
+            {"type": "tool/call", "data": {"callId": call_id,
+             "name": "mcp__forgeflow__project_knowledge", "arguments": "{}"}},
+            {"type": "tool/result", "data": {"message": {"toolCallId": call_id,
+             "isError": failed, "content": [{"type": "text", "text": json.dumps(payload)}]}}},
+        ]
+        cli_events += [
+            {"type": "tool_call", "callId": call_id, "tool": "mcp__forgeflow__project_knowledge", "input": {}},
+            {"type": "tool_result", "callId": call_id, "status": "error" if failed else "completed",
+             "result": json.dumps(payload)},
+        ]
+    final = "Compare https://example.org/source-39.pdf with revision.md; retain each captured edition."
+    sdk_events.append({"type": "assistant/message", "data": {"message": {
+        "content": [{"type": "text", "text": final}]}}})
+    cli_events.append({"type": "final", "text": final})
+    result = SimpleNamespace(events=sdk_events, final_response=final, session_id="synthetic")
+
+    class Session:
+        def run(self, question, **kwargs):
+            return result
+
+    harness = dsh_sdk.SdkDshHarness(cli=tmp_path, patch=tmp_path, home=tmp_path,
+                                  workspace=tmp_path, knowledge_root=tmp_path)
+    monkeypatch.setattr(harness, "_session", lambda _key: Session())
+    monkeypatch.setattr(harness, "configured", lambda: True)
+    if stream:
+        event = list(harness.stream("Compare captured specifications", "test"))[-1]
+        passages, citations = event["passages"], event["citations"]
+    else:
+        reply, _ = harness._reply("Compare captured specifications", "test")
+        passages, citations = reply.passages, reply.citations
+
+    cli = DshHarness(cli=tmp_path, patch=tmp_path, home=tmp_path,
+                     workspace=tmp_path, knowledge_root=tmp_path)
+    cli_reply = cli._parse("\n".join(json.dumps(event) for event in cli_events))
+    assert passages == cli_reply.passages and citations == cli_reply.citations
+    assert len(passages) == MAX_KNOWLEDGE_PASSAGES
+    assert passages[0]["document_id"] == "source-39"
+    editions = [row for row in passages if row["document_id"] == "revision"]
+    assert {row["document_version"] for row in editions} == {1, 3}
+    for row in editions:
+        assert row["text"].endswith(f"revision {row['document_version']}")
+        assert row["source_metadata"]["source_version"] == f"revision {row['document_version']}"
+    assert "document://reference/source-39.md#md:l1" in citations
+    assert "failed-source" not in json.dumps({"passages": passages, "citations": citations})
 
 
 def test_final_assistant_message_joins_all_text_blocks():

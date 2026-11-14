@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import io
 import json
 from pathlib import Path
 
 from forgeflow.api.dsh_harness import (
+    MAX_KNOWLEDGE_PASSAGES,
     MAX_RESULT_SUMMARY,
     DshHarness,
     DshUnavailable,
+    _answer_sources,
     _knowledge_passages,
     _result_summary,
     _tool_input,
@@ -30,6 +33,73 @@ def test_knowledge_tool_does_not_invent_version_for_legacy_or_invalid_metadata()
         actual, _ = _knowledge_passages("project_knowledge", {
             "passages": [base | {"document_version": version}]})
         assert actual == [base]
+
+
+def _source(name, line=1):
+    return {"path": f"document://reference/{name}.md", "start_line": line, "end_line": line + 4,
+            "text": f"Captured {name}", "document_version": 3, "document_id": name,
+            "locator": f"md:l{line}", "source_metadata": {"title": f"Reference {name}",
+                "original_url": f"https://example.org/{name}.pdf", "original_locator": "PDF p. 4",
+                "material_class": "industry_reference"}}
+
+
+def test_knowledge_tool_preserves_only_safe_display_metadata():
+    passage = _source("manufacturer")
+    passage["source_metadata"].update(instruction="do not pass", original_url="javascript:alert(1)")
+    actual, _ = _knowledge_passages("project_knowledge", {"passages": [passage]})
+    assert actual[0]["source_metadata"] == {"title": "Reference manufacturer",
+        "original_locator": "PDF p. 4", "material_class": "industry_reference"}
+    assert _knowledge_passages("project_knowledge", {"passages": None, "citations": None}) == ([], [])
+
+
+def test_multiple_searches_retain_later_source_and_prioritize_document_diversity(tmp_path):
+    passages = [_source("manufacturer", line) for line in range(1, 10)] + [_source("channel")]
+    selected, citations = _answer_sources("Compare both references.", [], tmp_path, passages, [])
+    assert [item["document_id"] for item in selected[:2]] == ["manufacturer", "channel"]
+    assert "document://reference/channel.md#md:l1" in citations
+    assert len(selected) == 10
+
+
+def test_explicit_later_source_survives_bounded_source_collection(tmp_path):
+    passages = [_source(f"source-{index}") for index in range(40)]
+    selected, _ = _answer_sources("See https://example.org/source-39.pdf", [], tmp_path, passages, [])
+    assert len(selected) == MAX_KNOWLEDGE_PASSAGES
+    assert selected[0]["document_id"] == "source-39"
+
+
+def test_parse_and_stream_share_multi_search_sources_and_exclude_failed_results(tmp_path, monkeypatch):
+    harness = _harness(tmp_path)
+    events = []
+    for call_id, passages, status in [("first", [_source(f"other-{i}") for i in range(5)], "completed"),
+                                     ("second", [_source("manufacturer"), _source("channel")], "completed"),
+                                     ("failed", [_source("unusable")], "error")]:
+        events += [{"type": "tool_call", "callId": call_id, "tool": "mcp__forgeflow__project_knowledge", "input": {}},
+                   {"type": "tool_result", "callId": call_id, "status": status,
+                    "result": json.dumps({"passages": passages, "citations": []})}]
+    events.append({"type": "final", "text": "Compare manufacturer.md and channel.md."})
+    stdout = _events(*events)
+    parsed = harness._parse(stdout)
+
+    class Process:
+        def __init__(self):
+            self.stdout = io.StringIO(stdout)
+
+        def wait(self, **kwargs):
+            return 0
+
+        def poll(self):
+            return 0
+
+        def kill(self):
+            pass
+
+    monkeypatch.setattr("forgeflow.api.dsh_harness.subprocess.Popen", lambda *args, **kwargs: Process())
+    streamed = list(harness.stream("Compare sources"))[-1]
+    assert streamed["passages"] == parsed.passages
+    assert streamed["citations"] == parsed.citations
+    assert [item["document_id"] for item in parsed.passages[:2]] == ["manufacturer", "channel"]
+    assert len(parsed.passages) == 7
+    assert "unusable" not in json.dumps(parsed.passages)
 
 
 def _events(*items: dict) -> str:

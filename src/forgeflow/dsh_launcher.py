@@ -72,6 +72,8 @@ def assistant_launch_environment(config: dict, evidence: Path, patch_path: Path,
         "PATH": "/usr/local/bin:/usr/bin:/bin", "LANG": "C.UTF-8",
         "HOME": config["home"], "DSH_HOME": config["home"],
         "DSH_PERMISSION_MODE": "read-only",
+        # Use installed native binaries; never dlopen a copy from noexec /tmp.
+        "NARB_DISABLE_NATIVE_CACHE": "1",
         "FORGEFLOW_ASSISTANT_EVIDENCE": str(evidence),
         key_env: api_key,
     }

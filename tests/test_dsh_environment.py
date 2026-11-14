@@ -17,6 +17,13 @@ def test_assistant_environment_drops_api_erp_and_runtime_loader_secrets():
     assert result["FORGEFLOW_ASSISTANT_EVIDENCE"] == "/evidence.json"
 
 
+def test_native_modules_load_from_installed_files_without_caller_cache_override():
+    source = {"NARB_DISABLE_NATIVE_CACHE": "0", "NARB_NATIVE_CACHE_DIR": "/untrusted"}
+    result = assistant_environment(source, home=Path("/assistant"))
+    assert result["NARB_DISABLE_NATIVE_CACHE"] == "1"
+    assert "NARB_NATIVE_CACHE_DIR" not in result
+
+
 def test_assistant_question_cannot_become_a_cli_option(tmp_path):
     harness = DshHarness(cli=tmp_path, patch=tmp_path, home=tmp_path, workspace=tmp_path)
     command = harness._command("--patch=/untrusted", None)

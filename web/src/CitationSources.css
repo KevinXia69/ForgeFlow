@@ -1,0 +1,29 @@
+.answer-citations.answer-source-list {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 16px;
+  padding-left: 0;
+  text-align: left;
+}
+.answer-source-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 6px; }
+.answer-source-more summary { cursor: pointer; font-size: 14px; color: var(--muted); margin-bottom: 6px; }
+.answer-source-heading { font-size: 14px; font-weight: 600; }
+.msg.assistant .answer-source-note { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.answer-source-row { min-width: 0; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; }
+.answer-citations .answer-source-row .answer-source-title {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  text-align: left;
+  color: var(--ink);
+  font-size: 14px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-height: 1.5;
+}
+.answer-source-detail { margin-top: 4px; color: var(--muted); font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.answer-source-detail a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.answer-source-badge { margin-left: 8px; font-size: 14px; }

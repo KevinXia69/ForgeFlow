@@ -5,7 +5,8 @@ import { useI18n } from "./i18n";
 import { MODEL_PROFILES, isModelConfigComplete, isModelProfile, loadModelConfig, saveModelConfig, type ModelProfile } from "./modelConfig";
 import { SelectMenu } from "./SelectMenu";
 import type { ModelSettingsInfo, Workspace } from "./types";
-import { focusPageEntry, navigate, useWorkspace } from "./workspace";
+import { caseRoute, focusPageEntry, navigate, useWorkspace } from "./workspace";
+import { HISTORICAL_DEMO_CASE_ID } from "./historicalDemoRoute";
 import { uploadProgress, type UploadedDocument } from "./knowledgeUpload";
 
 /**
@@ -215,6 +216,9 @@ export function HomeView({ onOpenModelSettings }: { onOpenModelSettings?: (profi
             onSelect: () => materialInput.current?.click() },
           { icon: "check", label: t("home.cardTasks"), description: t("home.cardTasksBody"),
             onSelect: () => void readTasks() },
+          { judgeExample: "policy", label: t("home.reviewerPolicy"), prompt: t("home.reviewerPolicy") },
+          { judgeExample: "specification", label: t("home.reviewerCoil"), prompt: t("home.reviewerCoil") },
+          { judgeExample: "impact", label: t("home.reviewerImpactEntry"), onSelect: () => navigate(caseRoute(HISTORICAL_DEMO_CASE_ID, "chat")) },
         ]}
         emptyText={t("home.empty")}
         composerPlaceholder={t("home.composerPlaceholder")}

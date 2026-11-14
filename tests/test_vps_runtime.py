@@ -34,6 +34,39 @@ def config():
     })
 
 
+@pytest.mark.parametrize("model", ["deepseek-flash", "deepseek-v4-pro"])
+def test_known_deepseek_models_share_reasoning_default_in_scoped_patch(tmp_path, model):
+    from forgeflow.api.dsh_permissions import scoped_patch
+
+    patch = vps_runtime.dsh_patch(config(), model, "https://api.deepseek.com/v1",
+                                 provider="deepseek", api_key_env="DEEPSEEK_API_KEY")
+    base = tmp_path / "base.json"
+    base.write_text(json.dumps(patch))
+    evidence = tmp_path / "owner-scope.json"
+    evidence.write_text("{}")
+    # SDK and CLI both use scoped_patch. Scope isolation must preserve the
+    # provider default while keeping the configured model and output cap.
+    for rows in (patch, json.loads(scoped_patch(base, evidence).read_text())):
+        profile = next(row for row in rows if row.get("id") == "llm-pi-ai")["config"]["providers"]["deepseek"]
+        assert profile["reasoning"] == "max"
+        assert profile["models"] == [{"id": model, "input": ["text", "image"], "maxTokens": 8192}]
+
+
+@pytest.mark.parametrize(("provider", "model"), [
+    ("deepseek", "custom-model"),
+    ("deepseek", "deepseek-flash-custom"),
+    ("nebius", "deepseek-flash"),
+    ("nebius", "nvidia/Nemotron-3.5-Super-VL"),
+    ("custom", "deepseek-v4-pro"),
+])
+def test_other_routes_do_not_acquire_unverified_reasoning_capabilities(provider, model):
+    patch = vps_runtime.dsh_patch(config(), model, "https://example.invalid/v1", provider=provider)
+    profile = next(row for row in patch if row.get("id") == "llm-pi-ai")["config"]["providers"][provider]
+    assert "reasoning" not in profile
+    assert "reasoningEfforts" not in profile["models"][0]
+    assert profile["models"] == [{"id": model, "input": ["text", "image"], "maxTokens": 8192}]
+
+
 def test_api_environment_cannot_inherit_erp_credentials_or_docker_access():
     env = api_environment(config(), {"ERP_API_KEY": "secret", "DOCKER_HOST": "unix:///private",
         "PYTHONPATH": "/untrusted", "FORGEFLOW_SESSION_SECRET": "identity",
@@ -254,7 +287,7 @@ def test_api_environment_keeps_the_independent_assistant_binding():
     assert env["FORGEFLOW_ASSISTANT_PROFILE"] == "deepseek_flash"
     assert env["DEEPSEEK_API_KEY"] == "deepseek-key"
     assert env["FORGEFLOW_DSH_MODEL"] == "deepseek-flash"
-    assert env["FORGEFLOW_DSH_REASONING_EFFORT"] == "max"
+    assert "FORGEFLOW_DSH_REASONING_EFFORT" not in env
     assert env["DEEPSEEK_API_KEY"] == "deepseek-key"
     assert env["NEBIUS_API_KEY"] == "deepseek-key"
     assert assistant_binding(env) == {
@@ -281,6 +314,18 @@ def test_assistant_binding_falls_back_to_the_platform_model():
         "api_key_env": "DEEPSEEK_API_KEY",
         "api_key": "deepseek-key",
     }
+
+
+@pytest.mark.parametrize("effort", [None, "", "  ", "off", " high ", "max", "unknown-level"])
+def test_api_environment_only_forwards_explicit_reasoning_choices(effort):
+    source = {"FORGEFLOW_ASSISTANT_PROFILE": "nemotron"}
+    if effort is not None:
+        source["FORGEFLOW_DSH_REASONING_EFFORT"] = effort
+    env = api_environment(config(), source)
+    if effort and effort.strip():
+        assert env["FORGEFLOW_DSH_REASONING_EFFORT"] == effort.strip()
+    else:
+        assert "FORGEFLOW_DSH_REASONING_EFFORT" not in env
 
 
 def _patch_for(key_env: str, tmp_path):
@@ -319,6 +364,16 @@ def test_launcher_accepts_a_deepseek_only_host_and_rejects_a_missing_selected_ke
         assistant_launch_environment(
             {"home": str(tmp_path)}, evidence, deepseek,
             source={"NEBIUS_API_KEY": "nebius-key"})
+
+
+def test_launcher_uses_installed_native_modules_without_caller_cache_override(tmp_path):
+    patch = _patch_for("DEEPSEEK_API_KEY", tmp_path)
+    environment = assistant_launch_environment(
+        {"home": str(tmp_path)}, tmp_path / "scope.json", patch,
+        source={"DEEPSEEK_API_KEY": "test-key", "NARB_DISABLE_NATIVE_CACHE": "0",
+                "NARB_NATIVE_CACHE_DIR": "/untrusted"})
+    assert environment["NARB_DISABLE_NATIVE_CACHE"] == "1"
+    assert "NARB_NATIVE_CACHE_DIR" not in environment
 
 
 def test_vps_launch_files_preserve_the_selected_provider_keys():

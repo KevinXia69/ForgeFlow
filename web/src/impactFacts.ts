@@ -41,7 +41,7 @@ export function disruptionScope(plan: ProductPlan | null | undefined) {
   });
   const supplies = chain.nodes.filter(node => brokenKeys.has(node.key));
   const products = [...new Set(supplies.map(node => node.product_code))];
-  return { orders: orders.length || null, units: demands.length === 1 ? demands[0].units : null, demands,
+  return { orders: orders.length || null, linkedOrders: orders, units: demands.length === 1 ? demands[0].units : null, demands,
     supplies: products.map(product => {
       const rows = supplies.filter(node => node.product_code === product);
       return { product, documents: rows.length, units: rows.every(row => typeof row.quantity === "number" && Number.isFinite(row.quantity))
@@ -54,6 +54,30 @@ export function disruptionScopeLines(plan: ProductPlan | null | undefined, t: Tr
   return [...(scope.demands.length ? scope.demands.map(row => t("scope.linked", { orders: row.orders, units: row.units ?? unknown, product: row.product ?? unknown })) : [t("scope.unknown")]),
     ...scope.supplies.map(row => t("scope.supply", { documents: row.documents, units: row.units ?? unknown, product: row.product ?? unknown })),
     t("scope.note")];
+}
+
+/** Compact, baseline-scoped explanation. Never aggregate component inputs as sales demand. */
+export function impactScopeAnswer(plan: ProductPlan | null | undefined, t: Translate, question = ""): string {
+  // A named order is an explicit scope, even if it is not directly linked to
+  // this disruption. Never substitute the demo's affected order for it.
+  if (/(?:^|[^a-z0-9])(?:s[0-9]{4,}|so(?:[-_][a-z0-9]+|[0-9]+))(?=$|[^a-z0-9])/i.test(question)) {
+    return impactAnswer(plan, question, t);
+  }
+  if (boundImpactChain(plan)?.nodes.some(node => node.label.length > 2 && new RegExp(
+    `(?:^|[^a-z0-9])${node.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=$|[^a-z0-9])`, "i").test(question))) {
+    return impactAnswer(plan, question, t);
+  }
+  const scope = disruptionScope(plan), lines = disruptionScopeLines(plan, t);
+  if (!scope) return lines.join(" ");
+  for (const order of scope.linkedOrders.slice(0, 4)) {
+    const row = order.readiness, unknown = t("v9.unknown");
+    lines.push(t("scope.orderPlan", { order: order.order_ref, stock: row.stock_units ?? unknown,
+      manufacturing: row.manufactured_units ?? unknown, purchase: row.purchased_units ?? unknown,
+      ready: row.planned_ready_date ?? unknown, due: row.customer_due_date ?? unknown, buffer: row.buffer_days ?? unknown }));
+  }
+  if (scope.linkedOrders.length > 4) lines.push(t("scope.moreOrders"));
+  if (scope.linkedOrders.length) lines.push(t("scope.plannedNote"));
+  return lines.join("\n\n");
 }
 
 export function impactScope(chain: ProductImpactChain, order: ImpactOrder, phase: "baseline" | "planned") {
@@ -123,7 +147,7 @@ export function impactSourceFields(chain: ProductImpactChain, ref: ImpactSourceR
 
 export function impactIntent(question: string): boolean {
   const q = question.toLowerCase();
-  return /impact chain|supply (?:chain|path|allocation)|document (?:link|relationship)|origin link|why.{0,50}affected|affected.{0,50}why/.test(q)
+  return /impact chain|supply (?:chain|path|allocation|relationship)|document (?:link|relationship)|origin link|why.{0,50}affected|affected.{0,50}why/.test(q)
     || /(?:which|what).{0,45}(?:suppl(?:y|ies)|feeds?).{0,45}(?:order|so\b)|(?:purchase|manufacturing) (?:order|document).{0,30}(?:feeds?|supplies|linked|affect)/.test(q);
 }
 
@@ -135,6 +159,9 @@ export function impactAnswer(plan: ProductPlan | null | undefined, question: str
     const safe = label.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     return new RegExp(`(?:^|[^a-z0-9])${safe}(?=$|[^a-z0-9])`).test(q);
   };
+  const requested = [...question.matchAll(/(?<![a-z0-9])(?:s[0-9]{4,}|so(?:[-_][a-z0-9]+|[0-9]+))(?![a-z0-9])/gi)].map(match => match[0].toLowerCase());
+  const knownOrders = new Set(chain.orders.map(row => row.order_ref.toLowerCase()));
+  if (requested.some(ref => !knownOrders.has(ref))) return t("impact.orderNotFound");
   const namedOrders = chain.orders.filter(row => names(row.order_ref));
   if (!namedOrders.length && /(?:^|[^a-z0-9])(?:s[0-9]{4,}|so(?:[-_][a-z0-9]+|[0-9]+))(?=$|[^a-z0-9])/i.test(question)) return t("impact.orderNotFound");
   const namedNodes = chain.nodes.filter(node => node.label.length > 2 && names(node.label));

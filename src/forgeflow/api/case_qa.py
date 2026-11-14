@@ -17,7 +17,7 @@ from forgeflow.recovery.margin import MARGIN_BASIS
 
 from ..product.state import execution_result
 from .budget_context import BUDGET_CONTEXT_RULE, budget_statement
-from .impact_context import IMPACT_CONTEXT_RULE, chain_intent, impact_scope_text, impact_text
+from .impact_context import IMPACT_CONTEXT_RULE, chain_intent, impact_scope_answer, impact_text
 
 MODE = "case"
 
@@ -459,11 +459,10 @@ def _missing_plan(case: dict[str, Any], lang: str) -> dict[str, Any]:
 def _impact_answer(case: dict[str, Any], lang: str, question: str = "",
                    order_refs: tuple[str, ...] | None = None) -> dict[str, Any]:
     if chain_intent(question) or isinstance(case.get("plan"), dict) and case["plan"].get("impact_chain") is not None:
-        answer, specs = impact_text(case.get("plan"), question, lang, order_refs=order_refs)
         if not chain_intent(question) and not order_refs:
-            scope, scope_specs = impact_scope_text(case.get("plan"), lang)
-            answer = scope + "\n\n" + answer
-            specs = scope_specs + specs
+            answer, specs = impact_scope_answer(case.get("plan"), lang, question)
+        else:
+            answer, specs = impact_text(case.get("plan"), question, lang, order_refs=order_refs)
         return {"answer": answer, "mode": MODE, "answer_basis": "case_record",
                 "citations": _citations(case, specs + _STATE_CITATIONS, lang)}
     order = case.get("order") if isinstance(case.get("order"), dict) else {}

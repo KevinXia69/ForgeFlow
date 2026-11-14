@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { SelectMenu } from "./SelectMenu";
 import { useI18n, type MessageKey } from "./i18n";
-import { boundImpactChain, impactFactKeys, impactFactValue, impactFieldLabel, impactMissing, impactNodeLabel,
+import { boundImpactChain, disruptionScope, impactFactKeys, impactFactValue, impactFieldLabel, impactMissing, impactNodeLabel,
   impactQuantity, impactScope, impactSourceFields } from "./impactFacts";
 import type { ImpactEdge, ImpactNode, ImpactSourceRef, ProductImpactChain, ProductPlan } from "./types";
 import styles from "./ImpactChain.module.css";
@@ -28,15 +28,15 @@ export function ImpactChain({ plan, selectionKey = "" }: { plan: ProductPlan; se
   const chain = boundImpactChain(plan);
   const { t } = useI18n();
   if (!chain) return <section className="case-section" data-impact-chain={plan.plan_id}>
-    <h2>{t("impact.title")}</h2><p className="decision-note">{t(plan.impact_chain ? "impact.invalid" : "impact.unknown")}</p>
+    <h2 tabIndex={-1}>{t("impact.title")}</h2><p className="decision-note">{t(plan.impact_chain ? "impact.invalid" : "impact.unknown")}</p>
   </section>;
-  return <BoundImpactChain key={`${plan.plan_id}:${plan.snapshot_sha256}:${selectionKey}`} chain={chain} />;
+  return <BoundImpactChain key={`${plan.plan_id}:${plan.snapshot_sha256}:${selectionKey}`} chain={chain} initialOrder={disruptionScope(plan)?.linkedOrders[0]?.order_ref} />;
 }
 
-function BoundImpactChain({ chain }: { chain: ProductImpactChain }) {
+function BoundImpactChain({ chain, initialOrder }: { chain: ProductImpactChain; initialOrder?: string }) {
   const { t } = useI18n();
   const id = useId();
-  const [orderRef, setOrderRef] = useState(chain.orders[0]?.order_ref ?? "");
+  const [orderRef, setOrderRef] = useState(initialOrder ?? chain.orders[0]?.order_ref ?? "");
   const [nodeKey, setNodeKey] = useState<string | null>(null);
   const panel = useRef<HTMLHeadingElement>(null);
   const trigger = useRef<HTMLButtonElement | null>(null);
@@ -71,7 +71,7 @@ function BoundImpactChain({ chain }: { chain: ProductImpactChain }) {
   </div>;
 
   if (!order) return <section className="case-section" data-impact-chain={chain.basis.plan_id}>
-    <h2>{t("impact.title")}</h2><p>{t("impact.noOrders")}</p>
+    <h2 tabIndex={-1}>{t("impact.title")}</h2><p>{t("impact.noOrders")}</p>
   </section>;
   const baseline = impactScope(chain, order, "baseline"), planned = impactScope(chain, order, "planned");
   const visibleNodeKeys = new Set([...baseline.nodes, ...planned.nodes].map(node => node.key));
@@ -80,7 +80,7 @@ function BoundImpactChain({ chain }: { chain: ProductImpactChain }) {
   const otherEdges = chain.edges.filter(edge => !visibleEdgeKeys.has(edge.key));
   const readiness = order.readiness;
   return <section className={`case-section ${styles.chain}`} data-impact-chain={chain.basis.plan_id}>
-    <h2>{t("impact.title")}</h2><p>{t("impact.selectHelp")}</p>
+    <h2 tabIndex={-1}>{t("impact.title")}</h2><p>{t("impact.selectHelp")}</p>
     <p className="decision-note">{t("impact.basis", { date: chain.basis.anchor_date })}</p>
     <label className={styles.select} htmlFor={`${id}-order`}>{t("impact.order")}
       <SelectMenu

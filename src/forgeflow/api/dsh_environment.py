@@ -25,7 +25,11 @@ def assistant_environment(source: Mapping[str, str], *, home: Path,
     """Never inherit API identity, ERP, Docker, loader, or broad storage settings."""
     env = {name: value for name, value in source.items()
            if name in MODEL_ENVIRONMENT | PROCESS_ENVIRONMENT}
+    # The pinned native loader otherwise copies .node files to /tmp, where
+    # the read-only Compose deployment deliberately uses a noexec tmpfs.
+    # Load the installed binaries directly, retaining the loader's ABI checks.
     env.update({"HOME": str(home), "DSH_HOME": str(home), "DSH_PERMISSION_MODE": "read-only",
+                "NARB_DISABLE_NATIVE_CACHE": "1",
                 "FORGEFLOW_ASSISTANT_EVIDENCE": str(evidence)})
     return env
 

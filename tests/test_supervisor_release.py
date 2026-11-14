@@ -18,14 +18,19 @@ release = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(release)
 
 
-def test_only_python_package_and_declared_entrypoints_are_allowed():
+def test_only_python_package_and_declared_release_inputs_are_allowed():
     assert release.allowed("src/forgeflow/integrations/odoo20/supplier_prices.py")
     assert release.allowed("scripts/run_supervisor.py")
     assert release.allowed("scripts/forgeflow_runtime.py")
     assert release.allowed("scripts/assistant_mcp.py")
+    for path in release.REFERENCE_FACT_SOURCES:
+        assert release.allowed(path)
     for path in (".env", "runtime.env", "src/forgeflow/api/static/a.py",
                  "runs/a.py", "scripts/other.py", "src/forgeflow/../secret.py",
-                 "src/forgeflow/api/static/index.html", "/src/forgeflow/evil.py"):
+                 "src/forgeflow/api/static/index.html", "/src/forgeflow/evil.py",
+                 "knowledge/reference/supply-recovery-v1/private.json",
+                 "knowledge/reference/supply-recovery-v1/../comparisons.json",
+                 "knowledge/reference/customer/K04.md"):
         assert not release.allowed(path)
 
 
@@ -45,7 +50,8 @@ def test_archive_hash_and_path_checks_precede_install(tmp_path):
         release.unpack(archive, stage)
 
 
-@pytest.mark.parametrize("existing", ["src/forgeflow/old.py", "scripts/assistant_mcp.py"])
+@pytest.mark.parametrize("existing", ["src/forgeflow/old.py", "scripts/assistant_mcp.py",
+                                     *sorted(release.REFERENCE_FACT_SOURCES)])
 def test_rollback_restores_old_bytes_removes_only_new_files_and_preserves_data(tmp_path, existing):
     root, backup = tmp_path / "app", tmp_path / "backup"
     source = root / existing

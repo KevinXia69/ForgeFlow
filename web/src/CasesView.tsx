@@ -19,11 +19,11 @@ const VIEWS: { id: SavedCaseView; label: MessageKey }[] = [
 ];
 const matches = matchesSavedView;
 type Props = {
-  selectedId: string | null; chat: boolean; evidence: boolean; demo: boolean; initialView?: string | null; planId?: number | null;
+  selectedId: string | null; chat: boolean; evidence: boolean; impact?: boolean; demo: boolean; initialView?: string | null; planId?: number | null;
   onSelectCase: (id: string | null) => void;
   onAskCase: (item: CaseFile, mode: "live" | "fixture") => void;
 };
-export function CasesView({ selectedId, chat, evidence, demo, initialView, planId, onSelectCase, onAskCase }: Props) {
+export function CasesView({ selectedId, chat, evidence, impact, demo, initialView, planId, onSelectCase, onAskCase }: Props) {
   const { t, lang } = useI18n();
   const identity = useWorkspace();
   const fixture = useMemo(() => buildFixtureCase(t), [t]);
@@ -163,7 +163,7 @@ export function CasesView({ selectedId, chat, evidence, demo, initialView, planI
     {detailError && <div role="alert"><p>{t(selected ? "v9.staleCase" : "v9.readError")} {detailError}</p>{!selected && <button className="secondary" onClick={() => onSelectCase(null)}>{t("case.back")}</button>}</div>}
     {selected?.case_id === selectedId ? <>
       {!chat && <div>
-        <CaseDetail key={selected.case_id} caseFile={selected} mode={isDemo ? "fixture" : "live"} capabilities={caps} caseReadBlocked={!isDemo && (loading || detailError !== "" || watchExpired)} onOperationPendingChange={setOperationPending} evidenceOpen={evidence}
+        <CaseDetail key={selected.case_id} caseFile={selected} mode={isDemo ? "fixture" : "live"} capabilities={caps} caseReadBlocked={!isDemo && (loading || detailError !== "" || watchExpired)} onOperationPendingChange={setOperationPending} evidenceOpen={evidence} impactOpen={impact}
           nextCaseId={next?.case_id ?? null}
           onBack={() => onSelectCase(null)} onAsk={() => onAskCase(selected, isDemo ? "fixture" : "live")}
           onUpdated={updated} onNext={() => onSelectCase(next?.case_id ?? null)}

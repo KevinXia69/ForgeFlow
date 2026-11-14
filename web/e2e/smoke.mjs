@@ -54,7 +54,9 @@ try {
  assert(await page.locator('#language-select').count()===0,'public language selector exposed');
  await page.locator('#invite-code').fill('mock-invite');await page.getByRole('button',{name:'Enter workbench',exact:true}).click();
  await page.locator('[data-home-view]').waitFor();await visibleEnglish(page,'home');
- assert(await page.locator('.chat-preset').count()===4,'start page task entries missing');
+ assert(await page.locator('[data-home-view] .chat-preset.is-rich').count()===4,'start page feature cards missing');
+ const examples=await page.locator('[data-home-view] [data-judge-example]').evaluateAll(elements=>elements.map(element=>element.getAttribute('data-judge-example')).sort());
+ assert(JSON.stringify(examples)===JSON.stringify(['impact','policy','specification']),'start page examples missing or duplicated');
  assert(await page.locator('[data-composer-input]').count()===1,'start page composer missing');
  assert(await page.locator('.review-banner').isVisible(),'review deployment is not labeled');
  await page.locator('[data-nav="cases"]').click();
@@ -102,7 +104,7 @@ try {
  await page.locator('[data-nav="knowledge"]').click();
  await page.locator('.msg.assistant').filter({hasText:'Public response: A new turn'}).waitFor();
  assert(streamRequests.length===2,'opening run evidence resent the completed question');
- await page.evaluate(()=>{const key='forgeflow.chat.v2.public-reviewer:knowledge';const saved=JSON.parse(localStorage.getItem(key));const activity=saved.sessions.find(item=>item.id===saved.active).messages.at(-1).meta.activity;delete activity.hideDuration;activity.startedAt=activity.finishedAt=Date.now();localStorage.setItem(key,JSON.stringify(saved));});
+ await page.evaluate(()=>{const key='forgeflow.chat.v2.public-reviewer:knowledge';const saved=JSON.parse(sessionStorage.getItem(key));const activity=saved.sessions.find(item=>item.id===saved.active).messages.at(-1).meta.activity;delete activity.hideDuration;activity.startedAt=activity.finishedAt=Date.now();sessionStorage.setItem(key,JSON.stringify(saved));});
  await page.reload();await page.locator('.msg.assistant').last().locator('[data-activity-timer]').waitFor();
  assert((await page.locator('.msg.assistant').last().locator('[data-activity-timer]').innerText())==='Done','legacy elapsed fabricated zero still visible');
 

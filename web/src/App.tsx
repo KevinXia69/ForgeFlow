@@ -131,7 +131,7 @@ export default function App() {
         </header>
         {config.deployment === "review" && <div className="review-banner">{t("app.reviewBanner")}</div>}
         <div className={`app-panel${view === "cases" ? " app-panel-workbench" : ""}`}>
-          {view === "cases" ? <CasesView selectedId={caseId} chat={params.has("chat")} evidence={params.has("evidence")}
+          {view === "cases" ? <CasesView selectedId={caseId} chat={params.has("chat")} evidence={params.has("evidence")} impact={params.has("impact")}
             demo={params.has("demo")} initialView={params.get("view")} planId={planId || null}
             onSelectCase={(id) => navigate(id ? caseRoute(id) : "#cases")}
             onAskCase={(item) => navigate(caseRoute(item.case_id, "chat"))} />

@@ -45,6 +45,7 @@ dev = [
     "odoo-client-lib==2.0.0",
     "ortools==9.15.6755",
     "python-pptx==1.0.2",
+    "deepseek-harness-sdk==0.2.1rc2",
 ]
 
 [tool.hatch.build.targets.wheel]

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { focusPageEntry, useWorkspace } from "./workspace";
+import { caseRoute, focusPageEntry, useWorkspace } from "./workspace";
 import { ApiError, askProductCase, streamProductCase, cancelCaseTurn } from "./api";
 import {
   ChatSurface,
@@ -111,6 +111,8 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
           note: mode === "fixture" ? t("caseChat.demoBadge") : t("caseChat.localNote"),
           citations: local.citations,
           passages: [],
+          evidenceRefs: [{ kind: "impact", id: caseFile.case_id, href: caseRoute(caseFile.case_id, "impact"),
+            label: t(mode === "fixture" ? "scope.historicalEvidence" : "scope.relationshipEvidence") }],
         },
       };
     },
@@ -128,7 +130,7 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
           <h1 ref={headingRef} tabIndex={-1} data-case-chat-heading="true">{t("caseChat.title")}</h1>
           <div className="case-chat-page-context">
             <span>{caseFile.order.product}</span>
-            <span>{caseFile.order.units} {t("cases.units")}</span>
+            <span>{t("scope.planningUnits", { units: caseFile.order.units })}</span>
             <span>{caseOutcomeLabel(caseFile, t)}</span>
             {mode === "fixture" ? <span className="case-chat-demo">{t("caseChat.demoBadge")}</span> : null}
           </div>
@@ -144,6 +146,7 @@ export function CaseChatView({ caseFile, mode, onBack }: Props) {
           cancelTurn={(conversation, turnId) => mode === "fixture" ? Promise.resolve() : cancelCaseTurn(caseFile.case_id, conversation, turnId)}
           storageScope={`${scope_id}:case:${caseFile.case_id}`}
           presets={[
+            ...(mode === "fixture" ? [t("home.reviewerImpact")] : []),
             t("caseChat.presetImpact"),
             t("caseChat.presetPlan"),
             t("caseChat.presetExecution"),

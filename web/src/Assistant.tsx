@@ -6,7 +6,8 @@ import { curateHistory, newConversationId, readConversations, writeConversations
 import { caseRoute, useWorkspace } from "./workspace";
 import { ActivityPanel } from "./Activity";
 import { KnowledgeDocumentDialog } from "./KnowledgeDocumentDialog";
-import { documentCitation, type DocumentTarget } from "./knowledgeCitation";
+import { type DocumentTarget } from "./knowledgeCitation";
+import { CitationSources } from "./CitationSources";
 import { DshComposer } from "./dsh/Composer";
 import chatCss from "./dsh/ChatView.module.css";
 import { useI18n, type Translate } from "./i18n";
@@ -26,7 +27,7 @@ import type { AnswerContextNotice } from "./caseAnswerContext";
 
 
 export type ChatAnswerMeta = {
-  mode: "model" | "retrieval" | "case" | "harness";
+  mode: "model" | "retrieval" | "case" | "harness" | "reference_facts";
   warning?: string;
   note?: string;
   citations: string[];
@@ -54,7 +55,7 @@ export type ChatResponder = (
   attachments?: ConversationAttachment[],
 ) => Promise<ChatReply>;
 
-type AnswerWithMode = Answer & { mode?: "model" | "retrieval" | "harness" };
+type AnswerWithMode = Answer & { mode?: "model" | "retrieval" | "harness" | "reference_facts" };
 
 type UiMessage = {
   id: string;
@@ -179,27 +180,11 @@ function AssistantMessage({ message, displayText, contextNotice }: {
         <p className="assistant-fallback">{t("assistant.modelFallback")}</p>
       ) : null}
       {contextNotice && <p className="case-answer-context" data-case-answer-context={contextNotice.kind}>{contextNotice.text}</p>}
+      {meta?.mode === "reference_facts" && <p className="case-answer-context" data-reference-facts="true">{t("assistant.referenceFacts")}</p>}
       <div className="assistant-markdown">
         <PrivateMarkdown text={cleanAnswerText(displayText ? displayText(message.text) : message.text)} labels={labels} />
       </div>
-      {(() => {
-        const citations = meta?.citations ?? [];
-        const refs = citations.map((citation) => {
-          const target = documentCitation(citation, meta?.passages ?? []);
-          if (target) return { citation, target };
-          if (/^https?:\/\//i.test(citation)) return { citation, target: null };
-          return null;
-        }).filter((item): item is { citation: string; target: DocumentTarget | null } => item !== null);
-        return refs.length > 0 ? (
-          <div className="answer-citations" data-answer-citations="true">
-            {refs.map(({ citation, target }) => target ? (
-              <button type="button" className="citation" key={citation} onClick={() => setDocumentTarget(target)}>
-                {target.sourcePath.split("/").pop()}{target.version ? ` · v${target.version}` : ""}{target.locator ? ` · ${target.locator}` : ""}
-              </button>
-            ) : <a className="citation" href={citation} target="_blank" rel="noreferrer noopener" key={citation}>{citation}</a>)}
-          </div>
-        ) : null;
-      })()}
+      <CitationSources reviewedComparison={meta?.mode === "reference_facts"} citations={meta?.citations ?? []} passages={meta?.passages ?? []} onOpen={setDocumentTarget} />
       {documentTarget && <KnowledgeDocumentDialog target={documentTarget} onClose={() => setDocumentTarget(null)} />}
       {meta?.evidenceRefs?.length ? <div className="answer-citations" data-answer-evidence="true">
         {meta.evidenceRefs.map((ref) => (
@@ -222,6 +207,7 @@ export type ChatPreset =
       prompt?: string;
       description?: string;
       icon?: ChatPresetIcon;
+      judgeExample?: "policy" | "specification" | "impact";
       /** A task entry performs a real UI action instead of sending a prompt. */
       onSelect?: () => void;
     };
@@ -613,6 +599,7 @@ export function ChatSurface({
                   <button
                     key={item.prompt ?? item.label}
                     type="button"
+                    data-judge-example={item.judgeExample}
                     className={`chat-preset${item.description ? " is-rich" : ""}`}
                     onClick={() => item.onSelect ? item.onSelect() : item.prompt && void send(item.prompt)}
                   >
@@ -742,9 +729,9 @@ export function useKnowledgeResponder(): ChatResponder {
           );
         }
       }
-      const mode: "model" | "retrieval" | "harness" =
-        answer.mode === "harness" || answer.mode === "model" ? answer.mode : "retrieval";
-      const text = mode === "model" || mode === "harness"
+      const mode: "model" | "retrieval" | "harness" | "reference_facts" =
+        answer.mode === "harness" || answer.mode === "model" || answer.mode === "reference_facts" ? answer.mode : "retrieval";
+      const text = mode === "model" || mode === "harness" || mode === "reference_facts"
         ? answer.answer?.trim() || t("assistant.answerNoPassages")
         : formatAnswer(answer, t);
       const harnessActivity = mode === "harness" && Array.isArray(answer.activity)

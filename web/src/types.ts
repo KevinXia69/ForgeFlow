@@ -390,6 +390,15 @@ export type CaseFile = {
   audit?: unknown[];
 };
 
+export type SourceMetadata = {
+  title?: string;
+  publisher?: string;
+  original_url?: string;
+  original_locator?: string;
+  source_version?: string;
+  material_class?: "industry_reference";
+};
+
 export type Passage = {
   path: string;
   start_line: number;
@@ -399,6 +408,7 @@ export type Passage = {
   locator?: string | null;
   document_id?: string | null;
   document_version?: number | null;
+  source_metadata?: SourceMetadata;
 };
 
 export type ChatImage = {
@@ -407,7 +417,7 @@ export type ChatImage = {
   name: string;
 };
 
-export type AnswerMode = "model" | "retrieval" | "harness";
+export type AnswerMode = "model" | "retrieval" | "harness" | "reference_facts";
 
 export type Answer = {
   found: boolean;

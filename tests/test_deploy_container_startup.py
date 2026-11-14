@@ -59,7 +59,38 @@ assert os.environ['FORGEFLOW_DSH_ENABLED'] == '1'
 harness = DshHarness.from_env()
 assert type(harness).__name__ == 'SdkDshHarness'
 assert harness.configured()
-assert os.access(harness._wrapper(), os.X_OK)
+expected_args = (os.environ['FORGEFLOW_DSH_NODE'],
+                 str(Path(os.environ['FORGEFLOW_DSH_CLI']).resolve()),
+                 '--profile', 'sdk', '--patch',
+                 str(Path(os.environ['FORGEFLOW_DSH_PATCH']).resolve()))
+assert harness._launch_args() == expected_args
+assert os.access(expected_args[0], os.X_OK)
+# Exercise the actual pinned SDK and image's Node CLI, including initialize
+# and a read-only JSON-RPC roundtrip. No prompt, model request or ERP call.
+try:
+    runtime = harness._runtime()
+    process = runtime.client._proc
+    assert process is not None and process.poll() is None
+    assert tuple(process.args) == expected_args
+    assert runtime.client.config.env['DSH_HOME'] == str(harness.home.resolve())
+    assert runtime.client.config.env['DSH_PERMISSION_MODE'] == 'read-only'
+    assert runtime.client.config.env['NARB_DISABLE_NATIVE_CACHE'] == '1'
+    # Observe the real Linux mapping, not merely the requested environment.
+    # The installed native addon must stay outside writable temporary caches.
+    native_paths = {line.split()[-1] for line in Path(f'/proc/{process.pid}/maps').read_text().splitlines()
+                    if 'node-addon-require-builtin-' in line and '.node' in line}
+    assert native_paths, 'native addon mapping missing'
+    for native_path in native_paths:
+        assert Path(native_path).is_relative_to(harness.cli.resolve().parents[3])
+        assert not os.access(native_path, os.W_OK), native_path
+    session = runtime.start_session('synthetic-container-startup-session')
+    assert Path(session.get_working_directory()) == harness.workspace.resolve()
+finally:
+    harness.close()
+assert process.returncode == 0, 'SDK runtime did not shut down cleanly'
+assert harness._harness is None
+assert not (harness.home.parent / 'dsh-sdk-wrapper.sh').exists()
+assert not list(harness.home.parent.glob('.dsh-wrapper-*'))
 assert Path(forgeflow.api.dsh_harness.__file__).with_name('dsh_image_guard.mjs').is_file()
 for key in ('FORGEFLOW_DSH_HOME', 'FORGEFLOW_DSH_WORKSPACE', 'FORGEFLOW_ATTACHMENTS_ROOT'):
     path = Path(os.environ[key])
@@ -101,6 +132,9 @@ assert revocations.is_file() and revocations.stat().st_uid == 10001
 """
     if read_only:
         code += """
+tmp_mount = next(line.split() for line in Path('/proc/mounts').read_text().splitlines()
+                 if line.split()[1] == '/tmp')
+assert 'noexec' in tmp_mount[3].split(','), 'temporary mount lost noexec'
 try:
     Path('/data/runs/startup-probe').write_text('must not succeed', encoding='utf-8')
 except OSError:
@@ -108,7 +142,8 @@ except OSError:
 else:
     raise AssertionError('recorded runs unexpectedly writable')
 """
-    _docker("exec", container, "python", "-c", code)
+    result = _docker("exec", container, "python", "-c", code, check=False)
+    assert result.returncode == 0, result.stdout + result.stderr
     _assert_mcp_tool_roundtrip(container)
     _assert_text_document_conversion(container)
 
@@ -219,7 +254,7 @@ assert summary['cases'] == [], summary
 
 def test_default_image_starts_as_non_root_with_writable_assistant_state():
     name = f"forgeflow-startup-default-{uuid.uuid4().hex[:12]}"
-    args = ["run", "-d", "--name", name]
+    args = ["run", "-d", "--network", "none", "--name", name]
     for key, value in SYNTHETIC_ENV.items():
         args += ["-e", f"{key}={value}"]
     try:
@@ -238,14 +273,17 @@ def test_read_only_compose_starts_with_fresh_owned_state_volumes(tmp_path):
     service.pop("ports")
     service["image"] = IMAGE
     service["restart"] = "no"
+    # Loopback health/auth still work; the real SDK handshake must never need
+    # a model, ERP service or other outbound network access.
+    service["network_mode"] = "none"
     service["environment"] = {
         **SYNTHETIC_ENV, "FORGEFLOW_DATA_ROOT": "/data/runs",
         "FORGEFLOW_APPROVALS_ROOT": "/data/approvals",
     }
     runs = tmp_path / "runs"
     runs.mkdir(mode=0o755)
-    # Only the test inputs, published ports and resource names change. Keep the
-    # actual Compose filesystem restrictions and runtime volume destinations.
+    # Change test inputs/networking/resource names, keeping the actual Compose
+    # filesystem restrictions and runtime volume destinations.
     service["volumes"] = [
         f"{runs}:/data/runs:ro" if value == "../runs:/data/runs:ro" else value
         for value in service["volumes"]

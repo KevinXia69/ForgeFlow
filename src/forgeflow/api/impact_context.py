@@ -16,9 +16,9 @@ IMPACT_CONTEXT_RULE = (
 def chain_intent(question):
     text = question.casefold()
     return any(term in text for term in (
-        "impact chain", "supply path", "supply chain", "upstream", "dependency", "dependencies",
+        "impact chain", "supply path", "supply chain", "supply allocation", "supply relationship", "upstream", "dependency", "dependencies",
         "which purchase", "which manufacturing", "which supplier", "supplies this", "supplies order",
-        "影响链", "供应路径", "供应链", "来源链", "上游", "依赖关系", "哪张采购", "哪个采购",
+        "影响链", "供应路径", "供应分配", "供应关系", "单据关联", "单据关系", "供应链", "来源链", "上游", "依赖关系", "哪张采购", "哪个采购",
         "哪张制造", "哪个制造", "哪个供应商", "由谁供应", "来自哪", "采购和制造",
     )) or (any(term in text for term in ("affect", "suppl", "relate", "depend", "影响", "供应", "关联", "依赖"))
            and any(term in text for term in ("purchase order", "manufacturing order", "采购单", "制造单")))
@@ -134,10 +134,57 @@ def impact_summary(plan):
             "detail": "Baseline links identify orders. Failed supply and linked demand are distinct SKU quantities."}
 
 
+def impact_scope_answer(plan, lang, question=""):
+    """A short scope answer; component paths remain available on explicit request.
+
+    Only baseline disruption links select orders. Planned stock/manufacturing/
+    purchase totals come from the same validated per-order projection, not from
+    summing component inputs or treating the entire plan as disrupted demand.
+    """
+    text, scope_specs = impact_scope_text(plan, lang)
+    chain = checked_chain(plan)
+    if chain is None:
+        return text, scope_specs
+    if _requested_orders(question) or any(len(node["label"]) > 2 and _matches(question, node["label"]) for node in chain["nodes"]):
+        return impact_text(plan, question, lang)
+    _, indices, _, _ = _direct_scope(chain)
+    specs = list(scope_specs)
+    lines = [text]
+    zh = lang == "zh"
+    unknown = "未知" if zh else "unknown"
+    for index in indices[:4]:
+        order = chain["orders"][index]
+        ready = order["readiness"]
+        values = {key: ready.get(key) if ready.get(key) is not None else unknown for key in (
+            "stock_units", "manufactured_units", "purchased_units", "planned_ready_date", "customer_due_date", "buffer_days",
+        )}
+        if zh:
+            lines.append(f"{order['order_ref']} 的计划供应：库存 {values['stock_units']} 件、制造 {values['manufactured_units']} 件、采购 {values['purchased_units']} 件。"
+                         f"计划齐货 {values['planned_ready_date']}，客户截止 {values['customer_due_date']}，余量 {values['buffer_days']} 天。")
+        else:
+            lines.append(f"Planned supply for {order['order_ref']}: {values['stock_units']} units from stock, "
+                         f"{values['manufactured_units']} manufactured and {values['purchased_units']} purchased. "
+                         f"Planned ready: {values['planned_ready_date']}; customer deadline: {values['customer_due_date']}; "
+                         f"buffer: {values['buffer_days']} days.")
+        for key in values:
+            specs.append((f"plan.impact_chain.orders.{index}.readiness.{key}", "Planned supply evidence", "计划供应依据"))
+    if len(indices) > 4:
+        lines.append("这里只展开前 4 张直接关联订单，完整清单见案例关系图。" if zh else
+                     "Only the first 4 directly linked orders are expanded here; the case relationship view shows the full list.")
+    if indices:
+        lines.append("这些是计划分配，不代表已收货、生产完成或交付；完整关系可在案例详情核对。" if zh else
+                     "These are planned allocations, not proof of receipt, completed production or delivery; inspect the case details for the full relationships.")
+    return "\n\n".join(lines), tuple(specs)
+
+
 def _matches(question, label):
     # Adjacent Chinese prose ("S00001的") is not an ASCII token boundary.
     return re.search(r"(?<![A-Za-z0-9_])" + re.escape(label) + r"(?![A-Za-z0-9_])",
                      question, re.I) is not None
+
+
+def _requested_orders(question):
+    return re.findall(r"(?<![A-Za-z0-9])(?:S[0-9]{4,}|SO(?:[-_][A-Za-z0-9]+|[0-9]+))(?![A-Za-z0-9])", question, re.I)
 
 
 def impact_text(plan, question, lang, order_refs=None):
@@ -149,6 +196,12 @@ def impact_text(plan, question, lang, order_refs=None):
         return (("当前方案没有可核对的供应关系记录；无法确定哪张采购或制造单关联这张订单，也不能据此判断已到货或交付。"
                  if zh else "The current plan has no verifiable supply-relationship record. Which purchases or manufacturing "
                  "orders relate to this order is unknown; this cannot establish receipt or delivery."), tuple(specs))
+    # order_refs can contain only recognized IDs. Inspect the original question
+    # before filtering so a mixed known/unknown request cannot silently shrink.
+    known_orders = {row["order_ref"].casefold() for row in chain["orders"]}
+    if any(ref.casefold() not in known_orders for ref in _requested_orders(question)):
+        return (("当前选定方案没有找到所询问订单的供应关系；不能拿其他订单代替。" if zh else
+                 "No supply relationship for the requested order was found in the selected plan; other orders cannot substitute for it."), tuple(specs))
     nodes = {node["key"]: (index, node) for index, node in enumerate(chain["nodes"])}
     edges = {edge["key"]: (index, edge) for index, edge in enumerate(chain["edges"])}
     orders = list(enumerate(chain["orders"]))
@@ -161,7 +214,7 @@ def impact_text(plan, question, lang, order_refs=None):
     else:
         named = [(index, row) for index, row in orders if _matches(question, row["order_ref"])]
         if not named:
-            requested_orders = re.findall(r"(?<![A-Za-z0-9])(?:S[0-9]{4,}|SO(?:[-_][A-Za-z0-9]+|[0-9]+))(?![A-Za-z0-9])", question, re.I)
+            requested_orders = _requested_orders(question)
             if requested_orders:
                 return (("当前选定方案没有找到所询问订单的供应关系；不能拿其他订单代替。" if zh else
                          "No supply relationship for the requested order was found in the selected plan; other orders cannot substitute for it."), tuple(specs))

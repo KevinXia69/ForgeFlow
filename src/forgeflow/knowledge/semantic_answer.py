@@ -17,6 +17,7 @@ from typing import Sequence
 
 from ..semantic import SemanticConfig, SemanticConfigError
 from ..semantic.search import search
+from .citation_metadata import reference_metadata
 
 #: Default enterprise policy, used only when no control store is configured.
 DEFAULT_ROLE_SCOPES: dict[str, frozenset[str]] = {
@@ -265,7 +266,8 @@ def _verify_document_visibility(store, tenant_id: str, passages: list[dict],
         return passages
     paths = [path[len("document://"):] for path in managed]
     rows = store.connection.execute(
-        "SELECT source_path, acl_scope, status, parse_status, withdrawn_at "
+        "SELECT source_path, acl_scope, status, parse_status, withdrawn_at, "
+        "id, version, sha256, source_kind, classification, parse_detail "
         "FROM knowledge_documents WHERE tenant_id=%s AND source_path = ANY(%s)",
         (tenant_id, paths)).fetchall()
     store.connection.commit()
@@ -285,7 +287,11 @@ def _verify_document_visibility(store, tenant_id: str, passages: list[dict],
             continue
         if str(row["acl_scope"]) not in acl_scopes:
             continue
-        kept.append(passage)
+        # Labels are derived only after the current ACL/lifecycle check, and
+        # only when the captured version matches the provenance's content hash.
+        metadata = reference_metadata(row, passage)
+        captured = {key: value for key, value in passage.items() if key != "source_metadata"}
+        kept.append({**captured, **({"source_metadata": metadata} if metadata else {})})
     return kept
 
 

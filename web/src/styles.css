@@ -2924,23 +2924,38 @@ body.review #approval-panel { display: none !important; }
   line-height: 1.55;
 }
 .assistant-markdown pre code { padding: 0; background: transparent; font-size: 14px; white-space: pre; }
-.assistant-markdown table {
-  display: block;
-  width: max-content;
+/* DSH owns the focusable table wrapper. Keep scrolling there and preserve
+   native column sizing; a block table plus global nowrap lets text paint over
+   adjacent cells even when the page itself has no horizontal overflow. */
+.assistant-markdown [data-private-markdown] div:has(> table) {
   max-width: 100%;
-  margin: 0.85em 0;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-bottom: 0;
+}
+.assistant-markdown table {
+  display: table;
+  width: max-content;
+  max-width: none;
+  margin: 0.85em 0;
   border-collapse: collapse;
+  table-layout: auto;
   font-size: 14px;
   line-height: 1.55;
 }
-.assistant-markdown th,
-.assistant-markdown td {
+.assistant-markdown table th,
+.assistant-markdown table td {
+  min-width: 8rem;
+  max-width: min(20rem, 70vw);
   padding: 8px 10px;
   border: 1px solid #e4e7ec;
   text-align: left;
   vertical-align: top;
+  font-size: 14px;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
+.assistant-markdown table code { white-space: normal; overflow-wrap: anywhere; font-size: inherit; }
 .assistant-markdown th { background: #f8fafc; color: #344054; font-weight: 600; }
 .assistant-markdown tr:nth-child(even) td { background: #fcfcfd; }
 
@@ -3068,6 +3083,7 @@ body.review #approval-panel { display: none !important; }
   border-left: 1px solid var(--line);
 }
 .settings-content .settings-section { margin-top: 0; padding-top: 0; border-top: 0; }
+[data-knowledge-document] { overflow-wrap: anywhere; }
 .settings-shell-single { grid-template-columns: minmax(0, 1fr); }
 .settings-shell-single .settings-content { padding-left: 0; border-left: 0; }
 @media (max-width: 640px) {
@@ -3942,3 +3958,16 @@ body.review #approval-panel { display: none !important; }
 /* Focusable error summaries are a deliberate destination after general failures. */
 .login-card .error:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
 .login-card input[aria-invalid="true"] { border-color: #b42318; }
+
+/* Reviewer questions use the existing ask flow below the task cards. */
+.home-chat .chat-preset:not(.is-rich) {
+  flex-basis: 100%;
+  justify-content: flex-start;
+  max-width: 100%;
+  text-align: start;
+  background: transparent;
+  border-color: transparent;
+  padding-block: 5px;
+}
+.home-chat .chat-preset:not(.is-rich) .chat-preset-copy { overflow-wrap: anywhere; }
+.home-chat .chat-preset:not(.is-rich):hover { background: var(--surface-muted, #f7f8fa); }

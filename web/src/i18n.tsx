@@ -12,6 +12,23 @@ export type Lang = "en";
 // The public workbench is English-only. Every user-visible string lives in
 // this dictionary so the interface and its tests stay in one language.
 const en = {
+  "home.reviewerPolicy": "Can urgent purchases be ordered before approval and approved later? (Policy reference)",
+  "home.reviewerCoil": "How should I verify the coil ratings of an MY2N-GS-R DC24 with an LED?",
+  "home.reviewerImpact": "What is the impact scope?",
+  "home.reviewerImpactEntry": "What is the impact scope? → Historical synthetic example A",
+  "scope.orderPlan": "Planned supply for {order}: {stock} units from stock, {manufacturing} manufactured and {purchase} purchased. Planned ready: {ready}; customer deadline: {due}; buffer: {buffer} days.",
+  "scope.plannedNote": "These are planned allocations, not proof of receipt, completed production or delivery; inspect the case details for the full relationships.",
+  "scope.moreOrders": "Only the first 4 directly linked orders are expanded here; the case relationship view shows the full list.",
+  "scope.planningUnits": "Full planning scope: {units} units",
+  "scope.historicalEvidence": "Inspect the historical example’s impact and order evidence",
+  "scope.relationshipEvidence": "Inspect this plan’s impact and order evidence",
+  "assistant.sources": "Sources consulted",
+  "assistant.sourcesMore": "More consulted sources ({count})",
+  "assistant.sourcesNotice": "Retrieved material for review; each source may not support every statement.",
+  "assistant.sourceOriginalLocator": "Original source location",
+  "assistant.sourceIndustryReference": "Industry reference",
+  "assistant.sourceIndustryLimit": "Reference material; not your company policy, engineering release or execution authorization.",
+
   "navigation.signIn": "Sign in",
   "navigation.caseDetail": "Case {id}",
   "navigation.caseChat": "Case conversation {id}",
@@ -755,6 +772,9 @@ const en = {
   "assistant.harnessActivity": "Activity",
   "assistant.analyzing": "Analyzing the request…",
   "assistant.modelFallback": "Model unavailable; fell back to source citations",
+  "assistant.referenceFacts": "Reviewed reference parameter comparison",
+  "assistant.comparisonSources": "Comparison sources",
+  "assistant.comparisonSourcesNotice": "This comparison uses the versions below; open each source to review.",
   "assistant.citationsAria": "Cited sources",
   "assistant.answerFailed": "Answer failed: {detail}",
 
@@ -1080,8 +1100,8 @@ const en = {
   "cases.ageMinutes": "{count}m",
   "cases.ageHours": "{count}h",
   "cases.ageDays": "{count}d",
-  "cases.demoBanner": "Demo data: actions here do not affect company business records.",
-  "cases.demoExplain": "This is a preset demo: the data is synthetic so one full run can be shown, and nothing connects to a real system.",
+  "cases.demoBanner": "Historical synthetic example A (archived 2026-10-29): read-only replay, not the current ERP state.",
+  "cases.demoExplain": "This archived synthetic proposal was awaiting approval. Its plan and relationship evidence are read-only; this view cannot approve or execute, and does not show current company orders.",
   "cases.demoNote":
     "Product execution is unavailable ({reason}). The data below is preset; no case is created and demo occurs.",
   "cases.demoNoteUnavailable":
@@ -1348,7 +1368,7 @@ const en = {
   "inbox.data": "Data",
   "inbox.activityEmpty": "Activity appears here after the case is prepared.",
   "inbox.verifier": "Verifier",
-  "inbox.demoNote": "Demo case: the details below are preset and demo.",
+  "inbox.demoNote": "Historical synthetic example A: an archived plan, read-only and separate from the current ERP state.",
   "inbox.caseFile": "Case file",
   "inbox.plan": "Recovery plan",
 
@@ -1372,7 +1392,7 @@ const en = {
   "caseChat.localNote":
     "Case Q&A is unavailable; answered from the last retrieved case fields, not live state.",
   "caseChat.demoNote": "Demo data.",
-  "caseChat.demoBadge": "Demo",
+  "caseChat.demoBadge": "Historical synthetic example",
   "caseChat.placeholder": "Ask about this case…",
   "caseChat.hint": "Answers cite the case, plan, and verification record",
   "caseChat.composerNote":
@@ -1403,7 +1423,7 @@ const en = {
   "caseChat.answerSummary": "{disruption}. Total planning scope: {units} units of {product}; due: {due}. {impact} The plan contains {actions} proposed changes. Current state: {state}.",
   "caseChat.answerNoPlan":
     "No recovery plan has been prepared for this case, so there is nothing to execute.",
-  "caseChat.answerDemo": "This is a preset demo case.",
+  "caseChat.answerDemo": "Based on the synthetic proposal archived on 2026-10-29, not the current ERP state.",
 
   "knowledge.title": "Knowledge",
   "knowledge.subtitle":

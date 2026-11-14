@@ -86,6 +86,7 @@ type Props = {
   capabilities: Capabilities | null;
   caseReadBlocked?: boolean;
   evidenceOpen?: boolean;
+  impactOpen?: boolean;
   nextCaseId: string | null;
   onBack: () => void;
   onAsk: () => void;
@@ -1187,6 +1188,7 @@ export function CaseDetail({
   capabilities,
   caseReadBlocked = false,
   evidenceOpen = false,
+  impactOpen = false,
   nextCaseId,
   onBack,
   onAsk,
@@ -1238,6 +1240,16 @@ export function CaseDetail({
   useEffect(() => {
     if (evidenceOpen) { setTab("inbox"); window.setTimeout(() => evidenceRef.current?.scrollIntoView({ block: "start" }), 0); }
   }, [evidenceOpen]);
+  useEffect(() => {
+    if (!impactOpen) return;
+    const timer = window.setTimeout(() => {
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      const target = document.querySelector<HTMLElement>("[data-impact-chain]");
+      target?.scrollIntoView({ block: "start" });
+      target?.querySelector<HTMLElement>("h2")?.focus({ preventScroll: true });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [impactOpen, caseFile.plan?.plan_id]);
   useEffect(() => {
     if (writesBlocked) {
       setRiskOpen(false); setRiskAcknowledged(false); setConfirmedPlan(null);

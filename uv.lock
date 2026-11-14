@@ -749,6 +749,7 @@ planning = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "deepseek-harness-sdk" },
     { name = "odoo-client-lib" },
     { name = "ortools" },
     { name = "pytest" },
@@ -777,6 +778,7 @@ provides-extras = ["planning", "dsh-sdk", "docmind"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "deepseek-harness-sdk", specifier = "==0.2.1rc2" },
     { name = "odoo-client-lib", specifier = "==2.0.0" },
     { name = "ortools", specifier = "==9.15.6755" },
     { name = "pytest", specifier = ">=8,<10" },

@@ -11,8 +11,6 @@ import hashlib
 import json
 import os
 import queue
-import shlex
-import tempfile
 import threading
 import time
 from pathlib import Path
@@ -23,14 +21,13 @@ from .dsh_harness import (
     MAX_ACTIVITY,
     DshReply,
     DshUnavailable,
-    _citations,
+    _answer_sources,
     _finish_tool_step,
     _knowledge_passages,
     _result_payload,
     _result_text,
     _short,
     _tool_step,
-    _web_citations,
 )
 from .model_settings import assistant_model
 
@@ -90,18 +87,17 @@ def _events_to_view(events: list[dict[str, Any]]) -> tuple[
                     "status": "error" if message.get("isError") is True else "completed",
                     "result": message.get("content"),
                 })
-                payload = _result_payload(_result_text(message.get("content")))
-                new_passages, new_citations = _knowledge_passages(
-                    str(step.get("kind", "")), payload)
-                for passage in new_passages:
-                    if passage not in passages:
-                        passages.append(passage)
-                for citation in new_citations:
-                    if citation not in tool_citations:
-                        tool_citations.append(citation)
+                if step["status"] == "done":
+                    payload = _result_payload(_result_text(message.get("content")))
+                    new_passages, new_citations = _knowledge_passages(
+                        str(step.get("kind", "")), payload)
+                    passages.extend(new_passages)
+                    tool_citations.extend(new_citations)
         elif kind == "session" and isinstance(event.get("sessionId"), str):
             session_id = event["sessionId"]
-    return clean_answer(final), activity[:MAX_ACTIVITY], session_id, passages[:5], tool_citations[:5]
+    # The shared final selector needs all searches to retain a later cited
+    # specification. Each tool result is bounded by _knowledge_passages.
+    return clean_answer(final), activity[:MAX_ACTIVITY], session_id, passages, tool_citations
 
 
 class SdkDshHarness:
@@ -173,7 +169,8 @@ class SdkDshHarness:
         image_root = scoped_image_root(self.workspace, evidence)
         try:
             patch = scoped_patch(self.patch, evidence, image_root=image_root,
-                image_tool_module=self.cli.parent.parent.parent / "dsh-tool-fs/lib/index.js")
+                image_tool_module=self.cli.parent.parent.parent / "dsh-tool-fs/lib/index.js",
+                reasoning_effort=self.reasoning_effort)
             share_scoped_patch(patch)
         except (OSError, ValueError):
             raise DshUnavailable("dsh_permissions_unavailable") from None
@@ -210,21 +207,15 @@ class SdkDshHarness:
         temporary.write_text(json.dumps(self._configured, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         temporary.replace(self.sessions_file)
 
-    def _wrapper(self) -> Path:
-        path = self.home.parent / "dsh-sdk-wrapper.sh"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        # Owner-scoped SDK runtimes share this fixed launcher. Publishing a
-        # complete inode avoids truncating a script another runtime is starting.
-        descriptor, temporary = tempfile.mkstemp(dir=path.parent, prefix=".dsh-wrapper-")
-        try:
-            with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
-                handle.write('#!/bin/sh\nexec ' + shlex.quote(self.node) + " "
-                             + shlex.quote(str(self.cli)) + ' "$@"\n')
-            os.chmod(temporary, 0o700)
-            os.replace(temporary, path)
-        finally:
-            Path(temporary).unlink(missing_ok=True)
-        return path
+    def _launch_args(self) -> tuple[str, ...]:
+        # The pinned SDK 0.2.1rc2 accepts this explicit argv. Its underscored
+        # constructor option is protected by real-SDK startup/version tests.
+        # Keep self.node: production uses the installed privilege-reducing
+        # launcher here, not a bare node binary. Never execute a writable,
+        # per-request script (even atomic rename can hit Linux ETXTBSY when a
+        # concurrent fork briefly inherits the temporary writer descriptor).
+        return (self.node, str(self.cli.expanduser().resolve()), "--profile", "sdk",
+                "--patch", str(self.patch.expanduser().resolve()))
 
     def _runtime(self):
         if self._harness is not None:
@@ -233,13 +224,14 @@ class SdkDshHarness:
 
         from .dsh_environment import assistant_environment
 
-        env = assistant_environment(os.environ, home=self.home,
+        home = self.home.expanduser().resolve()
+        env = assistant_environment(os.environ, home=home,
                                     evidence=getattr(self, "evidence_path", ""))
         self._harness = DeepSeekHarness(
-            dsh_home=str(self.home),
+            _launch_args=self._launch_args(),
+            dsh_home=str(home),
             cwd=str(self.workspace),
             runtime_cwd=str(self.workspace),
-            dsh_bin=str(self._wrapper()),
             profile="sdk",
             patches=(str(self.patch),),
             provider=self.provider,
@@ -314,18 +306,14 @@ class SdkDshHarness:
         final = clean_answer(final or result.final_response)
         if not final:
             raise DshUnavailable("dsh_no_final")
-        citations = list(tool_citations) + _citations(final, self.knowledge_root) + _web_citations(final)
-        for step in activity:
-            for value in (step.get("label"), step.get("detail")):
-                for found in _citations(str(value or ""), self.knowledge_root) + _web_citations(str(value or "")):
-                    if found not in citations:
-                        citations.append(found)
+        passages, citations = _answer_sources(final, activity, self.knowledge_root,
+                                             passages, tool_citations)
         scope = "project" if citations or any(
             word in final.lower() for word in ("forgeflow", "approval", "executor", "verifier")
         ) else "general"
         return DshReply(
             answer=final,
-            citations=list(dict.fromkeys(citations))[:5],
+            citations=citations,
             activity=activity,
             session_id=sid or getattr(result, "session_id", None),
             scope=scope,

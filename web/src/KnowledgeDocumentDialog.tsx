@@ -32,13 +32,20 @@ export function KnowledgeDocumentDialog({ target, onClose }: { target: DocumentT
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [target.sourcePath, target.version, attempt]);
-  const title = `${target.sourcePath.split("/").pop()}${target.version ? ` · v${target.version}` : ""}`;
+  const title = `${target.sourceMetadata?.title || target.sourcePath.split("/").pop()}${target.version ? ` · v${target.version}` : ""}`;
   const labels = { code: { copyLabel: t("assistant.copyCode"), copiedLabel: t("assistant.copiedCode") }, footnotes: t("assistant.footnotes") };
   return <Modal open onClose={onClose} title={title} headless className="settings-dialog settings-dialog-wide">
     <div className="settings-head"><h2>{title}</h2>
       <button type="button" className="settings-close" aria-label={t("settings.close")} onClick={onClose} data-modal-autofocus="true">×</button>
     </div>
     <div className="settings-content" data-knowledge-document="true">
+      {target.sourceMetadata && <section className="settings-section">
+        {target.sourceMetadata.publisher && <p>{target.sourceMetadata.publisher}</p>}
+        {target.sourceMetadata.source_version && <p>{target.sourceMetadata.source_version}</p>}
+        {target.sourceMetadata.original_locator && <p>{t("assistant.sourceOriginalLocator")}: {target.sourceMetadata.original_locator}</p>}
+        {target.sourceMetadata.original_url && <a href={target.sourceMetadata.original_url} target="_blank" rel="noreferrer noopener">{target.sourceMetadata.original_url}</a>}
+        {target.sourceMetadata.material_class === "industry_reference" && <p className="muted">{t("assistant.sourceIndustryLimit")}</p>}
+      </section>}
       {target.excerpt && <section className="settings-section">
         <h3>{t("settings.documentExcerpt")}{target.locator ? ` · ${target.locator}` : ""}</h3>
         <div className="assistant-markdown"><PrivateMarkdown text={target.excerpt} labels={labels} /></div>

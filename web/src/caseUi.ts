@@ -1,5 +1,5 @@
 import { recordedApproval, planningAttention, decisionFactLines, hasNewSpendBasis, marginLabel, marginValue } from "./decisionSummary";
-import { impactAnswer, impactIntent, disruptionScopeLines } from "./impactFacts";
+import { impactAnswer, impactIntent, impactScopeAnswer, disruptionScopeLines } from "./impactFacts";
 import { recordedDueRange } from "./orderReadinessDates";
 import { originalScoreThresholdMiss } from "./verificationExplanation";
 import { ApiError } from "./api";
@@ -1209,7 +1209,6 @@ export function localCaseAnswer(
     if (caseFile.decision?.repreparation_pending) refs.push(t("v10.failedVersion", { version: caseFile.revision?.version ?? 1 }));
     return { text: `${t(pending.body)}${demoLine}`, citations: refs, local: true };
   }
-  const docs = plan ? plan.actions.length : 0;
   const spend = planNewSpend(plan);
   const verifier = verifierSummaryText(execution, t, caseFile.result);
   const checks = effectiveChecks(caseFile, t);
@@ -1383,19 +1382,7 @@ export function localCaseAnswer(
   }
 
   if (riskIntent) {
-    return {
-      text: `${t("caseChat.answerImpact", {
-        disruption: exceptionText(caseFile, t),
-        impact: disruptionScopeLines(plan, t).join(" "),
-        product: caseFile.order.product,
-        units: formatQuantity(caseFile.order.units),
-        orders: orders ?? t("v9.unknown"),
-        due: dueWindow(caseFile, t),
-        documents: docs,
-      })}${demoLine}`,
-      citations,
-      local: true,
-    };
+    return { text: impactScopeAnswer(plan, t, question) + demoLine, citations, local: true };
   }
 
   return {

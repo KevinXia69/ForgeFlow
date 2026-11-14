@@ -34,7 +34,8 @@ def scoped_image_root(workspace: Path, evidence: Path) -> Path:
 
 
 def scoped_patch(source: Path, evidence: Path, *, image_root: Path | None = None,
-                 image_tool_module: Path | None = None) -> Path:
+                 image_tool_module: Path | None = None,
+                 reasoning_effort: str | None = None) -> Path:
     """Fail closed on unreviewed compositions; bind MCP to a host snapshot."""
     try:
         rows = yaml.safe_load(source.read_text(encoding="utf-8"))
@@ -69,6 +70,31 @@ def scoped_patch(source: Path, evidence: Path, *, image_root: Path | None = None
             raise ValueError("unreviewed_assistant_plugin")
     if not found:
         raise ValueError("missing_scoped_evidence_tool")
+    if reasoning_effort is not None:
+        # CLI and SDK both consume this owner-bound composition. Preserve an
+        # explicit effort without adding capabilities or clamping it: the
+        # installed adapter rejects unknown/unsupported levels. None leaves
+        # the shared deployment profile's default untouched.
+        provider = None
+        profiles = []
+        for row in rows:
+            if row.get("id") == "agent-default-model":
+                config = row.get("config", {})
+                if not isinstance(config, dict):
+                    raise ValueError("invalid_assistant_composition")
+                if "provider" in config:
+                    provider = config["provider"]
+        for row in rows:
+            if row.get("id") == "llm-pi-ai":
+                config = row.get("config", {})
+                if not isinstance(config, dict) or not isinstance(config.get("providers", {}), dict):
+                    raise ValueError("invalid_assistant_composition")
+                profile = config.get("providers", {}).get(provider) if isinstance(provider, str) else None
+                if isinstance(profile, dict):
+                    profiles.append(profile)
+        if not profiles:
+            raise ValueError("missing_assistant_reasoning_provider")
+        profiles[-1]["reasoning"] = reasoning_effort
     # Last patch wins: a stale local profile cannot re-enable broad tools.
     rows.extend({"id": name, "disabled": True} for name in DISABLED_MODULES)
     # Keep the service required by SDK consumers but never construct an OTLP
